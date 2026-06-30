@@ -113,17 +113,29 @@ export async function getStockOnHandForProduct(warehouseId: number, stockId: num
 }
 
 /** Mal Kabul / Stok Ekleme (Goods Receipt) */
-export async function createGoodsReceipt(data: GoodsReceipt): Promise<void> {
+export async function createGoodsReceipt(data: GoodsReceiptDto): Promise<void> {
   const api = await getApi();
   // documentNo şimdilik boş gönderilecek
   if (!data.documentNo) data.documentNo = '';
-  await api.post('/Inventory/goods-receipt', data);
+  const response = await api.post('/Inventory/goods-receipt', data);
+  
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Stok ekleme işlemi başarısız oldu.');
+    err.response = response;
+    throw err;
+  }
 }
 
 /** Mal Çıkış / Stok Düşme (Goods Issue) */
 export async function createGoodsIssue(payload: GoodsIssueDto): Promise<void> {
   const api = await getApi();
-  await api.post('/Inventory/goods-issue', payload);
+  const response = await api.post('/Inventory/goods-issue', payload);
+  
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Stok azaltma işlemi başarısız oldu.');
+    err.response = response;
+    throw err;
+  }
 }
 
 export async function createStockTransfer(payload: StockTransferDto): Promise<void> {

@@ -8,6 +8,8 @@ import { useBarcode } from '../hooks/useBarcode';
 import { getStockByBarcode, Stock, createGoodsReceipt } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { Numpad } from '../components/Numpad';
+import { FeedbackService } from '../services/feedback';
 
 export function StockIncreaseScreen() {
   const navigation = useNavigation<any>();
@@ -16,10 +18,12 @@ export function StockIncreaseScreen() {
   const [barcode, setBarcode] = useState('');
   const [quantity, setQuantity] = useState('');
   const [note, setNote] = useState('');
+  const [numpadVisible, setNumpadVisible] = useState(false);
   const barcodeInputRef = React.useRef<TextInput>(null);
   
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
+  const showErrorLock = useUIStore((s) => s.showErrorLock);
 
   const handleScan = async (scannedBarcode: string) => {
     try {
@@ -28,8 +32,16 @@ export function StockIncreaseScreen() {
         throw new Error('Ürün kaydı bulunamadı (Eksik veya boş kayıt)');
       }
       setProduct(data);
-    } catch {
-      showToast({ message: 'Barkod bulunamadı: ' + scannedBarcode, type: 'error' });
+      FeedbackService.playLightImpact();
+    } catch (err: any) {
+      let msg = 'Barkod bulunamadı: ' + scannedBarcode;
+      if (err.response?.data?.message) {
+        msg = err.response.data.message;
+      } else if (err.message) {
+        msg = err.message;
+      }
+      FeedbackService.playError();
+      showErrorLock(msg);
     }
   };
 
@@ -55,7 +67,8 @@ export function StockIncreaseScreen() {
     
     const qty = parseInt(quantity);
     if (!qty || qty <= 0) {
-      showToast({ message: 'Geçerli bir miktar girin', type: 'error' });
+      FeedbackService.playError();
+      showErrorLock('Geçerli bir miktar girmelisiniz!');
       return;
     }
     
@@ -68,7 +81,9 @@ export function StockIncreaseScreen() {
           { stockId: product.id, receivedQty: qty }
         ]
       });
+      FeedbackService.playSuccess();
       showToast({ message: `${product.stockName} stoğu ${qty} artırıldı`, type: 'success' });
+      
       // Formu sıfırlayıp yeni ürüne geçişe hazırla
       setProduct(null);
       setQuantity('');
@@ -79,13 +94,22 @@ export function StockIncreaseScreen() {
       }, 100);
     } catch (err: any) {
       let errorMsg = err.message;
-      if (err.response?.data) {
-        errorMsg = typeof err.response.data === 'object' ? JSON.stringify(err.response.data, null, 2) : err.response.data;
+      
+      if (err.response) {
+        if (err.response.data?.message) {
+          errorMsg = err.response.data.message;
+        } else if (typeof err.response.data === 'string') {
+          errorMsg = err.response.data;
+        } else {
+          errorMsg = JSON.stringify(err.response.data, null, 2);
+        }
       }
+      
       console.error("=== STOCK INCREASE API ERROR ===");
       console.error(errorMsg);
       console.error("=================================");
-      showToast({ message: 'Hata oluştu. Detaylar terminale yazdırıldı.', type: 'error' });
+      FeedbackService.playError();
+      showErrorLock(`API HATASI:\n\n${errorMsg}`);
     }
   };
 
@@ -157,15 +181,17 @@ export function StockIncreaseScreen() {
                 >
                   <MaterialCommunityIcons name="minus" size={24} color={Colors.error} />
                 </TouchableOpacity>
-                <TextInput
-                  style={styles.quantityInput}
-                  value={quantity}
-                  onChangeText={setQuantity}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={Colors.outline}
-                  textAlign="center"
-                />
+                
+                <TouchableOpacity 
+                  style={styles.quantityInputTouchable} 
+                  onPress={() => setNumpadVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.quantityInputText, !quantity && styles.quantityInputPlaceholder]}>
+                    {quantity || '0'}
+                  </Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.qtyButton}
                   onPress={() => setQuantity(String((parseInt(quantity) || 0) + 1))}
@@ -200,6 +226,18 @@ export function StockIncreaseScreen() {
           </View>
         )}
       </ScrollView>
+
+      {product && (
+        <Numpad 
+          visible={numpadVisible}
+          onClose={() => setNumpadVisible(false)}
+          onType={(val) => setQuantity(prev => prev + val)}
+          onDelete={() => setQuantity(prev => prev.slice(0, -1))}
+          onSubmit={handleIncrease}
+          submitLabel="STOK ARTIR"
+          submitColor={Colors.primary}
+        />
+      )}
     </View>
   );
 }
@@ -254,10 +292,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant,
     alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface,
   },
-  quantityInput: {
+  quantityInputTouchable: {
     flex: 1, height: Spacing.touchTargetMin,
     borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant,
-    ...Typography.headlineMd, color: Colors.onSurface, backgroundColor: Colors.surface,
+    backgroundColor: Colors.surface,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quantityInputText: {
+    ...Typography.headlineMd, color: Colors.onSurface,
+  },
+  quantityInputPlaceholder: {
+    color: Colors.outline,
   },
   noteInput: {
     height: 80, backgroundColor: Colors.surface,

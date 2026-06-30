@@ -8,6 +8,8 @@ import { useBarcode } from '../hooks/useBarcode';
 import { getStockByBarcode, Stock, createGoodsIssue } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { Numpad } from '../components/Numpad';
+import { FeedbackService } from '../services/feedback';
 
 export function StockDecreaseScreen() {
   const navigation = useNavigation<any>();
@@ -16,10 +18,12 @@ export function StockDecreaseScreen() {
   const [barcode, setBarcode] = useState('');
   const [quantity, setQuantity] = useState('');
   const [note, setNote] = useState('');
+  const [numpadVisible, setNumpadVisible] = useState(false);
   const barcodeInputRef = React.useRef<TextInput>(null);
   
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
+  const showErrorLock = useUIStore((s) => s.showErrorLock);
 
   const handleScan = async (scannedBarcode: string) => {
     try {
@@ -28,8 +32,16 @@ export function StockDecreaseScreen() {
         throw new Error('Ürün kaydı bulunamadı (Eksik veya boş kayıt)');
       }
       setProduct(data);
-    } catch {
-      showToast({ message: 'Barkod bulunamadı: ' + scannedBarcode, type: 'error' });
+      FeedbackService.playLightImpact();
+    } catch (err: any) {
+      let msg = 'Barkod bulunamadı: ' + scannedBarcode;
+      if (err.response?.data?.message) {
+        msg = err.response.data.message;
+      } else if (err.message) {
+        msg = err.message;
+      }
+      FeedbackService.playError();
+      showErrorLock(msg);
     }
   };
 
@@ -55,17 +67,17 @@ export function StockDecreaseScreen() {
     
     const qty = parseInt(quantity);
     if (!qty || qty <= 0) {
-      showToast({ message: 'Geçerli bir miktar girin', type: 'error' });
+      FeedbackService.playError();
+      showErrorLock('Geçerli bir miktar girmelisiniz!');
       return;
     }
     
     if (product.qty !== undefined && qty > product.qty) {
-      Alert.alert('Uyarı', 'Azaltılacak miktar mevcut stoktan fazla. Devam etmek istiyor musunuz?', [
-        { text: 'İptal', style: 'cancel' },
-        { text: 'Devam', onPress: () => executeDecrease(qty) },
-      ]);
+      FeedbackService.playError();
+      showErrorLock(`Yetersiz stok! En fazla ${product.qty} adet çıkış yapabilirsiniz.`);
       return;
     }
+    
     executeDecrease(qty);
   };
 
@@ -73,13 +85,15 @@ export function StockDecreaseScreen() {
     try {
       await createGoodsIssue({
         documentDate: new Date().toISOString(),
-        documentNo: note.trim() || 'TRM-' + Date.now(), // minLength 1
+        documentNo: note.trim() || 'TRM-' + Date.now(),
         warehouseId: activeWarehouseId!,
         lines: [
           { stockId: product!.id, issuedQty: qty }
         ]
       });
+      FeedbackService.playSuccess();
       showToast({ message: `${product!.stockName} stoğu ${qty} azaltıldı`, type: 'success' });
+      
       // Formu sıfırlayıp yeni ürüne geçişe hazırla
       setProduct(null);
       setQuantity('');
@@ -90,13 +104,22 @@ export function StockDecreaseScreen() {
       }, 100);
     } catch (err: any) {
       let errorMsg = err.message;
-      if (err.response?.data) {
-        errorMsg = typeof err.response.data === 'object' ? JSON.stringify(err.response.data, null, 2) : err.response.data;
+      
+      if (err.response) {
+        if (err.response.data?.message) {
+          errorMsg = err.response.data.message;
+        } else if (typeof err.response.data === 'string') {
+          errorMsg = err.response.data;
+        } else {
+          errorMsg = JSON.stringify(err.response.data, null, 2);
+        }
       }
+      
       console.error("=== STOCK DECREASE API ERROR ===");
       console.error(errorMsg);
       console.error("=================================");
-      showToast({ message: 'Hata oluştu. Detaylar terminale yazdırıldı.', type: 'error' });
+      FeedbackService.playError();
+      showErrorLock(`API HATASI:\n\n${errorMsg}`);
     }
   };
 
@@ -157,7 +180,7 @@ export function StockDecreaseScreen() {
 
             {/* Miktar */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Düşülecek Miktar</Text>
+              <Text style={styles.inputLabel}>Çıkarılacak Miktar</Text>
               <View style={styles.quantityRow}>
                 <TouchableOpacity
                   style={styles.qtyButton}
@@ -168,15 +191,17 @@ export function StockDecreaseScreen() {
                 >
                   <MaterialCommunityIcons name="minus" size={24} color={Colors.error} />
                 </TouchableOpacity>
-                <TextInput
-                  style={styles.quantityInput}
-                  value={quantity}
-                  onChangeText={setQuantity}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={Colors.outline}
-                  textAlign="center"
-                />
+                
+                <TouchableOpacity 
+                  style={styles.quantityInputTouchable} 
+                  onPress={() => setNumpadVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.quantityInputText, !quantity && styles.quantityInputPlaceholder]}>
+                    {quantity || '0'}
+                  </Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.qtyButton}
                   onPress={() => setQuantity(String((parseInt(quantity) || 0) + 1))}
@@ -198,7 +223,6 @@ export function StockDecreaseScreen() {
                 multiline
               />
             </View>
-
             {/* Onayla */}
             <TouchableOpacity
               style={styles.decreaseButton}
@@ -206,11 +230,23 @@ export function StockDecreaseScreen() {
               activeOpacity={0.8}
             >
               <MaterialCommunityIcons name="minus-circle" size={20} color={Colors.onPrimary} />
-              <Text style={styles.decreaseButtonText}>Stok Düş</Text>
+              <Text style={styles.decreaseButtonText}>Stok Azalt</Text>
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
+
+      {product && (
+        <Numpad 
+          visible={numpadVisible}
+          onClose={() => setNumpadVisible(false)}
+          onType={(val) => setQuantity(prev => prev + val)}
+          onDelete={() => setQuantity(prev => prev.slice(0, -1))}
+          onSubmit={handleDecrease}
+          submitLabel="STOK AZALT"
+          submitColor={Colors.error}
+        />
+      )}
     </View>
   );
 }
@@ -265,10 +301,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant,
     alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface,
   },
-  quantityInput: {
+  quantityInputTouchable: {
     flex: 1, height: Spacing.touchTargetMin,
     borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant,
-    ...Typography.headlineMd, color: Colors.onSurface, backgroundColor: Colors.surface,
+    backgroundColor: Colors.surface,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quantityInputText: {
+    ...Typography.headlineMd, color: Colors.error,
+  },
+  quantityInputPlaceholder: {
+    color: Colors.outline,
   },
   noteInput: {
     height: 80, backgroundColor: Colors.surface,

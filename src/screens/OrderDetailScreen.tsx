@@ -7,6 +7,7 @@ import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { getOrderDetail, Order, OrderLine } from '../services/orders';
 import { useUIStore } from '../store/uiStore';
 import { useBarcode } from '../hooks/useBarcode';
+import { FeedbackService } from '../services/feedback';
 
 export function OrderDetailScreen() {
   const route = useRoute<any>();
@@ -17,6 +18,7 @@ export function OrderDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [barcode, setBarcode] = useState('');
   const showToast = useUIStore((s) => s.showToast);
+  const showErrorLock = useUIStore((s) => s.showErrorLock);
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -49,7 +51,8 @@ export function OrderDetailScreen() {
       const newPicked = (line.pickedQty || 0) + 1;
       
       if (newPicked > line.quantity) {
-        showToast({ message: 'Sipariş miktarını aştınız!', type: 'warning' });
+        FeedbackService.playError();
+        showErrorLock('Sipariş miktarını aştınız! Fazla ürün toplamaya çalışıyorsunuz.');
         return;
       }
       
@@ -61,9 +64,11 @@ export function OrderDetailScreen() {
       };
       
       setLines(newLines);
+      FeedbackService.playSuccess();
       showToast({ message: `${line.stockName} toplandı (${newPicked}/${line.quantity})`, type: 'success' });
     } else {
-      showToast({ message: 'Bu ürün siparişte bulunamadı!', type: 'error' });
+      FeedbackService.playError();
+      showErrorLock('Okuttuğunuz ürün siparişte bulunamadı!');
     }
   };
 

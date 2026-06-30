@@ -15,17 +15,24 @@ interface UIState {
   isLoading: boolean;
   loadingMessage: string;
   toast: ToastData | null;
+  
+  isErrorLocked: boolean;
+  errorLockMessage: string;
 
   showLoading: (message?: string) => void;
   hideLoading: () => void;
   showToast: (toast: ToastData) => void;
   hideToast: () => void;
+  showErrorLock: (message: string) => void;
+  hideErrorLock: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
   isLoading: false,
   loadingMessage: '',
   toast: null,
+  isErrorLocked: false,
+  errorLockMessage: '',
 
   showLoading: (message = 'Yükleniyor...') => {
     set({ isLoading: true, loadingMessage: message });
@@ -52,5 +59,13 @@ export const useUIStore = create<UIState>((set) => ({
 
   hideToast: () => {
     set({ toast: null });
+  },
+
+  showErrorLock: (message: string) => {
+    set({ isErrorLocked: true, errorLockMessage: message });
+  },
+
+  hideErrorLock: () => {
+    set({ isErrorLocked: false, errorLockMessage: '' });
   },
 }));
