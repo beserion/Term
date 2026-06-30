@@ -21,40 +21,11 @@ export function OrdersListScreen() {
 
   const fetchOrders = useCallback(async () => {
     try {
+      setLoading(true);
       const data = await getOrders(debouncedSearch || undefined);
       setOrders(data);
     } catch (error: any) {
       showToast({ message: 'Siparişler yüklenemedi', type: 'error' });
-      // Demo veri (API bağlanmadan test için)
-      setOrders([
-        {
-          id: '1',
-          orderNo: '2026-5531 YAVUZ',
-          companyName: 'UMUT BİLGİSAYAR',
-          status: 'Pending',
-          itemCount: 4,
-          buyerName: 'Ahmet Turan',
-          date: '18.06.2026',
-        },
-        {
-          id: '2',
-          orderNo: '2026-5532 DEMİR',
-          companyName: 'DEMİR LOJİSTİK A.Ş.',
-          status: 'Confirmed',
-          itemCount: 12,
-          buyerName: 'Elif Kaya',
-          date: '18.06.2026',
-        },
-        {
-          id: '3',
-          orderNo: '2026-5533 ŞAHİN',
-          companyName: 'ŞAHİN METAL SANAYİ',
-          status: 'Pending',
-          itemCount: 2,
-          buyerName: 'Murat Can',
-          date: '19.06.2026',
-        },
-      ]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -70,17 +41,22 @@ export function OrdersListScreen() {
     fetchOrders();
   };
 
-  const renderOrder = ({ item }: { item: Order }) => (
-    <OrderCard
-      orderNo={item.orderNo}
-      companyName={item.companyName}
-      status={item.status}
-      itemCount={item.itemCount}
-      buyerName={item.buyerName}
-      date={item.date}
-      onPress={() => navigation.navigate('OrderDetail', { orderId: item.id, title: item.orderNo })}
-    />
-  );
+  const renderOrder = ({ item }: { item: Order }) => {
+    // orderDate formatlama
+    const formattedDate = item.orderDate ? new Date(item.orderDate).toLocaleDateString('tr-TR') : '-';
+    
+    return (
+      <OrderCard
+        orderNo={item.documentNo || 'No Yok'}
+        companyName={item.partnerName || 'Cari Yok'}
+        status={item.status || 'Bilinmiyor'}
+        itemCount={0}
+        buyerName={''}
+        date={formattedDate}
+        onPress={() => navigation.navigate('OrderDetail', { orderId: item.id, title: item.documentNo })}
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>

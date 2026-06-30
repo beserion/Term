@@ -1,10 +1,5 @@
 import { getApi } from './api';
 
-/**
- * Sipariş API Servisleri
- * Endpoint'ler sonra Swagger'dan güncellenecek
- */
-
 export interface OrderLine {
   id: number;
   orderId: number;
@@ -30,10 +25,9 @@ export interface Order {
   lines?: OrderLine[];
 }
 
-export async function getOrders(search?: string): Promise<Order[]> {
+export async function getOrderList(): Promise<Order[]> {
   const api = await getApi();
-  const kriterStr = search ? `&kriter=${encodeURIComponent(search)}` : '';
-  const response = await api.get(`/Order/list?startRow=0&endRow=100${kriterStr}`);
+  const response = await api.get('/Order/list?startRow=0&endRow=100');
   
   if (response.data && response.data.data) {
     return response.data.data;
@@ -41,7 +35,7 @@ export async function getOrders(search?: string): Promise<Order[]> {
   return response.data || [];
 }
 
-export async function getOrderDetail(id: number | string): Promise<Order> {
+export async function getOrderDetails(id: number): Promise<Order> {
   const api = await getApi();
   const response = await api.get(`/Order/details?id=${id}`);
   

@@ -21,45 +21,12 @@ export function ShipmentsListScreen() {
 
   const fetchShipments = useCallback(async () => {
     try {
+      setLoading(true);
       const data = await getShipments(debouncedSearch || undefined);
       setShipments(data);
     } catch {
-      // Demo veri
-      setShipments([
-        {
-          id: '1',
-          title: 'KPS 26 İREM SULTAN RFQ-6998',
-          type: 'Manuel',
-          assignedTo: 'DİLAY ATEŞ',
-          date: '17 Haz 2026',
-          status: 'Not Completed',
-          invoiceStatus: 'Awaiting Invoice',
-          itemCount: 5,
-          linkedCount: 0,
-        },
-        {
-          id: '2',
-          title: 'LNR 42 ALPHA PRIME RFQ-7012',
-          type: 'Otomatik',
-          assignedTo: 'SYS GEN',
-          date: '18 Haz 2026',
-          status: 'In Transit',
-          invoiceStatus: 'Invoice Cleared',
-          itemCount: 12,
-          linkedCount: 12,
-        },
-        {
-          id: '3',
-          title: 'TRX 99 OMEGA STATION RFQ-7105',
-          type: 'Manuel',
-          assignedTo: 'JOHN DOE',
-          date: '19 Haz 2026',
-          status: 'Pending Review',
-          invoiceStatus: 'Awaiting Invoice',
-          itemCount: 3,
-          linkedCount: 1,
-        },
-      ]);
+      showToast({ message: 'Sevkiyatlar yüklenemedi', type: 'error' });
+      setShipments([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

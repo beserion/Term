@@ -40,11 +40,32 @@ export function DashboardScreen() {
       onPress: () => navigation.navigate('StockIncrease'),
     },
     {
+      title: 'Depo Transferi',
+      icon: 'swap-horizontal' as const,
+      iconColor: Colors.primary,
+      iconBgColor: 'rgba(208, 225, 251, 0.5)',
+      onPress: () => navigation.navigate('StockTransfer'),
+    },
+    {
+      title: 'Depo Sayım',
+      icon: 'clipboard-check-outline' as const,
+      iconColor: Colors.primary,
+      iconBgColor: 'rgba(30, 58, 138, 0.1)',
+      onPress: () => navigation.navigate('CycleCount'),
+    },
+    {
       title: 'Sevkiyatlar',
       icon: 'truck-delivery' as const,
       iconColor: Colors.primary,
       iconBgColor: 'rgba(30, 58, 138, 0.1)',
       onPress: () => navigation.navigate('ShippingTab'),
+    },
+    {
+      title: 'Görevler',
+      icon: 'clipboard-list-outline' as const,
+      iconColor: Colors.warning,
+      iconBgColor: 'rgba(245, 158, 11, 0.15)',
+      onPress: () => navigation.navigate('TasksScreen'),
     },
   ];
 

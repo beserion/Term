@@ -16,6 +16,7 @@ export function StockDecreaseScreen() {
   const [barcode, setBarcode] = useState('');
   const [quantity, setQuantity] = useState('');
   const [note, setNote] = useState('');
+  const barcodeInputRef = React.useRef<TextInput>(null);
   
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
@@ -79,11 +80,14 @@ export function StockDecreaseScreen() {
         ]
       });
       showToast({ message: `${product!.stockName} stoğu ${qty} azaltıldı`, type: 'success' });
-      if (product!.qty !== undefined) {
-         setProduct({ ...product!, qty: product!.qty - qty });
-      }
+      // Formu sıfırlayıp yeni ürüne geçişe hazırla
+      setProduct(null);
       setQuantity('');
       setNote('');
+      setBarcode('');
+      setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 100);
     } catch (err: any) {
       let errorMsg = err.message;
       if (err.response?.data) {
@@ -127,6 +131,7 @@ export function StockDecreaseScreen() {
             onChangeText={setBarcode}
             onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
             returnKeyType="search"
+            ref={barcodeInputRef}
             autoFocus={true}
             showSoftInputOnFocus={false}
           />

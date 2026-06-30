@@ -16,23 +16,11 @@ export function ShipmentDetailScreen() {
 
   const fetchDetail = async () => {
     try {
+      setRefreshing(true);
       const data = await getShipmentDetail(shipmentId);
       setDetail(data);
     } catch {
-      setDetail({
-        id: shipmentId,
-        title: 'KPS 26 İREM SULTAN RFQ-6998',
-        type: 'Manuel',
-        assignedTo: 'DİLAY ATEŞ',
-        date: '17 Haz 2026',
-        status: 'Not Completed',
-        invoiceStatus: 'Awaiting Invoice',
-        items: [
-          { id: '1', productName: 'Çelik Braket 100mm', barcode: '8690001001', quantity: 24, linked: true },
-          { id: '2', productName: 'Civata M8x50', barcode: '8690001002', quantity: 500, linked: false },
-          { id: '3', productName: 'Yağlayıcı 5L', barcode: '8690001003', quantity: 12, linked: true },
-        ],
-      });
+      setDetail(null);
     } finally {
       setRefreshing(false);
     }

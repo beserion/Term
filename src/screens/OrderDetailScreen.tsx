@@ -1,44 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl, Text, TouchableOpacity, TextInput } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TopAppBar } from '../components/TopAppBar';
-import { SummaryCard } from '../components/SummaryCard';
-import { FilterChips } from '../components/FilterChips';
-import { ProductCard } from '../components/ProductCard';
-import { EmptyState } from '../components/Toast';
-import { Colors, Spacing } from '../theme';
-import { getOrderDetail, receiveOrderItem, deleteOrderItem, OrderDetail, OrderItem } from '../services/orders';
+import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
+import { getOrderDetail, Order, OrderLine } from '../services/orders';
 import { useUIStore } from '../store/uiStore';
+import { useBarcode } from '../hooks/useBarcode';
 
 export function OrderDetailScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { orderId } = route.params || {};
-  const [detail, setDetail] = useState<OrderDetail | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState(0);
+  const [detail, setDetail] = useState<Order | null>(null);
+  const [lines, setLines] = useState<OrderLine[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [barcode, setBarcode] = useState('');
   const showToast = useUIStore((s) => s.showToast);
 
   const fetchDetail = useCallback(async () => {
     try {
+      setRefreshing(true);
       const data = await getOrderDetail(orderId);
       setDetail(data);
+      if (data.lines) {
+        // İlk yüklemede pickedQty 0 başlasın
+        setLines(data.lines.map(line => ({ ...line, pickedQty: 0, isPicked: false })));
+      }
     } catch {
-      // Demo veri
-      setDetail({
-        id: orderId,
-        orderNo: '2026-5531',
-        companyName: 'UMUT BİLGİSAYAR',
-        status: 'Pending',
-        totalItems: 17,
-        totalQuantity: 116,
-        suppliers: ['AL NALBURIYE', 'AS TEKNİK'],
-        items: [
-          { id: '1', productName: 'Ağır Hizmet Çelik Braket - 100mm', requiredQuantity: 24, receivedQuantity: 24, status: 'Received', supplier: 'AL NALBURIYE' },
-          { id: '2', productName: 'Galvanizli Altıgen Civata M8x50', requiredQuantity: 500, receivedQuantity: 0, status: 'Pending', supplier: 'AL NALBURIYE' },
-          { id: '3', productName: 'Endüstriyel Yağlayıcı 5L', requiredQuantity: 12, receivedQuantity: 12, status: 'Received', supplier: 'AS TEKNİK' },
-        ],
-      });
+      showToast({ message: 'Sipariş detayı yüklenemedi', type: 'error' });
     } finally {
       setRefreshing(false);
     }
@@ -48,96 +38,129 @@ export function OrderDetailScreen() {
     fetchDetail();
   }, [fetchDetail]);
 
-  const filterLabels = detail
-    ? ['Tümü', ...(detail.suppliers || [])]
-    : ['Tümü'];
-
-  const filteredItems = detail?.items?.filter((item) => {
-    if (selectedFilter === 0) return true;
-    return item.supplier === detail.suppliers[selectedFilter - 1];
-  }) || [];
-
-  const handleReceive = async (item: OrderItem) => {
-    try {
-      await receiveOrderItem(orderId, item.id);
-      showToast({ message: `${item.productName} teslim alındı`, type: 'success' });
-      fetchDetail();
-    } catch {
-      showToast({ message: 'İşlem başarısız', type: 'error' });
+  const handleScan = (scannedCode: string) => {
+    if (!lines || lines.length === 0) return;
+    
+    // Okutulan barkodu Sipariş kalemlerinde ara
+    const lineIndex = lines.findIndex(l => l.stockCode === scannedCode || l.stockId.toString() === scannedCode);
+    
+    if (lineIndex !== -1) {
+      const line = lines[lineIndex];
+      const newPicked = (line.pickedQty || 0) + 1;
+      
+      if (newPicked > line.quantity) {
+        showToast({ message: 'Sipariş miktarını aştınız!', type: 'warning' });
+        return;
+      }
+      
+      const newLines = [...lines];
+      newLines[lineIndex] = {
+        ...line,
+        pickedQty: newPicked,
+        isPicked: newPicked === line.quantity
+      };
+      
+      setLines(newLines);
+      showToast({ message: `${line.stockName} toplandı (${newPicked}/${line.quantity})`, type: 'success' });
+    } else {
+      showToast({ message: 'Bu ürün siparişte bulunamadı!', type: 'error' });
     }
   };
 
-  const handleDelete = async (item: OrderItem) => {
-    try {
-      await deleteOrderItem(orderId, item.id);
-      showToast({ message: `${item.productName} silindi`, type: 'success' });
-      fetchDetail();
-    } catch {
-      showToast({ message: 'Silme işlemi başarısız', type: 'error' });
-    }
-  };
+  useBarcode(handleScan);
 
-  const renderItem = ({ item }: { item: OrderItem }) => (
-    <ProductCard
-      productName={item.productName}
-      requiredQuantity={item.requiredQuantity}
-      status={item.status}
-      onReceive={() => handleReceive(item)}
-      onDelete={() => handleDelete(item)}
-    />
+  useEffect(() => {
+    if (barcode.trim().length >= 4) {
+      const timeout = setTimeout(() => {
+        handleScan(barcode.trim());
+        setBarcode('');
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [barcode]);
+
+  const totalRequired = lines.reduce((acc, l) => acc + l.quantity, 0);
+  const totalPicked = lines.reduce((acc, l) => acc + (l.pickedQty || 0), 0);
+  const isComplete = totalRequired > 0 && totalPicked === totalRequired;
+
+  const renderItem = ({ item }: { item: OrderLine }) => (
+    <View style={[styles.productCard, item.isPicked && styles.productCardPicked]}>
+      <View style={styles.productIconBox}>
+        <MaterialCommunityIcons 
+          name={item.isPicked ? "check-circle" : "package-variant-closed"} 
+          size={24} 
+          color={item.isPicked ? Colors.success : Colors.primary} 
+        />
+      </View>
+      <View style={styles.productInfo}>
+        <Text style={styles.productCode}>{item.stockCode}</Text>
+        <Text style={styles.productName}>{item.stockName}</Text>
+      </View>
+      <View style={styles.qtyBox}>
+        <Text style={[styles.qtyPicked, item.isPicked && { color: Colors.success }]}>
+          {item.pickedQty || 0}
+        </Text>
+        <Text style={styles.qtyTotal}> / {item.quantity}</Text>
+      </View>
+    </View>
   );
 
   return (
     <View style={styles.container}>
       <TopAppBar
-        title="Sipariş Detayı"
+        title={detail ? `Sipariş: ${detail.documentNo}` : "Sipariş Detayı"}
         onBack={() => navigation.goBack()}
         showBack={true}
       />
 
+      {/* Progress & Scan Area */}
+      <View style={styles.headerArea}>
+        <View style={styles.progressRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.progressLabel}>Toplama Durumu</Text>
+            <Text style={styles.progressValue}>{totalPicked} / {totalRequired} Ürün</Text>
+          </View>
+          <View style={[styles.statusBadge, isComplete && styles.statusBadgeComplete]}>
+            <Text style={[styles.statusText, isComplete && styles.statusTextComplete]}>
+              {isComplete ? 'TAMAMLANDI' : 'DEVAM EDİYOR'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.scanRow}>
+          <TextInput
+            style={styles.barcodeInput}
+            placeholder="Ürün barkodunu okutun..."
+            placeholderTextColor={Colors.outline}
+            value={barcode}
+            onChangeText={setBarcode}
+            onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
+            returnKeyType="search"
+            showSoftInputOnFocus={false}
+          />
+        </View>
+      </View>
+
       <FlatList
-        data={filteredItems}
+        data={lines}
         renderItem={renderItem}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); fetchDetail(); }}
+            onRefresh={fetchDetail}
             colors={[Colors.primary]}
           />
         }
-        ListHeaderComponent={
-          <>
-            {/* Özet Kartı */}
-            {detail && (
-              <View style={styles.summaryWrapper}>
-                <SummaryCard
-                  leftLabel="Toplam Kalem"
-                  leftValue={detail.totalItems}
-                  rightLabel="Toplam Miktar"
-                  rightValue={detail.totalQuantity}
-                />
-              </View>
-            )}
-
-            {/* Filtre Chip'leri */}
-            <View style={styles.filterWrapper}>
-              <FilterChips
-                items={filterLabels}
-                selectedIndex={selectedFilter}
-                onSelect={setSelectedFilter}
-              />
-            </View>
-          </>
-        }
         ListEmptyComponent={
-          <EmptyState
-            icon="package-variant"
-            title="Ürün bulunamadı"
-          />
+          !refreshing ? (
+            <View style={{ padding: 40, alignItems: 'center' }}>
+              <MaterialCommunityIcons name="clipboard-alert-outline" size={48} color={Colors.outline} />
+              <Text style={{ marginTop: 10, color: Colors.outline }}>Bu siparişte kalem bulunmuyor.</Text>
+            </View>
+          ) : null
         }
       />
     </View>
@@ -149,19 +172,114 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  summaryWrapper: {
-    paddingHorizontal: Spacing.marginMobile,
-    paddingTop: Spacing.stackGap,
-    paddingBottom: Spacing.gutter,
+  headerArea: {
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.outlineVariant,
+    ...Shadow.sm,
   },
-  filterWrapper: {
-    paddingBottom: Spacing.gutter,
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  progressLabel: {
+    ...Typography.labelMd,
+    color: Colors.outline,
+  },
+  progressValue: {
+    ...Typography.titleLg,
+    color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  statusBadge: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(30, 58, 138, 0.1)',
+  },
+  statusBadgeComplete: {
+    backgroundColor: 'rgba(52, 168, 83, 0.1)',
+  },
+  statusText: {
+    ...Typography.labelSm,
+    color: Colors.primary,
+  },
+  statusTextComplete: {
+    color: Colors.success,
+  },
+  scanRow: {
+    flexDirection: 'row',
+  },
+  barcodeInput: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    height: 56,
+    ...Typography.bodyLg,
+    color: Colors.onSurface,
   },
   listContent: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
     paddingBottom: 40,
   },
-  separator: {
-    height: Spacing.gutter,
-    paddingHorizontal: Spacing.marginMobile,
+  productCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    ...Shadow.sm,
+  },
+  productCardPicked: {
+    backgroundColor: 'rgba(52, 168, 83, 0.05)',
+    borderColor: 'rgba(52, 168, 83, 0.3)',
+  },
+  productIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  productInfo: {
+    flex: 1,
+  },
+  productCode: {
+    ...Typography.labelSm,
+    color: Colors.outline,
+  },
+  productName: {
+    ...Typography.bodyLg,
+    color: Colors.onSurface,
+    fontWeight: '500',
+  },
+  qtyBox: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+  },
+  qtyPicked: {
+    ...Typography.titleLg,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+  },
+  qtyTotal: {
+    ...Typography.bodyMd,
+    color: Colors.outline,
+    marginLeft: 2,
   },
 });

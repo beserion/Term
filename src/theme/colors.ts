@@ -40,6 +40,16 @@ export const Colors = {
   onError: '#ffffff',
   onErrorContainer: '#93000a',
 
+  // Warning
+  warning: '#F59E0B',
+  onWarning: '#ffffff',
+  warningContainer: '#FEF3C7',
+
+  // Success
+  success: '#10B981',
+  onSuccess: '#ffffff',
+  successContainer: '#D1FAE5',
+
   // Surface
   surface: '#f7fafd',
   surfaceBright: '#f7fafd',

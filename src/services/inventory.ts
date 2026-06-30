@@ -47,6 +47,27 @@ export interface GoodsIssueDto {
   }>;
 }
 
+export interface StockTransferDto {
+  documentDate: string;
+  documentNo: string;
+  fromWarehouseId: number;
+  toWarehouseId: number;
+  lines: Array<{
+    stockId: number;
+    transferQty: number;
+  }>;
+}
+
+export interface CycleCountDto {
+  documentNo: string;
+  countDate: string;
+  warehouseId: number;
+  lines: Array<{
+    stockId: number;
+    countedQty: number;
+  }>;
+}
+
 /** Tüm depoları getirir */
 export async function getWarehouses(): Promise<Warehouse[]> {
   const api = await getApi();
@@ -100,8 +121,26 @@ export async function createGoodsReceipt(data: GoodsReceipt): Promise<void> {
 }
 
 /** Mal Çıkış / Stok Düşme (Goods Issue) */
-export async function createGoodsIssue(data: GoodsIssue): Promise<void> {
+export async function createGoodsIssue(payload: GoodsIssueDto): Promise<void> {
   const api = await getApi();
-  if (!data.documentNo) data.documentNo = '';
-  await api.post('/Inventory/goods-issue', data);
+  await api.post('/Inventory/goods-issue', payload);
+}
+
+export async function createStockTransfer(payload: StockTransferDto): Promise<void> {
+  const api = await getApi();
+  await api.post('/Inventory/stock-transfer', payload);
+}
+
+export async function createCycleCount(payload: CycleCountDto): Promise<any> {
+  const api = await getApi();
+  const response = await api.post('/Inventory/cycle-count', payload);
+  if (response.data && response.data.data) {
+    return response.data.data;
+  }
+  return response.data;
+}
+
+export async function completeCycleCount(id: number): Promise<void> {
+  const api = await getApi();
+  await api.post(`/Inventory/cycle-count/${id}/complete`);
 }

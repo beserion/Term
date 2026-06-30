@@ -38,14 +38,21 @@ export interface ShipmentItem {
 /** Sevkiyatları listele */
 export async function getShipments(search?: string): Promise<Shipment[]> {
   const api = await getApi();
-  const params = search ? { search } : {};
-  const response = await api.get<Shipment[]>('/shipments', { params });
-  return response.data;
+  const kriterStr = search ? `&kriter=${encodeURIComponent(search)}` : '';
+  const response = await api.get(`/Delivery/list?startRow=0&endRow=100${kriterStr}`);
+  
+  if (response.data && response.data.data) {
+    return response.data.data;
+  }
+  return response.data || [];
 }
 
 /** Sevkiyat detayını getir */
 export async function getShipmentDetail(shipmentId: string | number): Promise<ShipmentDetail> {
   const api = await getApi();
-  const response = await api.get<ShipmentDetail>(`/shipments/${shipmentId}`);
+  const response = await api.get(`/Delivery/details?id=${shipmentId}`);
+  if (response.data && response.data.data) {
+    return response.data.data;
+  }
   return response.data;
 }
