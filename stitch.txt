@@ -1,0 +1,1674 @@
+<!-- Design System -->
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Warehouse Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e0e3e6",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#0b1c30",
+                        "outline": "#757682",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#773205",
+                        "surface": "#f7fafd",
+                        "background": "#f7fafd",
+                        "secondary-container": "#d0e1fb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#181c1e",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "on-tertiary-container": "#f39461",
+                        "tertiary": "#4b1c00",
+                        "surface-container-low": "#f1f4f7",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-primary-fixed": "#00164e",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f7fafd",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#54647a",
+                        "on-surface-variant": "#444651",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "primary": "#00236f",
+                        "secondary": "#505f76",
+                        "surface-container": "#ebeef1",
+                        "primary-fixed": "#dce1ff",
+                        "on-tertiary-fixed": "#341100",
+                        "on-primary-container": "#90a8ff",
+                        "surface-tint": "#4059aa",
+                        "tertiary-container": "#6e2c00",
+                        "primary-container": "#1e3a8a",
+                        "surface-dim": "#d7dadd",
+                        "inverse-on-surface": "#eef1f4",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#2d3133",
+                        "outline-variant": "#c5c5d3",
+                        "surface-container-high": "#e5e8eb",
+                        "secondary-fixed": "#d3e4fe",
+                        "inverse-primary": "#b6c4ff",
+                        "on-surface": "#181c1e",
+                        "on-primary-fixed-variant": "#264191",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "surface-container-highest": "#e0e3e6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "margin_mobile": "16px",
+                        "touch_target_min": "48px",
+                        "stack_gap": "8px",
+                        "card_padding": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600" }],
+                        "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md antialiased pb-24">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-background docked full-width top-0 bg-surface dark:bg-background flat no shadows flex items-center justify-between px-margin_mobile h-14 w-full sticky z-40">
+<div class="flex items-center gap-4">
+<button aria-label="Menu" class="w-touch_target_min h-touch_target_min flex items-center justify-center text-primary dark:text-primary-fixed hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:opacity-80 transition-opacity duration-150 rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 0;">menu</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed">Welcome, Yahya Karacan</h1>
+</div>
+<div class="flex items-center">
+<button class="w-10 h-10 rounded-full overflow-hidden hover:bg-surface-container-high transition-colors active:opacity-80 flex items-center justify-center bg-surface-container">
+<span class="material-symbols-outlined text-primary">person</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow px-margin_mobile pt-6 pb-6">
+<!-- Dashboard Grid -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Card 1: Orders -->
+<button class="bg-surface-container-lowest rounded-xl p-card_padding flex flex-col items-center justify-center gap-stack_gap aspect-square shadow-[0_1px_3px_0_rgba(0,0,0,0.08),_0_1px_2px_-1px_rgba(0,0,0,0.08)] hover:bg-surface-container-low active:scale-[0.98] transition-all border border-transparent focus:border-primary focus:outline-none min-h-[120px]">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 text-primary flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: &quot;FILL&quot; 0;">visibility</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Orders</span>
+</button>
+<!-- Card 2: Product Check -->
+<button class="bg-surface-container-lowest rounded-xl p-card_padding flex flex-col items-center justify-center gap-stack_gap aspect-square shadow-[0_1px_3px_0_rgba(0,0,0,0.08),_0_1px_2px_-1px_rgba(0,0,0,0.08)] hover:bg-surface-container-low active:scale-[0.98] transition-all border border-transparent focus:border-primary focus:outline-none min-h-[120px]">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 text-primary flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: &quot;FILL&quot; 0;">barcode_scanner</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Product Check</span>
+</button>
+<!-- Card 3: Stock Decrease -->
+<button class="bg-surface-container-lowest rounded-xl p-card_padding flex flex-col items-center justify-center gap-stack_gap aspect-square shadow-[0_1px_3px_0_rgba(0,0,0,0.08),_0_1px_2px_-1px_rgba(0,0,0,0.08)] hover:bg-surface-container-low active:scale-[0.98] transition-all border border-transparent focus:border-primary focus:outline-none min-h-[120px]">
+<div class="w-12 h-12 rounded-full bg-error-container/50 text-error flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: &quot;FILL&quot; 0;">remove_circle_outline</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Stock Decrease</span>
+</button>
+<!-- Card 4: Stock Increase -->
+<button class="bg-surface-container-lowest rounded-xl p-card_padding flex flex-col items-center justify-center gap-stack_gap aspect-square shadow-[0_1px_3px_0_rgba(0,0,0,0.08),_0_1px_2px_-1px_rgba(0,0,0,0.08)] hover:bg-surface-container-low active:scale-[0.98] transition-all border border-transparent focus:border-primary focus:outline-none min-h-[120px]">
+<div class="w-12 h-12 rounded-full bg-secondary-container/50 text-primary flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: &quot;FILL&quot; 0;">add_circle_outline</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Stock Increase</span>
+</button>
+<!-- Card 5: Drafts -->
+<button class="bg-surface-container-lowest rounded-xl p-card_padding flex flex-col items-center justify-center gap-stack_gap aspect-square shadow-[0_1px_3px_0_rgba(0,0,0,0.08),_0_1px_2px_-1px_rgba(0,0,0,0.08)] hover:bg-surface-container-low active:scale-[0.98] transition-all border border-transparent focus:border-primary focus:outline-none min-h-[120px]">
+<div class="w-12 h-12 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: &quot;FILL&quot; 0;">list_alt</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Drafts</span>
+</button>
+<!-- Card 6: Shipments -->
+<button class="bg-surface-container-lowest rounded-xl p-card_padding flex flex-col items-center justify-center gap-stack_gap aspect-square shadow-[0_1px_3px_0_rgba(0,0,0,0.08),_0_1px_2px_-1px_rgba(0,0,0,0.08)] hover:bg-surface-container-low active:scale-[0.98] transition-all border border-transparent focus:border-primary focus:outline-none min-h-[120px]">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 text-primary flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: &quot;FILL&quot; 0;">local_shipping</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Shipments</span>
+</button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-surface-container dark:bg-surface-container-lowest shadow-[0_-1px_3px_0_rgba(0,0,0,0.08)] shadow-sm fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-2 pt-2 h-20 md:hidden">
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 hover:bg-secondary-container transition-all active:scale-95 duration-100 ease-in-out min-w-[64px] min-h-[48px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: &quot;FILL&quot; 1;">inventory_2</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-secondary-container hover:bg-secondary-container transition-all active:scale-95 duration-100 ease-in-out rounded-xl px-2 py-1 min-w-[64px] min-h-[48px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: &quot;FILL&quot; 0;">input</span>
+<span class="font-label-md text-label-md">Receiving</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-secondary-container hover:bg-secondary-container transition-all active:scale-95 duration-100 ease-in-out rounded-xl px-2 py-1 min-w-[64px] min-h-[48px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: &quot;FILL&quot; 0;">local_shipping</span>
+<span class="font-label-md text-label-md">Shipping</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-secondary-container hover:bg-secondary-container transition-all active:scale-95 duration-100 ease-in-out rounded-xl px-2 py-1 min-w-[64px] min-h-[48px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: &quot;FILL&quot; 0;">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</button>
+</nav>
+
+
+</body></html>
+
+<!-- Main Dashboard -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Order Details &amp; Receiving</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-variant": "#e0e3e6",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#0b1c30",
+                      "outline": "#757682",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#773205",
+                      "surface": "#f7fafd",
+                      "background": "#f7fafd",
+                      "secondary-container": "#d0e1fb",
+                      "surface-container-lowest": "#ffffff",
+                      "on-background": "#181c1e",
+                      "tertiary-fixed-dim": "#ffb691",
+                      "on-tertiary-container": "#f39461",
+                      "tertiary": "#4b1c00",
+                      "surface-container-low": "#f1f4f7",
+                      "tertiary-fixed": "#ffdbcb",
+                      "on-primary-fixed": "#00164e",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f7fafd",
+                      "on-error-container": "#93000a",
+                      "on-secondary-container": "#54647a",
+                      "on-surface-variant": "#444651",
+                      "on-secondary": "#ffffff",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "primary": "#00236f",
+                      "secondary": "#505f76",
+                      "surface-container": "#ebeef1",
+                      "primary-fixed": "#dce1ff",
+                      "on-tertiary-fixed": "#341100",
+                      "on-primary-container": "#90a8ff",
+                      "surface-tint": "#4059aa",
+                      "tertiary-container": "#6e2c00",
+                      "primary-container": "#1e3a8a",
+                      "surface-dim": "#d7dadd",
+                      "inverse-on-surface": "#eef1f4",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "on-primary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "inverse-surface": "#2d3133",
+                      "outline-variant": "#c5c5d3",
+                      "surface-container-high": "#e5e8eb",
+                      "secondary-fixed": "#d3e4fe",
+                      "inverse-primary": "#b6c4ff",
+                      "on-surface": "#181c1e",
+                      "on-primary-fixed-variant": "#264191",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "surface-container-highest": "#e0e3e6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "12px",
+                      "margin_mobile": "16px",
+                      "touch_target_min": "48px",
+                      "stack_gap": "8px",
+                      "card_padding": "16px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Inter"],
+                      "label-lg": ["Inter"],
+                      "label-md": ["Inter"],
+                      "data-mono": ["JetBrains Mono"],
+                      "body-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "headline-sm": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                      "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600"}],
+                      "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "headline-sm-mobile": ["18px", {"lineHeight": "24px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Utilities for touch devices */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .touch-action-manipulation { touch-action: manipulation; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col md:max-w-md md:mx-auto md:border-x md:border-surface-variant md:shadow-xl">
+<!-- TopAppBar (Order Details - Focused Journey) -->
+<header class="bg-surface sticky top-0 z-50 flex items-center justify-between px-margin_mobile h-14 w-full shadow-sm">
+<button aria-label="Go back" class="min-h-touch_target_min min-w-[48px] flex items-center justify-start text-on-surface hover:bg-surface-container-high transition-colors active:opacity-80 rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-headline-sm-mobile text-headline-sm-mobile text-on-surface flex-1 text-center pr-[48px] truncate">Order Details</h1>
+</header>
+<!-- Main Scrollable Canvas -->
+<main class="flex-1 overflow-y-auto px-margin_mobile py-stack_gap hide-scrollbar pb-8">
+<!-- Summary Card -->
+<section class="bg-surface rounded-lg shadow-sm p-card_padding mb-gutter border border-surface-container-highest">
+<div class="flex justify-between items-center">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Total Items</span>
+<span class="font-headline-md text-headline-md text-on-surface">17</span>
+</div>
+<div class="h-8 w-px bg-outline-variant"></div>
+<div class="flex flex-col gap-1 text-right">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Total Quantity</span>
+<span class="font-headline-md text-headline-md text-primary">116</span>
+</div>
+</div>
+</section>
+<!-- Filter Chips (Horizontal Scroll) -->
+<section class="mb-gutter -mx-margin_mobile px-margin_mobile">
+<div class="flex overflow-x-auto gap-stack_gap pb-2 snap-x hide-scrollbar items-center">
+<button class="min-h-touch_target_min px-6 rounded-full bg-primary-container text-on-primary-container font-label-lg text-label-lg whitespace-nowrap snap-start flex-shrink-0 touch-action-manipulation transition-colors">
+                    All
+                </button>
+<button class="min-h-touch_target_min px-6 rounded-full border border-outline text-on-surface font-label-lg text-label-lg whitespace-nowrap snap-start flex-shrink-0 touch-action-manipulation active:bg-surface-container-highest transition-colors">
+                    AL NALBURIYE
+                </button>
+<button class="min-h-touch_target_min px-6 rounded-full border border-outline text-on-surface font-label-lg text-label-lg whitespace-nowrap snap-start flex-shrink-0 touch-action-manipulation active:bg-surface-container-highest transition-colors">
+                    AS TEKNIK
+                </button>
+</div>
+</section>
+<!-- Product List -->
+<section class="flex flex-col gap-gutter">
+<!-- Product Card 1 -->
+<article class="bg-surface rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-card_padding flex flex-col gap-stack_gap border border-surface-container-highest">
+<div class="flex justify-between items-start gap-4">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Heavy Duty Steel Bracket - 100mm</h2>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md whitespace-nowrap">
+                        Received
+                    </span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Required Quantity: <strong class="text-on-surface font-data-mono">24</strong></span>
+</div>
+<div class="flex gap-stack_gap mt-2">
+<button class="flex-1 min-h-touch_target_min bg-primary text-on-primary rounded font-label-lg text-label-lg flex items-center justify-center gap-2 touch-action-manipulation active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+                        Receive
+                    </button>
+<button class="flex-1 min-h-touch_target_min border border-error text-error rounded font-label-lg text-label-lg flex items-center justify-center gap-2 touch-action-manipulation active:bg-error-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+                        Delete
+                    </button>
+</div>
+</article>
+<!-- Product Card 2 (Pending State Example) -->
+<article class="bg-surface rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-card_padding flex flex-col gap-stack_gap border border-surface-container-highest">
+<div class="flex justify-between items-start gap-4">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Galvanized Hex Bolt M8x50</h2>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-variant text-on-surface-variant font-label-md text-label-md whitespace-nowrap">
+                        Pending
+                    </span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Required Quantity: <strong class="text-on-surface font-data-mono">500</strong></span>
+</div>
+<div class="flex gap-stack_gap mt-2">
+<button class="flex-1 min-h-touch_target_min bg-primary text-on-primary rounded font-label-lg text-label-lg flex items-center justify-center gap-2 touch-action-manipulation active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+                        Receive
+                    </button>
+<button class="flex-1 min-h-touch_target_min border border-error text-error rounded font-label-lg text-label-lg flex items-center justify-center gap-2 touch-action-manipulation active:bg-error-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+                        Delete
+                    </button>
+</div>
+</article>
+<!-- Product Card 3 -->
+<article class="bg-surface rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-card_padding flex flex-col gap-stack_gap border border-surface-container-highest">
+<div class="flex justify-between items-start gap-4">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Industrial Lubricant 5L</h2>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md whitespace-nowrap">
+                        Received
+                    </span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Required Quantity: <strong class="text-on-surface font-data-mono">12</strong></span>
+</div>
+<div class="flex gap-stack_gap mt-2">
+<button class="flex-1 min-h-touch_target_min bg-primary text-on-primary rounded font-label-lg text-label-lg flex items-center justify-center gap-2 touch-action-manipulation active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+                        Receive
+                    </button>
+<button class="flex-1 min-h-touch_target_min border border-error text-error rounded font-label-lg text-label-lg flex items-center justify-center gap-2 touch-action-manipulation active:bg-error-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+                        Delete
+                    </button>
+</div>
+</article>
+</section>
+</main>
+<!-- Bottom Navigation is explicitly suppressed as this is a transactional/focused "Details" view. -->
+</body></html>
+
+<!-- Order Details & Receiving -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Product Check - Scanner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#2d3133",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "surface-dim": "#d7dadd",
+                        "surface-bright": "#f7fafd",
+                        "secondary": "#505f76",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-variant": "#e0e3e6",
+                        "primary-fixed": "#dce1ff",
+                        "on-primary-container": "#90a8ff",
+                        "secondary-container": "#d0e1fb",
+                        "surface-container-high": "#e5e8eb",
+                        "surface": "#f7fafd",
+                        "tertiary-container": "#6e2c00",
+                        "on-background": "#181c1e",
+                        "tertiary": "#4b1c00",
+                        "background": "#f7fafd",
+                        "outline-variant": "#c5c5d3",
+                        "on-surface": "#181c1e",
+                        "primary-container": "#1e3a8a",
+                        "on-tertiary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-tertiary-fixed": "#341100",
+                        "on-secondary-container": "#54647a",
+                        "secondary-fixed": "#d3e4fe",
+                        "inverse-primary": "#b6c4ff",
+                        "on-primary-fixed-variant": "#264191",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#00164e",
+                        "on-tertiary-fixed-variant": "#773205",
+                        "on-surface-variant": "#444651",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "surface-container": "#ebeef1",
+                        "on-tertiary-container": "#f39461",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "primary": "#00236f",
+                        "surface-container-highest": "#e0e3e6",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#0b1c30",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#eef1f4",
+                        "tertiary-fixed": "#ffdbcb",
+                        "surface-container-low": "#f1f4f7",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#4059aa",
+                        "outline": "#757682"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch_target_min": "48dp",
+                        "stack_gap": "8px",
+                        "gutter": "12px",
+                        "margin_mobile": "16px",
+                        "card_padding": "16px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600" }],
+                        "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Laser Animation */
+        @keyframes scanLaser {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .animate-laser {
+            animation: scanLaser 2s linear infinite;
+        }
+
+        /* Viewfinder Corners */
+        .corner-tl { border-top: 4px solid #1e3a8a; border-left: 4px solid #1e3a8a; }
+        .corner-tr { border-top: 4px solid #1e3a8a; border-right: 4px solid #1e3a8a; }
+        .corner-bl { border-bottom: 4px solid #1e3a8a; border-left: 4px solid #1e3a8a; }
+        .corner-br { border-bottom: 4px solid #1e3a8a; border-right: 4px solid #1e3a8a; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black text-white h-screen w-screen overflow-hidden flex flex-col font-body-md relative">
+<!-- Simulated Camera Background -->
+<div aria-hidden="true" class="absolute inset-0 z-0 bg-gray-900 overflow-hidden">
+<!-- Placeholder for camera feed -->
+<div class="w-full h-full bg-cover bg-center opacity-40" data-alt="A blurry, dark, industrial warehouse background seen through a camera viewfinder. Racks of generic cardboard boxes are faintly visible in low light. The focus is soft, simulating a camera searching for a barcode to scan." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCkyMI6ZEpjACYYVjYSMA7Hucz-r3-ExdNPhwf6pZpXAhxVOD5j2C1y6MUTjErBhkX1r2r0lLWlJ1RfDiJgnfmp4df8jTfi1UGorxzYCdOqZ8MSFovvIovsFVXE95XuzzWDiT2lWr2umYnqIgN65Cgd9aNPpeEdcZ1fl9SJdiW7LL0HUF_AQzdao96YwPWx-eFHDc3jAjJshCZNGP60L7LPihSjDg_uUhFN3M14nFGC8JnH0EAJIGgFHHdhj9Wcc9lG-QvkP1lvj8Sq')"></div>
+</div>
+<!-- Top App Bar -->
+<header class="z-10 bg-black/50 backdrop-blur-md flex items-center justify-between px-margin_mobile h-14 w-full shadow-sm relative">
+<button aria-label="Go back" class="w-touch_target_min h-touch_target_min flex items-center justify-center text-white active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm text-white flex-1 text-center truncate pr-touch_target_min">
+            Product Check - Scanner
+        </h1>
+</header>
+<!-- Main Scanning Area -->
+<main class="flex-1 z-10 flex flex-col items-center justify-center relative px-margin_mobile">
+<p class="font-body-lg text-body-lg text-white/90 mb-stack_gap text-center bg-black/60 px-4 py-2 rounded-full backdrop-blur-sm">
+            Align barcode within the frame
+        </p>
+<!-- Viewfinder Frame -->
+<div class="relative w-64 h-64 sm:w-80 sm:h-80 mx-auto mt-4">
+<!-- Corners -->
+<div class="absolute top-0 left-0 w-8 h-8 corner-tl shadow-[0_0_15px_rgba(30,58,138,0.5)]"></div>
+<div class="absolute top-0 right-0 w-8 h-8 corner-tr shadow-[0_0_15px_rgba(30,58,138,0.5)]"></div>
+<div class="absolute bottom-0 left-0 w-8 h-8 corner-bl shadow-[0_0_15px_rgba(30,58,138,0.5)]"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 corner-br shadow-[0_0_15px_rgba(30,58,138,0.5)]"></div>
+<!-- Dimming overlay outside frame (simulated with box-shadow) -->
+<div class="absolute inset-0 shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] rounded-sm pointer-events-none"></div>
+<!-- Scanning Laser Line -->
+<div class="absolute left-0 right-0 h-0.5 bg-red-500 animate-laser shadow-[0_0_8px_2px_rgba(239,68,68,0.6)]"></div>
+</div>
+</main>
+<!-- Bottom Controls Area -->
+<footer class="z-10 bg-black/70 backdrop-blur-xl w-full pb-8 pt-4 px-margin_mobile border-t border-white/10 rounded-t-xl">
+<div class="flex justify-around items-end max-w-md mx-auto">
+<!-- Manual Input Button -->
+<button aria-label="Manual Input" class="flex flex-col items-center justify-center gap-2 group min-w-[80px]">
+<div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center group-active:bg-white/20 transition-colors border border-white/20">
+<span class="material-symbols-outlined text-white text-2xl">keyboard</span>
+</div>
+<span class="font-label-md text-label-md text-white/80 text-center">Manual<br/>Input</span>
+</button>
+<!-- Flashlight Toggle (Primary/Center) -->
+<button aria-label="Toggle Flashlight" class="flex flex-col items-center justify-center gap-2 group min-w-[80px]" onclick="this.querySelector('.flash-icon').classList.toggle('filled'); this.querySelector('.flash-bg').classList.toggle('bg-primary-container'); this.querySelector('.flash-bg').classList.toggle('bg-white/10');">
+<div class="flash-bg w-16 h-16 rounded-full bg-white/10 flex items-center justify-center group-active:scale-95 transition-all border border-white/20 shadow-lg">
+<span class="flash-icon material-symbols-outlined text-white text-3xl">flashlight_on</span>
+</div>
+<span class="font-label-md text-label-md text-white/80 text-center">Flash</span>
+</button>
+<!-- Recent Scans Button -->
+<button aria-label="Recent Scans" class="flex flex-col items-center justify-center gap-2 group min-w-[80px]">
+<div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center group-active:bg-white/20 transition-colors border border-white/20">
+<span class="material-symbols-outlined text-white text-2xl">history</span>
+</div>
+<span class="font-label-md text-label-md text-white/80 text-center">Recent<br/>Scans</span>
+</button>
+</div>
+</footer>
+</body></html>
+
+<!-- Barcode Scanner UI -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Orders List - WMS Enterprise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#181c1e",
+                        "inverse-primary": "#b6c4ff",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "tertiary-container": "#6e2c00",
+                        "surface-container-highest": "#e0e3e6",
+                        "on-secondary-container": "#54647a",
+                        "surface-container": "#ebeef1",
+                        "outline": "#757682",
+                        "primary-fixed": "#dce1ff",
+                        "primary-container": "#1e3a8a",
+                        "surface-container-low": "#f1f4f7",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#181c1e",
+                        "on-error": "#ffffff",
+                        "surface": "#f7fafd",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-secondary-fixed": "#0b1c30",
+                        "surface-container-high": "#e5e8eb",
+                        "secondary-container": "#d0e1fb",
+                        "tertiary": "#4b1c00",
+                        "error-container": "#ffdad6",
+                        "on-primary-container": "#90a8ff",
+                        "outline-variant": "#c5c5d3",
+                        "on-tertiary-fixed-variant": "#773205",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#505f76",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#00164e",
+                        "on-surface-variant": "#444651",
+                        "on-tertiary-fixed": "#341100",
+                        "on-primary-fixed-variant": "#264191",
+                        "on-primary": "#ffffff",
+                        "primary": "#00236f",
+                        "background": "#f7fafd",
+                        "surface-bright": "#f7fafd",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#2d3133",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-tertiary-container": "#f39461",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "surface-tint": "#4059aa",
+                        "inverse-on-surface": "#eef1f4",
+                        "surface-dim": "#d7dadd",
+                        "surface-variant": "#e0e3e6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "stack_gap": "8px",
+                        "margin_mobile": "16px",
+                        "card_padding": "16px",
+                        "touch_target_min": "48px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 80px); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#F4F7FA] text-on-background min-h-screen flex flex-col font-body-md antialiased pb-safe">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-on-background text-primary dark:text-primary-fixed-dim font-headline-sm text-headline-sm-mobile w-full sticky top-0 z-50 shadow-sm flex items-center justify-between px-margin_mobile h-touch_target_min">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors active:opacity-80 touch-none">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim tracking-tight">Orders</h1>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high transition-colors active:opacity-80 touch-none">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_circle</span>
+</button>
+</header>
+<!-- Search Section -->
+<div class="px-margin_mobile py-stack_gap sticky top-[48px] z-40 bg-[#F4F7FA]/95 backdrop-blur-sm">
+<div class="relative w-full h-touch_target_min flex items-center bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-surface-container-highest focus-within:border-primary-container focus-within:shadow-[0_4px_12px_rgba(30,58,138,0.12)] transition-all">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant">search</span>
+<input class="w-full h-full pl-12 pr-4 bg-transparent border-none rounded-xl text-body-lg text-on-surface focus:ring-0 placeholder:text-on-surface-variant/70" placeholder="Search orders..." type="text"/>
+</div>
+</div>
+<!-- Main Content Canvas - Orders List -->
+<main class="flex-1 px-margin_mobile py-stack_gap overflow-y-auto space-y-gutter pb-[80px]">
+<!-- Order Card 1 -->
+<div class="bg-white rounded-[12px] p-card_padding shadow-[0_2px_8px_rgba(0,0,0,0.08)] active:bg-surface-container-low transition-colors touch-none">
+<div class="flex justify-between items-start mb-stack_gap">
+<span class="font-data-mono text-data-mono text-on-surface font-semibold tracking-tight">2026-5531 YAVUZ</span>
+<span class="bg-[#FFF4E5] text-[#8C5D00] px-3 py-1 rounded-full font-label-md text-label-md">Pending</span>
+</div>
+<div class="mb-stack_gap">
+<span class="font-headline-sm text-headline-sm text-on-surface-variant">UMUT BİLGİSAYAR</span>
+</div>
+<div class="flex items-center justify-between mt-auto pt-2 border-t border-surface-container-highest">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center">
+                    4 items <span class="mx-2 text-outline-variant">•</span> Buyer: Ahmet Turan
+                </span>
+<div class="flex items-center text-outline font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px] mr-1">calendar_month</span>
+                    18.06.2026
+                </div>
+</div>
+</div>
+<!-- Order Card 2 -->
+<div class="bg-white rounded-[12px] p-card_padding shadow-[0_2px_8px_rgba(0,0,0,0.08)] active:bg-surface-container-low transition-colors touch-none">
+<div class="flex justify-between items-start mb-stack_gap">
+<span class="font-data-mono text-data-mono text-on-surface font-semibold tracking-tight">2026-5532 DEMIR</span>
+<span class="bg-[#E5F6EB] text-[#006C32] px-3 py-1 rounded-full font-label-md text-label-md">Confirmed</span>
+</div>
+<div class="mb-stack_gap">
+<span class="font-headline-sm text-headline-sm text-on-surface-variant">DEMIR LOJISTIK A.S.</span>
+</div>
+<div class="flex items-center justify-between mt-auto pt-2 border-t border-surface-container-highest">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center">
+                    12 items <span class="mx-2 text-outline-variant">•</span> Buyer: Elif Kaya
+                </span>
+<div class="flex items-center text-outline font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px] mr-1">calendar_month</span>
+                    18.06.2026
+                </div>
+</div>
+</div>
+<!-- Order Card 3 -->
+<div class="bg-white rounded-[12px] p-card_padding shadow-[0_2px_8px_rgba(0,0,0,0.08)] active:bg-surface-container-low transition-colors touch-none">
+<div class="flex justify-between items-start mb-stack_gap">
+<span class="font-data-mono text-data-mono text-on-surface font-semibold tracking-tight">2026-5533 SAHIN</span>
+<span class="bg-[#FFF4E5] text-[#8C5D00] px-3 py-1 rounded-full font-label-md text-label-md">Pending</span>
+</div>
+<div class="mb-stack_gap">
+<span class="font-headline-sm text-headline-sm text-on-surface-variant">SAHIN METAL SANAYI</span>
+</div>
+<div class="flex items-center justify-between mt-auto pt-2 border-t border-surface-container-highest">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center">
+                    2 items <span class="mx-2 text-outline-variant">•</span> Buyer: Murat Can
+                </span>
+<div class="flex items-center text-outline font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px] mr-1">calendar_month</span>
+                    19.06.2026
+                </div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden bg-surface dark:bg-on-background text-primary dark:text-primary-fixed-dim font-label-md text-label-md fixed bottom-0 w-full z-50 border-t border-outline-variant dark:border-outline shadow-[0_-4px_16px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 w-full px-2 pb-safe">
+<!-- Inventory (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 p-2 rounded-xl min-w-[64px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+<span>Inventory</span>
+</button>
+<!-- Receiving (Active state logic applied) -->
+<button class="flex flex-col items-center justify-center bg-secondary-container dark:bg-primary-container text-on-secondary-container dark:text-on-primary-container rounded-xl px-4 py-1 hover:bg-surface-container-low transition-all active:scale-95 duration-100 min-w-[64px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">input</span>
+<span>Receiving</span>
+</button>
+<!-- Shipping (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 p-2 rounded-xl min-w-[64px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">local_shipping</span>
+<span>Shipping</span>
+</button>
+<!-- Settings (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 p-2 rounded-xl min-w-[64px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span>Settings</span>
+</button>
+</nav>
+</body></html>
+
+<!-- Orders List (Siparişler) -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WMS Enterprise - Shipments</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-background": "#181c1e",
+                      "inverse-primary": "#b6c4ff",
+                      "tertiary-fixed-dim": "#ffb691",
+                      "tertiary-container": "#6e2c00",
+                      "surface-container-highest": "#e0e3e6",
+                      "on-secondary-container": "#54647a",
+                      "surface-container": "#ebeef1",
+                      "outline": "#757682",
+                      "primary-fixed": "#dce1ff",
+                      "primary-container": "#1e3a8a",
+                      "surface-container-low": "#f1f4f7",
+                      "tertiary-fixed": "#ffdbcb",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#181c1e",
+                      "on-error": "#ffffff",
+                      "surface": "#f7fafd",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "on-secondary-fixed": "#0b1c30",
+                      "surface-container-high": "#e5e8eb",
+                      "secondary-container": "#d0e1fb",
+                      "tertiary": "#4b1c00",
+                      "error-container": "#ffdad6",
+                      "on-primary-container": "#90a8ff",
+                      "outline-variant": "#c5c5d3",
+                      "on-tertiary-fixed-variant": "#773205",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary": "#505f76",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed": "#00164e",
+                      "on-surface-variant": "#444651",
+                      "on-tertiary-fixed": "#341100",
+                      "on-primary-fixed-variant": "#264191",
+                      "on-primary": "#ffffff",
+                      "primary": "#00236f",
+                      "background": "#f7fafd",
+                      "surface-bright": "#f7fafd",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-error-container": "#93000a",
+                      "inverse-surface": "#2d3133",
+                      "secondary-fixed": "#d3e4fe",
+                      "on-tertiary-container": "#f39461",
+                      "error": "#ba1a1a",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "surface-tint": "#4059aa",
+                      "inverse-on-surface": "#eef1f4",
+                      "surface-dim": "#d7dadd",
+                      "surface-variant": "#e0e3e6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "12px",
+                      "stack_gap": "8px",
+                      "margin_mobile": "16px",
+                      "card_padding": "16px",
+                      "touch_target_min": "48dp"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "label-lg": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.1px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.5px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "data-mono": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body-md text-on-surface h-screen flex flex-col antialiased">
+<!-- TopAppBar -->
+<header class="w-full sticky top-0 z-50 bg-surface dark:bg-on-background shadow-sm flex items-center justify-between px-margin_mobile h-touch_target_min">
+<button aria-label="Back" class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container-high transition-colors active:opacity-80 touch-none p-2 -ml-2 rounded-full">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm-mobile text-primary dark:text-primary-fixed-dim">WMS Enterprise</h1>
+<button aria-label="Account" class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high transition-colors active:opacity-80 touch-none p-2 -mr-2 rounded-full">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 overflow-y-auto pb-24 px-margin_mobile pt-4 flex flex-col gap-stack_gap">
+<!-- Search Field -->
+<div class="relative w-full mb-2">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-3 border-outline-variant rounded-xl leading-5 bg-surface-container-lowest placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary font-body-lg text-body-lg text-on-surface shadow-[0_2px_8px_rgba(0,0,0,0.08)] min-h-touch_target_min" placeholder="Search title or RFQ..." type="text"/>
+</div>
+<!-- Shipments List -->
+<div class="flex flex-col gap-gutter">
+<!-- Shipment Card 1 -->
+<div class="bg-surface-container-lowest rounded-[12px] p-card_padding shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-transparent focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all cursor-pointer relative overflow-hidden group">
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-start gap-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface line-clamp-2">KPS 26 IREM SULTAN RFQ-6998</h2>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span class="font-body-md text-body-md line-clamp-1">Manuel - DILAY ATES</span>
+<span class="font-data-mono text-data-mono whitespace-nowrap">17 Jun 2026</span>
+</div>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+                            Not Completed
+                        </span>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+                            Awaiting Invoice
+                        </span>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+                            5 items - 0 linked
+                        </span>
+</div>
+</div>
+</div>
+<!-- Shipment Card 2 -->
+<div class="bg-surface-container-lowest rounded-[12px] p-card_padding shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-transparent focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all cursor-pointer relative overflow-hidden group">
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-start gap-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface line-clamp-2">LNR 42 ALPHA PRIME RFQ-7012</h2>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span class="font-body-md text-body-md line-clamp-1">Automated - SYS GEN</span>
+<span class="font-data-mono text-data-mono whitespace-nowrap">18 Jun 2026</span>
+</div>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md">
+                            In Transit
+                        </span>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+                            Invoice Cleared
+                        </span>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+                            12 items - 12 linked
+                        </span>
+</div>
+</div>
+</div>
+<!-- Shipment Card 3 -->
+<div class="bg-surface-container-lowest rounded-[12px] p-card_padding shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-transparent focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all cursor-pointer relative overflow-hidden group">
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-start gap-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface line-clamp-2">TRX 99 OMEGA STATION RFQ-7105</h2>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span class="font-body-md text-body-md line-clamp-1">Manuel - JOHN DOE</span>
+<span class="font-data-mono text-data-mono whitespace-nowrap">19 Jun 2026</span>
+</div>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+                            Pending Review
+                        </span>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+                            Awaiting Invoice
+                        </span>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+                            3 items - 1 linked
+                        </span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface dark:bg-on-background shadow-lg border-t-0 flex justify-around items-center h-16 px-2 md:hidden">
+<a class="flex flex-col items-center justify-center text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 w-full h-full" href="#">
+<span class="material-symbols-outlined mb-1">inventory_2</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 w-full h-full" href="#">
+<span class="material-symbols-outlined mb-1">input</span>
+<span class="font-label-md text-label-md">Receiving</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-primary-container text-on-secondary-container dark:text-on-primary-container rounded-xl px-4 py-1 hover:bg-surface-container-low transition-all active:scale-95 duration-100 h-[80%] mx-1" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+<span class="font-label-md text-label-md">Shipping</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 w-full h-full" href="#">
+<span class="material-symbols-outlined mb-1">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+</body></html>
+
+<!-- Shipments (Sipariş Sevkiyat) -->
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Offline Drafts - WMS Enterprise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#181c1e",
+                        "inverse-primary": "#b6c4ff",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "tertiary-container": "#6e2c00",
+                        "surface-container-highest": "#e0e3e6",
+                        "on-secondary-container": "#54647a",
+                        "surface-container": "#ebeef1",
+                        "outline": "#757682",
+                        "primary-fixed": "#dce1ff",
+                        "primary-container": "#1e3a8a",
+                        "surface-container-low": "#f1f4f7",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#181c1e",
+                        "on-error": "#ffffff",
+                        "surface": "#f7fafd",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-secondary-fixed": "#0b1c30",
+                        "surface-container-high": "#e5e8eb",
+                        "secondary-container": "#d0e1fb",
+                        "tertiary": "#4b1c00",
+                        "error-container": "#ffdad6",
+                        "on-primary-container": "#90a8ff",
+                        "outline-variant": "#c5c5d3",
+                        "on-tertiary-fixed-variant": "#773205",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#505f76",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#00164e",
+                        "on-surface-variant": "#444651",
+                        "on-tertiary-fixed": "#341100",
+                        "on-primary-fixed-variant": "#264191",
+                        "on-primary": "#ffffff",
+                        "primary": "#00236f",
+                        "background": "#f7fafd",
+                        "surface-bright": "#f7fafd",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#2d3133",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-tertiary-container": "#f39461",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "surface-tint": "#4059aa",
+                        "inverse-on-surface": "#eef1f4",
+                        "surface-dim": "#d7dadd",
+                        "surface-variant": "#e0e3e6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "stack_gap": "8px",
+                        "margin_mobile": "16px",
+                        "card_padding": "16px",
+                        "touch_target_min": "48px" // Modified to px for direct usage
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md h-full flex flex-col overflow-hidden">
+<!-- TopAppBar (From JSON) -->
+<header class="w-full sticky top-0 z-50 bg-surface shadow-sm">
+<div class="flex items-center justify-between px-margin_mobile h-[48px]">
+<button class="flex items-center justify-center w-[48px] h-[48px] text-on-surface-variant active:opacity-80 touch-none hover:bg-surface-container-high transition-colors rounded-full -ml-3">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm text-primary flex-1 text-center font-bold">Offline Drafts</h1>
+<div class="w-[48px] h-[48px] flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-full -mr-3">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto px-margin_mobile pb-[140px] pt-stack_gap relative">
+<!-- Offline Warning Banner -->
+<div class="bg-tertiary-fixed text-on-tertiary-fixed rounded-lg p-card_padding mb-gutter flex items-start gap-stack_gap shadow-sm border border-tertiary-fixed-dim">
+<span class="material-symbols-outlined text-tertiary-container mt-0.5" data-icon="cloud_off" data-weight="fill" style="font-variation-settings: 'FILL' 1;">cloud_off</span>
+<div>
+<p class="font-label-lg text-label-lg text-tertiary-container">You are offline</p>
+<p class="font-body-md text-body-md mt-1">Actions are saved locally. Sync required.</p>
+</div>
+</div>
+<!-- Drafts List -->
+<div class="flex flex-col gap-gutter">
+<!-- Draft Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-card_padding shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] flex items-center justify-between min-h-touch_target_min border border-outline-variant">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-secondary-container text-on-secondary-container font-label-md text-label-md px-2 py-0.5 rounded-full">Inventory</span>
+<span class="font-data-mono text-data-mono text-outline">10 mins ago</span>
+</div>
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold">Stock Decrease</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">401 Loctite - Qty: -15</p>
+</div>
+<button class="w-[48px] h-[48px] flex items-center justify-center text-error hover:bg-error-container rounded-full transition-colors shrink-0 ml-stack_gap">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<!-- Draft Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-card_padding shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] flex items-center justify-between min-h-touch_target_min border border-outline-variant">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary-fixed text-on-primary-fixed-variant font-label-md text-label-md px-2 py-0.5 rounded-full">Receiving</span>
+<span class="font-data-mono text-data-mono text-outline">25 mins ago</span>
+</div>
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold">Inbound Scan</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">PO-99238 - Pallet A2</p>
+</div>
+<button class="w-[48px] h-[48px] flex items-center justify-center text-error hover:bg-error-container rounded-full transition-colors shrink-0 ml-stack_gap">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<!-- Draft Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-card_padding shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] flex items-center justify-between min-h-touch_target_min border border-outline-variant">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md px-2 py-0.5 rounded-full">Shipping</span>
+<span class="font-data-mono text-data-mono text-outline">1 hr ago</span>
+</div>
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold">Order Picked</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">ORD-5541 - Zone C</p>
+</div>
+<button class="w-[48px] h-[48px] flex items-center justify-center text-error hover:bg-error-container rounded-full transition-colors shrink-0 ml-stack_gap">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Bottom Fixed Area for Sync Button -->
+<div class="fixed bottom-[64px] left-0 w-full px-margin_mobile pb-stack_gap pt-stack_gap bg-gradient-to-t from-surface via-surface to-transparent z-40">
+<button class="w-full bg-primary-container text-on-primary font-headline-sm text-headline-sm h-touch_target_min rounded-xl flex items-center justify-center gap-stack_gap shadow-lg active:scale-95 transition-transform duration-100 disabled:opacity-50 disabled:cursor-not-allowed">
+<span class="material-symbols-outlined" data-icon="cloud_upload">cloud_upload</span>
+            Sync All to Server
+        </button>
+</div>
+<!-- BottomNavBar (From JSON - Active: Inventory) -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface border-t border-outline-variant shadow-lg md:hidden">
+<div class="flex justify-around items-center h-16 w-full px-2">
+<!-- Active: Inventory -->
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-xl px-4 py-1 hover:bg-surface-container-low transition-all active:scale-95 duration-100">
+<span class="material-symbols-outlined mb-1" data-icon="inventory_2" data-weight="fill" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</button>
+<!-- Inactive: Receiving -->
+<button class="flex flex-col items-center justify-center text-on-secondary-fixed-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 px-4 py-1 rounded-xl">
+<span class="material-symbols-outlined mb-1" data-icon="input">input</span>
+<span class="font-label-md text-label-md">Receiving</span>
+</button>
+<!-- Inactive: Shipping -->
+<button class="flex flex-col items-center justify-center text-on-secondary-fixed-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 px-4 py-1 rounded-xl">
+<span class="material-symbols-outlined mb-1" data-icon="local_shipping">local_shipping</span>
+<span class="font-label-md text-label-md">Shipping</span>
+</button>
+<!-- Inactive: Settings -->
+<button class="flex flex-col items-center justify-center text-on-secondary-fixed-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 px-4 py-1 rounded-xl">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</button>
+</div>
+</nav>
+<!-- Web Desktop Navigation Header (Hidden on Mobile) -->
+<div class="hidden md:flex w-full h-16 bg-surface shadow-sm sticky top-0 z-50 px-8 items-center border-b border-outline-variant absolute top-0 w-full">
+<h2 class="font-headline-md text-headline-md text-primary font-bold mr-8">WMS Enterprise</h2>
+<div class="flex gap-4">
+<button class="px-4 py-2 bg-secondary-container text-on-secondary-container rounded-lg font-label-lg text-label-lg flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span> Inventory
+            </button>
+<button class="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg font-label-lg text-label-lg flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined" data-icon="input">input</span> Receiving
+            </button>
+<button class="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg font-label-lg text-label-lg flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span> Shipping
+            </button>
+<button class="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg font-label-lg text-label-lg flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span> Settings
+            </button>
+</div>
+</div>
+</body></html>
+
+<!-- Offline Drafts (Taslaklar) -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Product Check / Scanner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-background": "#181c1e",
+                      "inverse-primary": "#b6c4ff",
+                      "tertiary-fixed-dim": "#ffb691",
+                      "tertiary-container": "#6e2c00",
+                      "surface-container-highest": "#e0e3e6",
+                      "on-secondary-container": "#54647a",
+                      "surface-container": "#ebeef1",
+                      "outline": "#757682",
+                      "primary-fixed": "#dce1ff",
+                      "primary-container": "#1e3a8a",
+                      "surface-container-low": "#f1f4f7",
+                      "tertiary-fixed": "#ffdbcb",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#181c1e",
+                      "on-error": "#ffffff",
+                      "surface": "#f7fafd",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "on-secondary-fixed": "#0b1c30",
+                      "surface-container-high": "#e5e8eb",
+                      "secondary-container": "#d0e1fb",
+                      "tertiary": "#4b1c00",
+                      "error-container": "#ffdad6",
+                      "on-primary-container": "#90a8ff",
+                      "outline-variant": "#c5c5d3",
+                      "on-tertiary-fixed-variant": "#773205",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary": "#505f76",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed": "#00164e",
+                      "on-surface-variant": "#444651",
+                      "on-tertiary-fixed": "#341100",
+                      "on-primary-fixed-variant": "#264191",
+                      "on-primary": "#ffffff",
+                      "primary": "#00236f",
+                      "background": "#f7fafd",
+                      "surface-bright": "#f7fafd",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-error-container": "#93000a",
+                      "inverse-surface": "#2d3133",
+                      "secondary-fixed": "#d3e4fe",
+                      "on-tertiary-container": "#f39461",
+                      "error": "#ba1a1a",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "surface-tint": "#4059aa",
+                      "inverse-on-surface": "#eef1f4",
+                      "surface-dim": "#d7dadd",
+                      "surface-variant": "#e0e3e6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "12px",
+                      "stack_gap": "8px",
+                      "margin_mobile": "16px",
+                      "card_padding": "16px",
+                      "touch_target_min": "48dp"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "label-lg": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.1px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.5px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "data-mono": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        @keyframes scanline {
+            0% {
+                transform: translateY(-40px);
+            }
+            50% {
+                transform: translateY(40px);
+            }
+            100% {
+                transform: translateY(-40px);
+            }
+        }
+        
+        .animate-scanline {
+            animation: scanline 3s ease-in-out infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col pb-[72px]">
+<!-- TopAppBar -->
+<header class="w-full sticky top-0 z-50 bg-surface dark:bg-on-background shadow-sm flex items-center justify-between px-margin_mobile h-touch_target_min active:opacity-80 touch-none">
+<button aria-label="Go back" class="h-10 w-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary dark:text-primary-fixed-dim absolute left-1/2 -translate-x-1/2">Product Check</h1>
+<button aria-label="Account profile" class="h-10 w-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-grow flex flex-col px-margin_mobile pt-4 pb-8 space-y-4">
+<!-- Scanner Viewfinder -->
+<div class="relative w-full aspect-[4/3] bg-on-background rounded-xl flex items-center justify-center overflow-hidden shadow-sm border border-outline-variant">
+<!-- Corner Brackets -->
+<div class="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-surface-container-high"></div>
+<div class="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-surface-container-high"></div>
+<div class="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-surface-container-high"></div>
+<div class="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-surface-container-high"></div>
+<!-- Target Box -->
+<div class="w-3/4 h-3/4 border-2 border-outline/50 border-dashed rounded relative flex items-center justify-center">
+<!-- Red Laser Line -->
+<div class="absolute w-[110%] h-[2px] bg-error shadow-[0_0_8px_rgba(186,26,26,0.8)] animate-scanline"></div>
+</div>
+<!-- Instructions Overlay -->
+<div class="absolute bottom-4 left-0 w-full text-center px-4">
+<div class="bg-surface/10 backdrop-blur-sm rounded-lg py-2 px-3 inline-flex items-center gap-2 border border-surface/20">
+<span class="material-symbols-outlined text-surface-container-lowest text-[16px]">qr_code_scanner</span>
+<p class="font-label-md text-label-md text-surface-container-lowest opacity-90">Press device hardware trigger to scan...</p>
+</div>
+</div>
+</div>
+<!-- Result Card (Simulating slide up) -->
+<div class="mt-4 bg-surface-container-lowest rounded-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-card_padding border border-surface-container transform translate-y-0 transition-transform duration-300">
+<div class="flex items-start justify-between mb-4">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-1">401 LOCTITE ADHESIVE</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">EMSA GRUP</p>
+</div>
+<!-- Status Badge -->
+<div class="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="font-label-md text-label-md">Verified</span>
+</div>
+</div>
+<!-- Data Grid -->
+<div class="grid grid-cols-2 gap-y-4 gap-x-2 mb-6">
+<div class="bg-surface-container-low p-3 rounded-lg border border-surface-container">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">SKU</p>
+<p class="font-data-mono text-data-mono text-on-surface">LOC-401-20G</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border border-surface-container">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">Location</p>
+<p class="font-data-mono text-data-mono text-on-surface">A-12-Rack-3</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border border-surface-container col-span-2 flex justify-between items-center">
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">Current Stock</p>
+<p class="font-headline-md text-headline-md text-primary font-bold">450 pcs</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[32px]">inventory_2</span>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full bg-primary-container text-on-primary min-h-touch_target_min rounded-lg font-label-lg text-label-lg flex items-center justify-center gap-2 hover:bg-primary transition-colors active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">edit_note</span>
+                Update Stock
+            </button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface dark:bg-on-background shadow-[0_-4px_16px_rgba(0,0,0,0.05)] border-t border-outline-variant dark:border-outline md:hidden flex justify-around items-center h-[72px] px-2 pb-safe">
+<!-- Active Tab: Inventory -->
+<a class="flex flex-col items-center justify-center w-16 h-14 bg-secondary-container dark:bg-primary-container text-on-secondary-container dark:text-on-primary-container rounded-xl px-4 py-1 hover:bg-surface-container-low transition-all active:scale-95 duration-100" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-label-md text-label-md mt-1">Inventory</span>
+</a>
+<!-- Inactive Tabs -->
+<a class="flex flex-col items-center justify-center w-16 h-14 text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 rounded-xl" href="#">
+<span class="material-symbols-outlined">input</span>
+<span class="font-label-md text-label-md mt-1">Receiving</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-14 text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 rounded-xl" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="font-label-md text-label-md mt-1">Shipping</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-14 text-on-secondary-fixed-variant dark:text-outline-variant hover:bg-surface-container-low transition-all active:scale-95 duration-100 rounded-xl" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md mt-1">Settings</span>
+</a>
+</nav>
+<!-- Desktop Nav Shim (Hidden on Mobile) -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-[240px] bg-surface border-r border-outline-variant flex-col py-4 px-2 z-40 pt-20">
+<a class="flex items-center gap-4 w-full p-3 bg-secondary-container text-on-secondary-container rounded-lg mb-2" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-label-lg text-label-lg">Inventory</span>
+</a>
+<a class="flex items-center gap-4 w-full p-3 text-on-secondary-fixed-variant hover:bg-surface-container-low rounded-lg mb-2" href="#">
+<span class="material-symbols-outlined">input</span>
+<span class="font-label-lg text-label-lg">Receiving</span>
+</a>
+<a class="flex items-center gap-4 w-full p-3 text-on-secondary-fixed-variant hover:bg-surface-container-low rounded-lg mb-2" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="font-label-lg text-label-lg">Shipping</span>
+</a>
+<div class="flex-grow"></div>
+<a class="flex items-center gap-4 w-full p-3 text-on-secondary-fixed-variant hover:bg-surface-container-low rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-lg text-label-lg">Settings</span>
+</a>
+</nav>
+<!-- Adjust layout for desktop -->
+<style>
+        @media (min-width: 768px) {
+            body {
+                padding-left: 240px;
+                padding-bottom: 0;
+            }
+            .md\:hidden {
+                display: none;
+            }
+        }
+    </style>
+</body></html>
