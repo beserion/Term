@@ -53,7 +53,7 @@ export function OrdersListScreen() {
         itemCount={0}
         buyerName={''}
         date={formattedDate}
-        onPress={() => navigation.navigate('OrderDetail', { orderId: item.id, title: item.documentNo })}
+        onPress={() => navigation.navigate('OrderSuppliers', { orderId: item.id, documentNo: item.documentNo })}
       />
     );
   };

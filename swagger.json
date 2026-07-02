@@ -971,6 +971,44 @@
         }
       }
     },
+    "/api/Inventory/cycle-counts": {
+      "get": {
+        "tags": [
+          "Inventory"
+        ],
+        "parameters": [
+          {
+            "name": "fromDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "warehouseId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Inventory/cycle-count": {
       "post": {
         "tags": [
@@ -1266,10 +1304,179 @@
         }
       }
     },
+    "/api/Order/simple-details": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Order/summary-list": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Order/{orderId}/suppliers": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Order/{orderId}/supplier/{supplierId}/details": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Partner/list": {
       "get": {
         "tags": [
           "Partner"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Partner/partners": {
+      "get": {
+        "tags": [
+          "Partner"
+        ],
+        "parameters": [
+          {
+            "name": "typeName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -4557,6 +4764,16 @@
             "nullable": true
           },
           "supplierInvoiceDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "waybillNo": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "waybillDate": {
             "type": "string",
             "format": "date-time",
             "nullable": true
@@ -8484,6 +8701,14 @@
             "type": "boolean",
             "readOnly": true
           },
+          "companyId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "company": {
+            "$ref": "#/components/schemas/EDModels.Companies"
+          },
           "rowCnt": {
             "type": "integer",
             "format": "int32"
@@ -8493,6 +8718,14 @@
             "format": "int32"
           },
           "currentStepName": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "rfqNo": {
             "type": "string",
             "nullable": true
           },
@@ -8508,14 +8741,6 @@
           },
           "offer": {
             "$ref": "#/components/schemas/EDModels.Offer"
-          },
-          "companyId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "company": {
-            "$ref": "#/components/schemas/EDModels.Companies"
           },
           "partnerId": {
             "type": "integer",
