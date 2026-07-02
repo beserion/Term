@@ -49,7 +49,7 @@ export function ShipmentDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <TopAppBar title="Sevkiyat Detayı" onBack={() => navigation.goBack()} />
+      <TopAppBar title="İrsaliye Detayı" onBack={() => navigation.goBack()} />
 
       <FlatList
         data={detail?.items || []}

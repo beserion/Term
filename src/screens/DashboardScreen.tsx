@@ -54,7 +54,7 @@ export function DashboardScreen() {
       onPress: () => navigation.navigate('CycleCount'),
     },
     {
-      title: 'Sevkiyatlar',
+      title: 'İrsaliye',
       icon: 'truck-delivery' as const,
       iconColor: Colors.primary,
       iconBgColor: 'rgba(30, 58, 138, 0.1)',

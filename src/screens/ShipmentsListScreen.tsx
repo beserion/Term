@@ -24,8 +24,9 @@ export function ShipmentsListScreen() {
       setLoading(true);
       const data = await getShipments(debouncedSearch || undefined);
       setShipments(data);
-    } catch {
-      showToast({ message: 'Sevkiyatlar yüklenemedi', type: 'error' });
+    } catch (error: any) {
+      const errMsg = error?.response?.data?.message || error?.message || 'Sevkiyatlar yüklenemedi';
+      showToast({ message: `Hata: ${errMsg}`, type: 'error' });
       setShipments([]);
     } finally {
       setLoading(false);
@@ -52,7 +53,7 @@ export function ShipmentsListScreen() {
 
   return (
     <View style={styles.container}>
-      <TopAppBar title="Sevkiyatlar" showBack={false} />
+      <TopAppBar title="İrsaliye" showBack={false} />
 
       <View style={styles.searchContainer}>
         <SearchBar
