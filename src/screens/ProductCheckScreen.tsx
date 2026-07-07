@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
@@ -69,7 +69,7 @@ export function ProductCheckScreen() {
             showSoftInputOnFocus={false}
           />
           <TouchableOpacity style={styles.searchButton} onPress={handleManualSearch} activeOpacity={0.7}>
-            <MaterialCommunityIcons name="magnify" size={24} color={Colors.onPrimary} />
+            <CustomIcon name="magnify" size={24} color={Colors.onPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -98,7 +98,7 @@ export function ProductCheckScreen() {
                     <Text style={styles.dataCellLabel}>KART MİKTARI</Text>
                     <Text style={styles.stockValue}>{product.qty || 0} {product.unit || 'Adet'}</Text>
                   </View>
-                  <MaterialCommunityIcons name="package-variant" size={32} color={Colors.outlineVariant} />
+                  <CustomIcon name="package-variant" size={32} color={Colors.outlineVariant} />
                 </View>
               </View>
             </View>
@@ -109,7 +109,7 @@ export function ProductCheckScreen() {
               activeOpacity={0.8}
               onPress={() => navigation.navigate('StockIncrease', { product })}
             >
-              <MaterialCommunityIcons name="pencil-box-outline" size={20} color={Colors.onPrimary} />
+              <CustomIcon name="pencil-box-outline" size={20} color={Colors.onPrimary} />
               <Text style={styles.updateButtonText}>Stok Güncelle</Text>
             </TouchableOpacity>
           </View>

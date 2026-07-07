@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Text, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { getOrderDetail, getSupplierOrderDetail, Order, OrderLine } from '../services/orders';
@@ -9,6 +9,8 @@ import { getStockByBarcode } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { useBarcode } from '../hooks/useBarcode';
 import { FeedbackService } from '../services/feedback';
+import { ShipmentItemSkeleton } from '../components/skeletons/ShipmentItemSkeleton';
+import { Badge } from '../components/Badge';
 
 export function OrderDetailScreen() {
   const route = useRoute<any>();
@@ -182,7 +184,7 @@ export function OrderDetailScreen() {
         }}
       >
         <View style={styles.productIconBox}>
-          <MaterialCommunityIcons 
+          <CustomIcon 
             name={iconInfo.name} 
             size={24} 
             color={iconInfo.color} 
@@ -214,7 +216,7 @@ export function OrderDetailScreen() {
       <View style={styles.headerArea}>
         {(supplierName || detail?.partnerName) ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm, backgroundColor: Colors.background, padding: 8, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant }}>
-            <MaterialCommunityIcons name="storefront" size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+            <CustomIcon name="storefront" size={16} color={Colors.primary} style={{ marginRight: 6 }} />
             <Text style={{ ...Typography.labelMd, color: Colors.onSurface, fontWeight: '600', flex: 1 }} numberOfLines={1}>
               Tedarikçi: {supplierName || detail?.partnerName}
             </Text>
@@ -225,11 +227,11 @@ export function OrderDetailScreen() {
             <Text style={styles.progressLabel}>Toplama Durumu</Text>
             <Text style={styles.progressValue}>{totalPicked} / {totalRequired} Ürün</Text>
           </View>
-          <View style={[styles.statusBadge, isComplete && styles.statusBadgeComplete]}>
-            <Text style={[styles.statusText, isComplete && styles.statusTextComplete]}>
-              {isComplete ? 'TAMAMLANDI' : 'DEVAM EDİYOR'}
-            </Text>
-          </View>
+          <Badge
+            label={isComplete ? 'TAMAMLANDI' : 'DEVAM EDİYOR'}
+            type={isComplete ? 'success' : 'warning'}
+            icon={isComplete ? 'check-circle' : 'progress-clock'}
+          />
         </View>
 
         <View style={styles.scanRow}>
@@ -246,28 +248,38 @@ export function OrderDetailScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={lines}
-        renderItem={renderItem}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={fetchDetail}
-            colors={[Colors.primary]}
-          />
-        }
-        ListEmptyComponent={
-          !refreshing ? (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <MaterialCommunityIcons name="clipboard-alert-outline" size={48} color={Colors.outline} />
-              <Text style={{ marginTop: 10, color: Colors.outline }}>Bu siparişte kalem bulunmuyor.</Text>
-            </View>
-          ) : null
-        }
-      />
+      {refreshing && lines.length === 0 ? (
+        <FlatList
+          data={[1, 2, 3, 4]}
+          renderItem={() => <ShipmentItemSkeleton />}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          data={lines}
+          renderItem={renderItem}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={fetchDetail}
+              colors={[Colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+            !refreshing ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <CustomIcon name="clipboard-alert-outline" size={48} color={Colors.outline} />
+                <Text style={{ marginTop: 10, color: Colors.outline }}>Bu siparişte kalem bulunmuyor.</Text>
+              </View>
+            ) : null
+          }
+        />
+      )}
 
       {/* Miktar Düzenleme Modali */}
       <Modal visible={showModal} animationType="fade" transparent={true} onRequestClose={() => setShowModal(false)}>

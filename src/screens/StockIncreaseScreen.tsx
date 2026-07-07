@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
@@ -120,7 +120,7 @@ export function StockIncreaseScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Terminal Depo Bilgisi */}
         <View style={styles.warehouseAlert}>
-          <MaterialCommunityIcons name="office-building-marker" size={20} color={Colors.onPrimaryContainer} />
+          <CustomIcon name="office-building-marker" size={20} color={Colors.onPrimaryContainer} />
           <View style={{ flex: 1 }}>
             <Text style={styles.warehouseAlertLabel}>Aktif Terminal Deposu</Text>
             <Text style={styles.warehouseAlertName}>
@@ -129,7 +129,7 @@ export function StockIncreaseScreen() {
           </View>
           {!activeWarehouseId && (
             <TouchableOpacity onPress={() => navigation.navigate('SettingsTab')}>
-              <MaterialCommunityIcons name="cog" size={24} color={Colors.error} />
+              <CustomIcon name="cog" size={24} color={Colors.error} />
             </TouchableOpacity>
           )}
         </View>
@@ -152,7 +152,7 @@ export function StockIncreaseScreen() {
             style={styles.scanButton}
             onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
           >
-            <MaterialCommunityIcons name="barcode-scan" size={24} color={Colors.onPrimary} />
+            <CustomIcon name="barcode-scan" size={24} color={Colors.onPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -160,7 +160,7 @@ export function StockIncreaseScreen() {
         {product && (
           <View style={styles.productCard}>
             <View style={styles.productHeader}>
-              <MaterialCommunityIcons name="package-variant" size={24} color={Colors.primary} />
+              <CustomIcon name="package-variant" size={24} color={Colors.primary} />
               <Text style={styles.productName}>{product.stockName}</Text>
             </View>
             <View style={styles.stockInfo}>
@@ -179,7 +179,7 @@ export function StockIncreaseScreen() {
                     setQuantity(q > 0 ? String(q) : '');
                   }}
                 >
-                  <MaterialCommunityIcons name="minus" size={24} color={Colors.error} />
+                  <CustomIcon name="minus" size={24} color={Colors.error} />
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -196,7 +196,7 @@ export function StockIncreaseScreen() {
                   style={styles.qtyButton}
                   onPress={() => setQuantity(String((parseInt(quantity) || 0) + 1))}
                 >
-                  <MaterialCommunityIcons name="plus" size={24} color={Colors.primary} />
+                  <CustomIcon name="plus" size={24} color={Colors.primary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -220,7 +220,7 @@ export function StockIncreaseScreen() {
               onPress={handleIncrease}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="plus-circle" size={20} color={Colors.onPrimary} />
+              <CustomIcon name="plus-circle" size={20} color={Colors.onPrimary} />
               <Text style={styles.increaseButtonText}>Stok Artır</Text>
             </TouchableOpacity>
           </View>

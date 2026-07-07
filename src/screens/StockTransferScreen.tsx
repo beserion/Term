@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
 import { getStockByBarcode, Stock, createStockTransfer, getWarehouses, Warehouse } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { FeedbackService } from '../services/feedback';
+import { ScalePressable } from '../components/ScalePressable';
 
 export function StockTransferScreen() {
   const navigation = useNavigation<any>();
@@ -37,7 +39,9 @@ export function StockTransferScreen() {
         throw new Error('Ürün kaydı bulunamadı');
       }
       setProduct(data);
+      FeedbackService.playSuccess();
     } catch {
+      FeedbackService.playError();
       showToast({ message: 'Barkod bulunamadı: ' + scannedBarcode, type: 'error' });
     }
   };
@@ -86,12 +90,14 @@ export function StockTransferScreen() {
           { stockId: product.id, transferQty: qty }
         ]
       });
+      FeedbackService.playSuccess();
       showToast({ message: `${product.stockName} transferi başarıyla kaydedildi`, type: 'success' });
       
       setQuantity('');
       setNote('');
       setProduct(null); // Transfer sonrası ekranı temizle
     } catch (err: any) {
+      FeedbackService.playError();
       let errorMsg = err.message;
       if (err.response?.data) {
         errorMsg = typeof err.response.data === 'object' ? JSON.stringify(err.response.data, null, 2) : err.response.data;
@@ -115,7 +121,7 @@ export function StockTransferScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Çıkış Deposu (Terminal Depo) */}
         <View style={styles.warehouseAlert}>
-          <MaterialCommunityIcons name="export" size={20} color={Colors.error} />
+          <CustomIcon name="export" size={20} color={Colors.error} />
           <View style={{ flex: 1 }}>
             <Text style={styles.warehouseAlertLabel}>Çıkış Deposu (Terminal)</Text>
             <Text style={styles.warehouseAlertName}>
@@ -130,12 +136,12 @@ export function StockTransferScreen() {
           onPress={() => setShowWarehouseModal(true)}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="import" size={20} color={Colors.success} />
+          <CustomIcon name="import" size={20} color={Colors.success} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.warehouseAlertLabel, { color: Colors.success }]}>Hedef Depo (Varış)</Text>
             <Text style={styles.warehouseAlertName}>{getTargetWarehouseName()}</Text>
           </View>
-          <MaterialCommunityIcons name="chevron-down" size={24} color={Colors.onSurface} />
+          <CustomIcon name="chevron-down" size={24} color={Colors.onSurface} />
         </TouchableOpacity>
 
         {/* Barkod giriş */}
@@ -155,7 +161,7 @@ export function StockTransferScreen() {
             style={styles.scanButton}
             onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
           >
-            <MaterialCommunityIcons name="barcode-scan" size={24} color={Colors.onPrimary} />
+            <CustomIcon name="barcode-scan" size={24} color={Colors.onPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -164,7 +170,7 @@ export function StockTransferScreen() {
           <View style={styles.productCard}>
             <View style={styles.productHeader}>
               <View style={styles.iconBoxContainer}>
-                <MaterialCommunityIcons name="swap-horizontal" size={28} color={Colors.primary} />
+                <CustomIcon name="swap-horizontal" size={28} color={Colors.primary} />
               </View>
               <View style={styles.productInfo}>
                 <Text style={styles.stockCode}>{product.stockCode || '-'}</Text>
@@ -198,15 +204,14 @@ export function StockTransferScreen() {
               onChangeText={setNote}
             />
 
-            <TouchableOpacity 
+            <ScalePressable 
               style={[styles.actionButton, (!quantity || !targetWarehouseId) && styles.actionButtonDisabled]}
               onPress={handleTransfer}
               disabled={!quantity || !targetWarehouseId}
-              activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="truck-fast" size={24} color={Colors.onPrimary} style={{ marginRight: 8 }} />
+              <CustomIcon name="truck-fast" size={24} color={Colors.onPrimary} style={{ marginRight: 8 }} />
               <Text style={styles.actionButtonText}>Transferi Başlat</Text>
-            </TouchableOpacity>
+            </ScalePressable>
           </View>
         )}
       </ScrollView>

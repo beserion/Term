@@ -4,8 +4,9 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { TopAppBar } from '../components/TopAppBar';
 import { EmptyState } from '../components/Toast';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { getShipmentDetail, ShipmentDetail, ShipmentItem } from '../services/shipments';
+import { ShipmentItemSkeleton } from '../components/skeletons/ShipmentItemSkeleton';
 
 export function ShipmentDetailScreen() {
   const route = useRoute<any>();
@@ -37,7 +38,7 @@ export function ShipmentDetailScreen() {
         </View>
         <View style={styles.itemRight}>
           <Text style={styles.itemQty}>{item.quantity} adet</Text>
-          <MaterialCommunityIcons
+          <CustomIcon
             name={item.linked ? 'link-variant' : 'link-variant-off'}
             size={18}
             color={item.linked ? Colors.confirmedText : Colors.outline}
@@ -51,31 +52,50 @@ export function ShipmentDetailScreen() {
     <View style={styles.container}>
       <TopAppBar title="İrsaliye Detayı" onBack={() => navigation.goBack()} />
 
-      <FlatList
-        data={detail?.items || []}
-        renderItem={renderItem}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); fetchDetail(); }}
-            colors={[Colors.primary]}
-          />
-        }
-        ListHeaderComponent={
-          detail ? (
+      {refreshing && !detail ? (
+        <FlatList
+          data={[1, 2, 3, 4]}
+          renderItem={() => <ShipmentItemSkeleton />}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
             <View style={styles.headerCard}>
-              <Text style={styles.headerTitle}>{detail.title}</Text>
-              <Text style={styles.headerMeta}>{detail.type} - {detail.assignedTo}</Text>
-              <Text style={styles.headerDate}>{detail.date}</Text>
+              <View style={{ gap: 8 }}>
+                <View style={{ height: 24, backgroundColor: Colors.surfaceContainerHighest, borderRadius: 4, width: '60%' }} />
+                <View style={{ height: 16, backgroundColor: Colors.surfaceContainerHighest, borderRadius: 4, width: '40%' }} />
+                <View style={{ height: 14, backgroundColor: Colors.surfaceContainerHighest, borderRadius: 4, width: '25%' }} />
+              </View>
             </View>
-          ) : null
-        }
-        ListEmptyComponent={<EmptyState icon="truck-delivery" title="Ürün bulunamadı" />}
-      />
+          }
+        />
+      ) : (
+        <FlatList
+          data={detail?.items || []}
+          renderItem={renderItem}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); fetchDetail(); }}
+              colors={[Colors.primary]}
+            />
+          }
+          ListHeaderComponent={
+            detail ? (
+              <View style={styles.headerCard}>
+                <Text style={styles.headerTitle}>{detail.title}</Text>
+                <Text style={styles.headerMeta}>{detail.type} - {detail.assignedTo}</Text>
+                <Text style={styles.headerDate}>{detail.date}</Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={<EmptyState icon="truck-delivery" title="Ürün bulunamadı" />}
+        />
+      )}
     </View>
   );
 }

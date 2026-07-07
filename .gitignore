@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+src/utils/fontawesome-free-7.3.0-web/
 
 # Expo
 .expo/

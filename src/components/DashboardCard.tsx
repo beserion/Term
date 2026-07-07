@@ -1,11 +1,12 @@
 import React from 'react';
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Text, View, StyleSheet } from 'react-native';
+import { CustomIcon } from './CustomIcon';
+import { ScalePressable } from './ScalePressable';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 
 interface DashboardCardProps {
   title: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: string;
   iconColor?: string;
   iconBgColor?: string;
   onPress: () => void;
@@ -19,16 +20,15 @@ export function DashboardCard({
   onPress,
 }: DashboardCardProps) {
   return (
-    <TouchableOpacity
+    <ScalePressable
       style={styles.card}
       onPress={onPress}
-      activeOpacity={0.7}
     >
       <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
-        <MaterialCommunityIcons name={icon} size={28} color={iconColor} />
+        <CustomIcon name={icon} size={28} color={iconColor} />
       </View>
       <Text style={styles.title}>{title}</Text>
-    </TouchableOpacity>
+    </ScalePressable>
   );
 }
 
@@ -40,6 +40,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 120,
+    width: '100%',
     ...Shadow.card,
   },
   iconContainer: {

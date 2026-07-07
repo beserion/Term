@@ -10,7 +10,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useAuthStore } from '../store/authStore';
 
@@ -42,7 +42,7 @@ export function LoginScreen() {
       {/* Üst dekoratif alan */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <MaterialCommunityIcons name="warehouse" size={48} color={Colors.onPrimary} />
+          <CustomIcon name="warehouse" size={48} color={Colors.onPrimary} />
         </View>
         <Text style={styles.appName}>GEMINI</Text>
         <Text style={styles.appSubtitle}>BlueHub Depo Yönetim Sistemi</Text>
@@ -55,17 +55,17 @@ export function LoginScreen() {
         {/* Hata mesajı */}
         {error && (
           <View style={styles.errorBanner}>
-            <MaterialCommunityIcons name="alert-circle" size={20} color={Colors.error} />
+            <CustomIcon name="alert-circle" size={20} color={Colors.error} />
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity onPress={clearError} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <MaterialCommunityIcons name="close" size={18} color={Colors.error} />
+              <CustomIcon name="close" size={18} color={Colors.error} />
             </TouchableOpacity>
           </View>
         )}
 
         {/* Kullanıcı Adı */}
         <View style={styles.inputContainer}>
-          <MaterialCommunityIcons name="account-outline" size={22} color={Colors.outline} style={styles.inputIcon} />
+          <CustomIcon name="account-outline" size={22} color={Colors.outline} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
             placeholder="Kullanıcı Adı"
@@ -80,7 +80,7 @@ export function LoginScreen() {
 
         {/* Şifre */}
         <View style={styles.inputContainer}>
-          <MaterialCommunityIcons name="lock-outline" size={22} color={Colors.outline} style={styles.inputIcon} />
+          <CustomIcon name="lock-outline" size={22} color={Colors.outline} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
             placeholder="Şifre"
@@ -95,7 +95,7 @@ export function LoginScreen() {
             onPress={() => setShowPassword(!showPassword)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <MaterialCommunityIcons
+            <CustomIcon
               name={showPassword ? 'eye-off' : 'eye'}
               size={22}
               color={Colors.outline}
@@ -114,7 +114,7 @@ export function LoginScreen() {
             <ActivityIndicator color={Colors.onPrimary} size="small" />
           ) : (
             <>
-              <MaterialCommunityIcons name="login" size={20} color={Colors.onPrimary} />
+              <CustomIcon name="login" size={20} color={Colors.onPrimary} />
               <Text style={styles.loginButtonText}>Giriş Yap</Text>
             </>
           )}

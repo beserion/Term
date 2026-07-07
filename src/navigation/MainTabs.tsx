@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { InventoryStack } from './InventoryStack';
 import { ReceivingStack } from './ReceivingStack';
 import { ShippingStack } from './ShippingStack';
@@ -41,7 +41,7 @@ export function MainTabs() {
         options={{
           tabBarLabel: 'Envanter',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons
+            <CustomIcon
               name={focused ? 'package-variant-closed' : 'package-variant'}
               size={24}
               color={color}
@@ -55,7 +55,7 @@ export function MainTabs() {
         options={{
           tabBarLabel: 'Mal Kabul',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons
+            <CustomIcon
               name={focused ? 'package-down' : 'package-down'}
               size={24}
               color={color}
@@ -69,7 +69,7 @@ export function MainTabs() {
         options={{
           tabBarLabel: 'Sevkiyat',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons
+            <CustomIcon
               name={focused ? 'truck-delivery' : 'truck-delivery-outline'}
               size={24}
               color={color}
@@ -83,7 +83,7 @@ export function MainTabs() {
         options={{
           tabBarLabel: 'Ayarlar',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons
+            <CustomIcon
               name={focused ? 'cog' : 'cog-outline'}
               size={24}
               color={color}

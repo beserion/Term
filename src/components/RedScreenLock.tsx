@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from './CustomIcon';
 import { useUIStore } from '../store/uiStore';
 import { Colors, Typography, Spacing, BorderRadius } from '../theme';
 import { FeedbackService } from '../services/feedback';
@@ -23,7 +23,7 @@ export function RedScreenLock() {
     <Modal visible={isErrorLocked} transparent={true} animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.content}>
-          <MaterialCommunityIcons name="alert-octagon" size={80} color={Colors.white} style={styles.icon} />
+          <CustomIcon name="alert-octagon" size={80} color={Colors.white} style={styles.icon} />
           
           <Text style={styles.title}>KRİTİK HATA</Text>
           

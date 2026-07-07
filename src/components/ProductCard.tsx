@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from './CustomIcon';
 import { StatusBadge } from './StatusBadge';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 
@@ -36,7 +36,7 @@ export function ProductCard({
 
       {/* Miktar */}
       <View style={styles.quantityRow}>
-        <MaterialCommunityIcons
+        <CustomIcon
           name="package-variant"
           size={20}
           color={Colors.onSurfaceVariant}
@@ -54,7 +54,7 @@ export function ProductCard({
           onPress={onReceive}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="check-circle" size={20} color={Colors.onPrimary} />
+          <CustomIcon name="check-circle" size={20} color={Colors.onPrimary} />
           <Text style={styles.receiveButtonText}>Teslim Al</Text>
         </TouchableOpacity>
 
@@ -63,7 +63,7 @@ export function ProductCard({
           onPress={onDelete}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="delete" size={20} color={Colors.error} />
+          <CustomIcon name="delete" size={20} color={Colors.error} />
           <Text style={styles.deleteButtonText}>Sil</Text>
         </TouchableOpacity>
       </View>

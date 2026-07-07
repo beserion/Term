@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
@@ -130,7 +130,7 @@ export function StockDecreaseScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Terminal Depo Bilgisi */}
         <View style={styles.warehouseAlert}>
-          <MaterialCommunityIcons name="office-building-marker" size={20} color={Colors.onErrorContainer} />
+          <CustomIcon name="office-building-marker" size={20} color={Colors.onErrorContainer} />
           <View style={{ flex: 1 }}>
             <Text style={styles.warehouseAlertLabel}>Aktif Terminal Deposu</Text>
             <Text style={styles.warehouseAlertName}>
@@ -139,7 +139,7 @@ export function StockDecreaseScreen() {
           </View>
           {!activeWarehouseId && (
             <TouchableOpacity onPress={() => navigation.navigate('SettingsTab')}>
-              <MaterialCommunityIcons name="cog" size={24} color={Colors.error} />
+              <CustomIcon name="cog" size={24} color={Colors.error} />
             </TouchableOpacity>
           )}
         </View>
@@ -162,7 +162,7 @@ export function StockDecreaseScreen() {
             style={styles.scanButton}
             onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
           >
-            <MaterialCommunityIcons name="barcode-scan" size={24} color={Colors.onPrimary} />
+            <CustomIcon name="barcode-scan" size={24} color={Colors.onPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -170,7 +170,7 @@ export function StockDecreaseScreen() {
         {product && (
           <View style={styles.productCard}>
             <View style={styles.productHeader}>
-              <MaterialCommunityIcons name="package-variant" size={24} color={Colors.error} />
+              <CustomIcon name="package-variant" size={24} color={Colors.error} />
               <Text style={styles.productName}>{product.stockName}</Text>
             </View>
             <View style={styles.stockInfo}>
@@ -189,7 +189,7 @@ export function StockDecreaseScreen() {
                     setQuantity(q > 0 ? String(q) : '');
                   }}
                 >
-                  <MaterialCommunityIcons name="minus" size={24} color={Colors.error} />
+                  <CustomIcon name="minus" size={24} color={Colors.error} />
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -206,7 +206,7 @@ export function StockDecreaseScreen() {
                   style={styles.qtyButton}
                   onPress={() => setQuantity(String((parseInt(quantity) || 0) + 1))}
                 >
-                  <MaterialCommunityIcons name="plus" size={24} color={Colors.primary} />
+                  <CustomIcon name="plus" size={24} color={Colors.primary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -229,7 +229,7 @@ export function StockDecreaseScreen() {
               onPress={handleDecrease}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="minus-circle" size={20} color={Colors.onPrimary} />
+              <CustomIcon name="minus-circle" size={20} color={Colors.onPrimary} />
               <Text style={styles.decreaseButtonText}>Stok Azalt</Text>
             </TouchableOpacity>
           </View>

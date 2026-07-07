@@ -3,14 +3,14 @@ import { TextStyle } from 'react-native';
 /**
  * Typography Scale — Material Design 3
  * stitch.txt tasarım dosyasından çıkarılan tipografi token'ları
- * Font: Inter (genel), JetBrains Mono (veri/kod)
+ * Font: Montserrat (genel), JetBrains Mono (veri/kod)
  */
 
 export const FontFamilies = {
-  regular: 'Inter_400Regular',
-  medium: 'Inter_500Medium',
-  semiBold: 'Inter_600SemiBold',
-  bold: 'Inter_700Bold',
+  regular: 'Montserrat_400Regular',
+  medium: 'Montserrat_500Medium',
+  semiBold: 'Montserrat_600SemiBold',
+  bold: 'Montserrat_700Bold',
   mono: 'JetBrainsMono_500Medium',
 } as const;
 
@@ -34,16 +34,16 @@ export const Typography: Record<string, TextStyle> = {
     fontWeight: '600',
   },
   bodyLg: {
-    fontFamily: FontFamilies.regular,
+    fontFamily: FontFamilies.medium,
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '400',
+    fontWeight: '500',
   },
   bodyMd: {
-    fontFamily: FontFamilies.regular,
+    fontFamily: FontFamilies.medium,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '400',
+    fontWeight: '500',
   },
   labelLg: {
     fontFamily: FontFamilies.semiBold,

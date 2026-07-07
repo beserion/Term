@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { useNavigation } from '@react-navigation/native';
 import { DashboardCard } from '../components/DashboardCard';
 import { Colors, Typography, Spacing, Shadow } from '../theme';
@@ -77,14 +77,14 @@ export function DashboardScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <MaterialCommunityIcons name="menu" size={24} color={Colors.primary} />
+            <CustomIcon name="menu" size={24} color={Colors.primary} />
           </TouchableOpacity>
           <Text style={styles.welcomeText}>
             Hoş geldin, {user?.name || 'Kullanıcı'}
           </Text>
         </View>
         <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="account" size={24} color={Colors.primary} />
+          <CustomIcon name="account" size={24} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 

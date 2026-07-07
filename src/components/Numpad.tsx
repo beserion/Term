@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TouchableWithoutFeedback } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from './CustomIcon';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 
 interface NumpadProps {
@@ -50,7 +50,7 @@ export function Numpad({ visible, onClose, onType, onDelete, onSubmit, submitLab
                   activeOpacity={0.6}
                 >
                   {key === 'DEL' ? (
-                    <MaterialCommunityIcons name="backspace-outline" size={28} color={Colors.error} />
+                    <CustomIcon name="backspace-outline" size={28} color={Colors.error} />
                   ) : (
                     <Text style={styles.keyText}>{key}</Text>
                   )}

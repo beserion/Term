@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from './CustomIcon';
 import { Colors, Typography, Spacing, BorderRadius } from '../theme';
 import { useUIStore } from '../store/uiStore';
 
@@ -72,7 +72,7 @@ export function Toast() {
         },
       ]}
     >
-      <MaterialCommunityIcons
+      <CustomIcon
         name={iconMap[toast.type]}
         size={20}
         color={colorMap[toast.type]}
@@ -102,7 +102,7 @@ export function LoadingOverlay() {
   return (
     <Animated.View style={[styles.overlay, { opacity }]}>
       <View style={styles.loadingBox}>
-        <MaterialCommunityIcons name="loading" size={32} color={Colors.primary} />
+        <CustomIcon name="loading" size={32} color={Colors.primary} />
         <Text style={styles.loadingText}>{loadingMessage}</Text>
       </View>
     </Animated.View>
@@ -111,7 +111,7 @@ export function LoadingOverlay() {
 
 /** Boş Liste Durumu */
 interface EmptyStateProps {
-  icon?: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon?: string;
   title: string;
   subtitle?: string;
 }
@@ -123,7 +123,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons
+      <CustomIcon
         name={icon}
         size={64}
         color={Colors.outlineVariant}

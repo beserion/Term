@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from './CustomIcon';
 import { StatusBadge } from './StatusBadge';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 
@@ -36,7 +36,7 @@ export function ShipmentCard({
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
-        <MaterialCommunityIcons
+        <CustomIcon
           name="chevron-right"
           size={24}
           color={Colors.outlineVariant}

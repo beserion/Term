@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from './CustomIcon';
 import { Colors, Typography, Spacing, Shadow } from '../theme';
 
 interface TopAppBarProps {
   title: string;
   onBack?: () => void;
   onAction?: () => void;
-  actionIcon?: keyof typeof MaterialCommunityIcons.glyphMap;
+  actionIcon?: string;
   showBack?: boolean;
 }
 
@@ -15,7 +15,7 @@ export function TopAppBar({
   title,
   onBack,
   onAction,
-  actionIcon = 'account-circle',
+  actionIcon = 'account',
   showBack = true,
 }: TopAppBarProps) {
   return (
@@ -29,7 +29,7 @@ export function TopAppBar({
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <MaterialCommunityIcons
+            <CustomIcon
               name="arrow-left"
               size={24}
               color={Colors.primary}
@@ -50,7 +50,7 @@ export function TopAppBar({
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <MaterialCommunityIcons
+            <CustomIcon
               name={actionIcon}
               size={24}
               color={Colors.primary}

@@ -19,7 +19,7 @@ async function getApiBaseUrl(): Promise<string> {
   try {
     let url = await AsyncStorage.getItem(STORAGE_KEYS.API_BASE_URL);
     // Eğer hafızadaki adres eski IP'yi içeriyorsa veya geçersizse otomatik sıfırla
-    if (url && (url.includes('20.34.5.180') || !url.startsWith('https://api.blackskyqore.com'))) {
+    if (url && (url.includes('20.34.5.180') || (!url.startsWith('https://') && !url.startsWith('http://')))) {
       await AsyncStorage.setItem(STORAGE_KEYS.API_BASE_URL, DEFAULT_API_BASE_URL);
       url = DEFAULT_API_BASE_URL;
     }

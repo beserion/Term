@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
@@ -131,7 +131,7 @@ export function CycleCountScreen() {
       <TopAppBar title="Depo Sayım (Cycle-Count)" onBack={() => navigation.goBack()} />
 
       <View style={styles.warehouseAlert}>
-        <MaterialCommunityIcons name="clipboard-check-outline" size={24} color={Colors.primary} />
+        <CustomIcon name="clipboard-check-outline" size={24} color={Colors.primary} />
         <View style={{ flex: 1 }}>
           <Text style={styles.warehouseAlertLabel}>Sayım Yapılan Depo</Text>
           <Text style={styles.warehouseAlertName}>
@@ -163,7 +163,7 @@ export function CycleCountScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="barcode-scan" size={48} color={Colors.outlineVariant} />
+            <CustomIcon name="barcode-scan" size={48} color={Colors.outlineVariant} />
             <Text style={styles.emptyText}>Henüz ürün okutulmadı</Text>
           </View>
         }
@@ -189,7 +189,7 @@ export function CycleCountScreen() {
               style={styles.deleteButton}
               onPress={() => handleRemoveItem(item.product.id)}
             >
-              <MaterialCommunityIcons name="trash-can-outline" size={24} color={Colors.error} />
+              <CustomIcon name="trash-can-outline" size={24} color={Colors.error} />
             </TouchableOpacity>
           </View>
         )}

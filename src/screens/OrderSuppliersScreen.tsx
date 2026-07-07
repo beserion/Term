@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { getOrderSuppliers, OrderSupplier } from '../services/orders';
@@ -54,13 +54,13 @@ export function OrderSuppliersScreen() {
       activeOpacity={0.7}
     >
       <View style={styles.iconBox}>
-        <MaterialCommunityIcons name="storefront" size={24} color={Colors.primary} />
+        <CustomIcon name="storefront" size={24} color={Colors.primary} />
       </View>
       <View style={styles.info}>
         <Text style={styles.supplierName}>{item.partnerName}</Text>
         <Text style={styles.supplierMeta}>Cari ID: {item.partnerId}</Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.outline} />
+      <CustomIcon name="chevron-right" size={24} color={Colors.outline} />
     </TouchableOpacity>
   );
 

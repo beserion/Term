@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { DeviceEventEmitter, NativeEventEmitter, Platform } from 'react-native';
+import { FeedbackService } from '../services/feedback';
 
 /**
  * Zebra DataWedge Barkod Hook'u
@@ -44,6 +45,7 @@ export function useBarcode(
           const barcode = intent['com.symbol.datawedge.data_string'].trim();
           if (barcode) {
             lastBarcodeRef.current = barcode;
+            FeedbackService.playLightImpact();
             onScanRef.current(barcode);
           }
         }
@@ -92,6 +94,7 @@ export function useKeyboardBarcode(
     if (char === '\n' || char === '\r') {
       // Enter → barkod tamamlandı
       if (bufferRef.current.length >= minLength) {
+        FeedbackService.playLightImpact();
         onScanRef.current(bufferRef.current);
       }
       bufferRef.current = '';

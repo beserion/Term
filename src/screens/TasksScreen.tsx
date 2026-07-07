@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, Modal, LayoutAnimation, Platform, UIManager } from 'react-native';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { getTasks, updateTaskStatus, Task } from '../services/tasks';
 import { useUIStore } from '../store/uiStore';
 import { EmptyState } from '../components/Toast';
+import { TaskCardSkeleton } from '../components/skeletons/TaskCardSkeleton';
+import { Badge } from '../components/Badge';
 
 export function TasksScreen() {
   const navigation = useNavigation<any>();
@@ -40,84 +46,94 @@ export function TasksScreen() {
       await updateTaskStatus(selectedTask.id, newStatus);
       showToast({ message: 'Görev durumu güncellendi', type: 'success' });
       setModalVisible(false);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       fetchTasks();
     } catch (err) {
       showToast({ message: 'Hata oluştu', type: 'error' });
     }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityBadgeProps = (priority: string) => {
     switch (priority) {
-      case 'High': return Colors.error;
-      case 'Medium': return Colors.warning;
-      default: return Colors.success;
+      case 'High': return { type: 'error' as const, label: 'YÜKSEK', icon: 'alert-circle' };
+      case 'Medium': return { type: 'warning' as const, label: 'ORTA', icon: 'alert' };
+      default: return { type: 'success' as const, label: 'DÜŞÜK', icon: 'check-circle-outline' };
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusBadgeProps = (status: string) => {
     switch (status) {
-      case 'Pending': return 'Bekliyor';
-      case 'InProgress': return 'Devam Ediyor';
-      case 'Completed': return 'Tamamlandı';
-      default: return status;
+      case 'Pending': return { type: 'info' as const, label: 'Bekliyor', icon: 'clock-outline' };
+      case 'InProgress': return { type: 'warning' as const, label: 'Devam Ediyor', icon: 'progress-clock' };
+      case 'Completed': return { type: 'success' as const, label: 'Tamamlandı', icon: 'check-circle' };
+      default: return { type: 'primary' as const, label: status };
     }
   };
 
-  const renderTask = ({ item }: { item: Task }) => (
-    <TouchableOpacity 
-      style={styles.taskCard}
-      onPress={() => {
-        setSelectedTask(item);
-        setModalVisible(true);
-      }}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.titleRow}>
-          <MaterialCommunityIcons 
-            name={item.status === 'Completed' ? 'check-circle' : 'clipboard-text-outline'} 
-            size={24} 
-            color={item.status === 'Completed' ? Colors.success : Colors.primary} 
-          />
-          <Text style={styles.taskTitle}>{item.title}</Text>
+  const renderTask = ({ item }: { item: Task }) => {
+    const priorityProps = getPriorityBadgeProps(item.priority);
+    const statusProps = getStatusBadgeProps(item.status);
+
+    return (
+      <TouchableOpacity 
+        style={styles.taskCard}
+        onPress={() => {
+          setSelectedTask(item);
+          setModalVisible(true);
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.titleRow}>
+            <CustomIcon 
+              name={item.status === 'Completed' ? 'check-circle' : 'clipboard-text-outline'} 
+              size={24} 
+              color={item.status === 'Completed' ? Colors.success : Colors.primary} 
+            />
+            <Text style={styles.taskTitle}>{item.title}</Text>
+          </View>
+          <Badge {...priorityProps} />
         </View>
-        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) + '20' }]}>
-          <Text style={[styles.priorityText, { color: getPriorityColor(item.priority) }]}>
-            {item.priority.toUpperCase()}
+        <Text style={styles.taskDescription} numberOfLines={2}>{item.description}</Text>
+        
+        <View style={styles.cardFooter}>
+          <Text style={styles.dateText}>
+            {new Date(item.createdAt).toLocaleDateString('tr-TR')} {new Date(item.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
           </Text>
+          <Badge {...statusProps} />
         </View>
-      </View>
-      <Text style={styles.taskDescription} numberOfLines={2}>{item.description}</Text>
-      
-      <View style={styles.cardFooter}>
-        <Text style={styles.dateText}>
-          {new Date(item.createdAt).toLocaleDateString('tr-TR')} {new Date(item.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-        <Text style={[styles.statusText, item.status === 'InProgress' && { color: Colors.warning }]}>
-          {getStatusLabel(item.status)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <TopAppBar title="Görevler ve Talepler" onBack={() => navigation.goBack()} showBack={true} />
 
-      <FlatList
-        data={tasks}
-        renderItem={renderTask}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={fetchTasks} colors={[Colors.primary]} />
-        }
-        ListEmptyComponent={
-          !refreshing ? (
-            <EmptyState icon="clipboard-check-outline" title="Görev Yok" subtitle="Şu an için atanmış bir göreviniz bulunmuyor." />
-          ) : null
-        }
-      />
+      {refreshing && tasks.length === 0 ? (
+        <FlatList
+          data={[1, 2, 3]}
+          renderItem={() => <TaskCardSkeleton />}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
+        />
+      ) : (
+        <FlatList
+          data={tasks}
+          renderItem={renderTask}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={fetchTasks} colors={[Colors.primary]} />
+          }
+          ListEmptyComponent={
+            !refreshing ? (
+              <EmptyState icon="clipboard-check-outline" title="Görev Yok" subtitle="Şu an için atanmış bir göreviniz bulunmuyor." />
+            ) : null
+          }
+        />
+      )}
 
       {/* Görev Detay Modalı */}
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
@@ -128,7 +144,7 @@ export function TasksScreen() {
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>{selectedTask.title}</Text>
                   <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
-                    <MaterialCommunityIcons name="close" size={24} color={Colors.onSurface} />
+                    <CustomIcon name="close" size={24} color={Colors.onSurface} />
                   </TouchableOpacity>
                 </View>
 
@@ -160,7 +176,7 @@ export function TasksScreen() {
                       style={[styles.actionBtn, { backgroundColor: Colors.warning }]}
                       onPress={() => handleUpdateStatus('InProgress')}
                     >
-                      <MaterialCommunityIcons name="play-circle-outline" size={20} color={Colors.onWarning || '#fff'} style={{ marginRight: 8 }}/>
+                      <CustomIcon name="play-circle-outline" size={20} color={Colors.onWarning || '#fff'} style={{ marginRight: 8 }}/>
                       <Text style={[styles.actionBtnText, { color: Colors.onWarning || '#fff' }]}>Görevi Başlat</Text>
                     </TouchableOpacity>
                   )}
@@ -170,7 +186,7 @@ export function TasksScreen() {
                       style={[styles.actionBtn, { backgroundColor: Colors.success, marginTop: Spacing.sm }]}
                       onPress={() => handleUpdateStatus('Completed')}
                     >
-                      <MaterialCommunityIcons name="check-circle-outline" size={20} color={Colors.onSuccess || '#fff'} style={{ marginRight: 8 }}/>
+                      <CustomIcon name="check-circle-outline" size={20} color={Colors.onSuccess || '#fff'} style={{ marginRight: 8 }}/>
                       <Text style={[styles.actionBtnText, { color: Colors.onSuccess || '#fff' }]}>Tamamlandı İşaretle</Text>
                     </TouchableOpacity>
                   )}

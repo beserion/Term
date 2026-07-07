@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from './CustomIcon';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 
 interface SearchBarProps {
@@ -16,7 +16,7 @@ export function SearchBar({
 }: SearchBarProps) {
   return (
     <View style={styles.container}>
-      <MaterialCommunityIcons
+      <CustomIcon
         name="magnify"
         size={22}
         color={Colors.onSurfaceVariant}

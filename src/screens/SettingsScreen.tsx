@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useAuthStore } from '../store/authStore';
@@ -80,7 +80,7 @@ export function SettingsScreen() {
           <View style={styles.card}>
             <View style={styles.userRow}>
               <View style={styles.avatar}>
-                <MaterialCommunityIcons name="account" size={32} color={Colors.primary} />
+                <CustomIcon name="account" size={32} color={Colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.userName}>{user?.name || 'Kullanıcı'}</Text>
@@ -110,7 +110,7 @@ export function SettingsScreen() {
               onPress={handleSaveUrl}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="content-save" size={20} color={Colors.onPrimary} />
+              <CustomIcon name="content-save" size={20} color={Colors.onPrimary} />
               <Text style={styles.saveButtonText}>Kaydet</Text>
             </TouchableOpacity>
           </View>
@@ -140,7 +140,7 @@ export function SettingsScreen() {
                       }}
                       activeOpacity={0.7}
                     >
-                      <MaterialCommunityIcons
+                      <CustomIcon
                         name={isActive ? "radiobox-marked" : "radiobox-blank"}
                         size={24}
                         color={isActive ? Colors.primary : Colors.outline}
@@ -179,7 +179,7 @@ export function SettingsScreen() {
           onPress={handleLogout}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="logout" size={20} color={Colors.error} />
+          <CustomIcon name="logout" size={20} color={Colors.error} />
           <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
         </TouchableOpacity>
       </ScrollView>

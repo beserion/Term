@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CustomIcon } from './CustomIcon';
 import { StatusBadge } from './StatusBadge';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 
@@ -45,7 +45,7 @@ export function OrderCard({
           {buyerName ? ` • Alıcı: ${buyerName}` : ''}
         </Text>
         <View style={styles.dateContainer}>
-          <MaterialCommunityIcons
+          <CustomIcon
             name="calendar-month"
             size={14}
             color={Colors.outline}
