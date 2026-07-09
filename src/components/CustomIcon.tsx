@@ -45,6 +45,7 @@ import {
   faLink,
   faLinkSlash,
   faCircleDot,
+  faPrint,
 } from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -73,6 +74,7 @@ const IconMap: Record<string, any> = {
   'calendar-month': faCalendarDays,
   'link-variant': faLink,
   'link-variant-off': faLinkSlash,
+  'printer': faPrint,
 
   // Auth
   'warehouse': faWarehouse,

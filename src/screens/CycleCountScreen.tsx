@@ -8,6 +8,8 @@ import { useBarcode } from '../hooks/useBarcode';
 import { getStockByBarcode, Stock, createCycleCount } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { Numpad } from '../components/Numpad';
+import { WarehouseSelectModal } from '../components/WarehouseSelectModal';
 
 interface CountedItem {
   product: Stock;
@@ -24,6 +26,10 @@ export function CycleCountScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState<CountedItem | null>(null);
   const [editQtyStr, setEditQtyStr] = useState('');
+  
+  const [warehouseModalVisible, setWarehouseModalVisible] = useState(false);
+  const [showSoftKeyboard, setShowSoftKeyboard] = useState(false);
+  const barcodeInputRef = React.useRef<TextInput>(null);
   
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
@@ -130,29 +136,51 @@ export function CycleCountScreen() {
     <View style={styles.container}>
       <TopAppBar title="Depo Sayım (Cycle-Count)" onBack={() => navigation.goBack()} />
 
-      <View style={styles.warehouseAlert}>
+      <TouchableOpacity 
+        style={styles.warehouseAlert} 
+        onPress={() => setWarehouseModalVisible(true)}
+        activeOpacity={0.8}
+      >
         <CustomIcon name="clipboard-check-outline" size={24} color={Colors.primary} />
         <View style={{ flex: 1 }}>
           <Text style={styles.warehouseAlertLabel}>Sayım Yapılan Depo</Text>
           <Text style={styles.warehouseAlertName}>
-            {activeWarehouseId ? activeWarehouseName : 'DEPO SEÇİLMEMİŞ!'}
+            {activeWarehouseId ? activeWarehouseName : 'DEPO SEÇİLMEMİŞ! Dokunup seçin.'}
           </Text>
         </View>
-      </View>
+        <CustomIcon name="chevron-down" size={20} color={Colors.primary} />
+      </TouchableOpacity>
 
       <View style={styles.scanContainer}>
         <View style={styles.scanRow}>
-          <TextInput
-            style={styles.barcodeInput}
-            placeholder="Barkod okutun..."
-            placeholderTextColor={Colors.outline}
-            value={barcode}
-            onChangeText={setBarcode}
-            onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
-            returnKeyType="search"
-            autoFocus={true}
-            showSoftInputOnFocus={false}
-          />
+          <View style={styles.barcodeInputContainer}>
+            <TextInput
+              style={styles.barcodeInput}
+              placeholder="Barkod okutun..."
+              placeholderTextColor={Colors.outline}
+              value={barcode}
+              onChangeText={setBarcode}
+              onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
+              returnKeyType="search"
+              ref={barcodeInputRef}
+              autoFocus={true}
+              showSoftInputOnFocus={showSoftKeyboard}
+            />
+            <TouchableOpacity 
+              style={styles.keyboardToggleBtn}
+              onPress={() => {
+                setShowSoftKeyboard(prev => !prev);
+                setTimeout(() => barcodeInputRef.current?.focus(), 100);
+              }}
+              activeOpacity={0.7}
+            >
+              <CustomIcon 
+                name={showSoftKeyboard ? "keyboard" : "keyboard-outline"} 
+                size={22} 
+                color={showSoftKeyboard ? Colors.primary : Colors.outline} 
+              />
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.hint}>Peş peşe okutulan aynı ürünlerin miktarı otomatik toplanır.</Text>
       </View>
@@ -212,31 +240,28 @@ export function CycleCountScreen() {
       </View>
 
       {/* Miktar Düzenleme Modalı */}
-      <Modal visible={showEditModal} animationType="fade" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Miktarı Düzenle</Text>
-            <Text style={styles.modalSubTitle}>{editingItem?.product.stockName}</Text>
-            
-            <TextInput
-              style={styles.modalInput}
-              keyboardType="numeric"
-              value={editQtyStr}
-              onChangeText={setEditQtyStr}
-              autoFocus={true}
-            />
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowEditModal(false)}>
-                <Text style={styles.modalCancelText}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalSaveButton} onPress={handleSaveEdit}>
-                <Text style={styles.modalSaveText}>Kaydet</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <Numpad
+        visible={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingItem(null);
+        }}
+        onType={(val) => {
+          if (val === '.' && editQtyStr.includes('.')) return;
+          setEditQtyStr(prev => prev + val);
+        }}
+        onDelete={() => setEditQtyStr(prev => prev.slice(0, -1))}
+        onSubmit={handleSaveEdit}
+        submitLabel="MİKTARI KAYDET"
+        submitColor={Colors.primary}
+        title={editingItem?.product.stockName || 'Miktarı Düzenle'}
+        value={editQtyStr}
+      />
+
+      <WarehouseSelectModal
+        visible={warehouseModalVisible}
+        onClose={() => setWarehouseModalVisible(false)}
+      />
     </View>
   );
 }
@@ -274,16 +299,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  barcodeInput: {
+  barcodeInputContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 56,
     backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
-    borderRadius: BorderRadius.md,
+    paddingRight: Spacing.xs,
+  },
+  barcodeInput: {
+    flex: 1,
+    height: '100%',
     paddingHorizontal: Spacing.md,
-    height: 56,
     ...Typography.bodyLg,
     color: Colors.onSurface,
+  },
+  keyboardToggleBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   hint: {
     ...Typography.labelSm,

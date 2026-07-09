@@ -10,6 +10,7 @@ import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { Numpad } from '../components/Numpad';
 import { FeedbackService } from '../services/feedback';
+import { WarehouseSelectModal } from '../components/WarehouseSelectModal';
 
 export function StockDecreaseScreen() {
   const navigation = useNavigation<any>();
@@ -19,6 +20,8 @@ export function StockDecreaseScreen() {
   const [quantity, setQuantity] = useState('');
   const [note, setNote] = useState('');
   const [numpadVisible, setNumpadVisible] = useState(false);
+  const [warehouseModalVisible, setWarehouseModalVisible] = useState(false);
+  const [showSoftKeyboard, setShowSoftKeyboard] = useState(false);
   const barcodeInputRef = React.useRef<TextInput>(null);
   
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
@@ -94,8 +97,23 @@ export function StockDecreaseScreen() {
       FeedbackService.playSuccess();
       showToast({ message: `${product!.stockName} stoğu ${qty} azaltıldı`, type: 'success' });
       
-      // Formu sıfırlayıp yeni ürüne geçişe hazırla
-      setProduct(null);
+      // Güncel stok miktarını API'den tekrar çek
+      if (product!.barCode) {
+        try {
+          const freshProduct = await getStockByBarcode(product!.barCode);
+          if (freshProduct && freshProduct.id && freshProduct.id !== 0) {
+            setProduct(freshProduct);
+          } else {
+            setProduct(null);
+          }
+        } catch (fetchErr) {
+          console.error("Güncel stok çekilemedi:", fetchErr);
+          setProduct(null);
+        }
+      } else {
+        setProduct(null);
+      }
+
       setQuantity('');
       setNote('');
       setBarcode('');
@@ -129,35 +147,51 @@ export function StockDecreaseScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Terminal Depo Bilgisi */}
-        <View style={styles.warehouseAlert}>
+        <TouchableOpacity 
+          style={styles.warehouseAlert} 
+          onPress={() => setWarehouseModalVisible(true)}
+          activeOpacity={0.8}
+        >
           <CustomIcon name="office-building-marker" size={20} color={Colors.onErrorContainer} />
           <View style={{ flex: 1 }}>
             <Text style={styles.warehouseAlertLabel}>Aktif Terminal Deposu</Text>
             <Text style={styles.warehouseAlertName}>
-              {activeWarehouseId ? activeWarehouseName : 'DEPO SEÇİLMEMİŞ! Ayarlardan seçin.'}
+              {activeWarehouseId ? activeWarehouseName : 'DEPO SEÇİLMEMİŞ! Dokunup seçin.'}
             </Text>
           </View>
-          {!activeWarehouseId && (
-            <TouchableOpacity onPress={() => navigation.navigate('SettingsTab')}>
-              <CustomIcon name="cog" size={24} color={Colors.error} />
-            </TouchableOpacity>
-          )}
-        </View>
+          <CustomIcon name="chevron-down" size={20} color={Colors.onErrorContainer} />
+        </TouchableOpacity>
 
         {/* Barkod giriş */}
         <View style={styles.scanRow}>
-          <TextInput
-            style={styles.barcodeInput}
-            placeholder="Barkod okutun veya girin..."
-            placeholderTextColor={Colors.outline}
-            value={barcode}
-            onChangeText={setBarcode}
-            onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
-            returnKeyType="search"
-            ref={barcodeInputRef}
-            autoFocus={true}
-            showSoftInputOnFocus={false}
-          />
+          <View style={styles.barcodeInputContainer}>
+            <TextInput
+              style={styles.barcodeInput}
+              placeholder="Barkod okutun veya girin..."
+              placeholderTextColor={Colors.outline}
+              value={barcode}
+              onChangeText={setBarcode}
+              onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
+              returnKeyType="search"
+              ref={barcodeInputRef}
+              autoFocus={true}
+              showSoftInputOnFocus={showSoftKeyboard}
+            />
+            <TouchableOpacity 
+              style={styles.keyboardToggleBtn}
+              onPress={() => {
+                setShowSoftKeyboard(prev => !prev);
+                setTimeout(() => barcodeInputRef.current?.focus(), 100);
+              }}
+              activeOpacity={0.7}
+            >
+              <CustomIcon 
+                name={showSoftKeyboard ? "keyboard" : "keyboard-outline"} 
+                size={22} 
+                color={showSoftKeyboard ? Colors.primary : Colors.outline} 
+              />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             style={styles.scanButton}
             onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
@@ -247,6 +281,11 @@ export function StockDecreaseScreen() {
           submitColor={Colors.error}
         />
       )}
+
+      <WarehouseSelectModal
+        visible={warehouseModalVisible}
+        onClose={() => setWarehouseModalVisible(false)}
+      />
     </View>
   );
 }
@@ -262,12 +301,29 @@ const styles = StyleSheet.create({
   warehouseAlertLabel: { ...Typography.labelSm, color: Colors.onErrorContainer },
   warehouseAlertName: { ...Typography.titleMd, color: Colors.onErrorContainer, fontWeight: 'bold' },
   scanRow: { flexDirection: 'row', gap: Spacing.sm },
-  barcodeInput: {
-    flex: 1, height: Spacing.touchTargetMin,
+  barcodeInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: Spacing.touchTargetMin,
     backgroundColor: Colors.surfaceContainerLowest,
-    borderRadius: BorderRadius.md, borderWidth: 1,
-    borderColor: Colors.outlineVariant, paddingHorizontal: Spacing.lg,
-    ...Typography.bodyLg, color: Colors.onSurface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    paddingRight: Spacing.xs,
+  },
+  barcodeInput: {
+    flex: 1,
+    height: '100%',
+    paddingHorizontal: Spacing.lg,
+    ...Typography.bodyLg,
+    color: Colors.onSurface,
+  },
+  keyboardToggleBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scanButton: {
     width: Spacing.touchTargetMin, height: Spacing.touchTargetMin,

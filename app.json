@@ -17,8 +17,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.yahyakaracan.Terminalproductstok",
-      "usesCleartextTraffic": true
+      "package": "com.yahyakaracan.Terminalproductstok"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,6 +26,16 @@
       "eas": {
         "projectId": "8138fae6-ec8a-4c11-9c3e-369b5138b17f"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ]
   }
 }

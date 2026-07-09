@@ -10,6 +10,8 @@ import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { FeedbackService } from '../services/feedback';
 import { ScalePressable } from '../components/ScalePressable';
+import { WarehouseSelectModal } from '../components/WarehouseSelectModal';
+import { Numpad } from '../components/Numpad';
 
 export function StockTransferScreen() {
   const navigation = useNavigation<any>();
@@ -23,6 +25,11 @@ export function StockTransferScreen() {
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [targetWarehouseId, setTargetWarehouseId] = useState<number | null>(null);
+  
+  const [warehouseModalVisible, setWarehouseModalVisible] = useState(false);
+  const [showSoftKeyboard, setShowSoftKeyboard] = useState(false);
+  const [numpadVisible, setNumpadVisible] = useState(false);
+  const barcodeInputRef = React.useRef<TextInput>(null);
   
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
@@ -120,15 +127,20 @@ export function StockTransferScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Çıkış Deposu (Terminal Depo) */}
-        <View style={styles.warehouseAlert}>
+        <TouchableOpacity 
+          style={styles.warehouseAlert} 
+          onPress={() => setWarehouseModalVisible(true)}
+          activeOpacity={0.8}
+        >
           <CustomIcon name="export" size={20} color={Colors.error} />
           <View style={{ flex: 1 }}>
             <Text style={styles.warehouseAlertLabel}>Çıkış Deposu (Terminal)</Text>
             <Text style={styles.warehouseAlertName}>
-              {activeWarehouseId ? activeWarehouseName : 'DEPO SEÇİLMEMİŞ!'}
+              {activeWarehouseId ? activeWarehouseName : 'DEPO SEÇİLMEMİŞ! Dokunup seçin.'}
             </Text>
           </View>
-        </View>
+          <CustomIcon name="chevron-down" size={20} color={Colors.error} />
+        </TouchableOpacity>
 
         {/* Hedef Depo Seçimi */}
         <TouchableOpacity 
@@ -146,17 +158,34 @@ export function StockTransferScreen() {
 
         {/* Barkod giriş */}
         <View style={styles.scanRow}>
-          <TextInput
-            style={styles.barcodeInput}
-            placeholder="Barkod okutun veya girin..."
-            placeholderTextColor={Colors.outline}
-            value={barcode}
-            onChangeText={setBarcode}
-            onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
-            returnKeyType="search"
-            autoFocus={true}
-            showSoftInputOnFocus={false}
-          />
+          <View style={styles.barcodeInputContainer}>
+            <TextInput
+              style={styles.barcodeInput}
+              placeholder="Barkod okutun veya girin..."
+              placeholderTextColor={Colors.outline}
+              value={barcode}
+              onChangeText={setBarcode}
+              onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
+              returnKeyType="search"
+              ref={barcodeInputRef}
+              autoFocus={true}
+              showSoftInputOnFocus={showSoftKeyboard}
+            />
+            <TouchableOpacity 
+              style={styles.keyboardToggleBtn}
+              onPress={() => {
+                setShowSoftKeyboard(prev => !prev);
+                setTimeout(() => barcodeInputRef.current?.focus(), 100);
+              }}
+              activeOpacity={0.7}
+            >
+              <CustomIcon 
+                name={showSoftKeyboard ? "keyboard" : "keyboard-outline"} 
+                size={22} 
+                color={showSoftKeyboard ? Colors.primary : Colors.outline} 
+              />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity 
             style={styles.scanButton}
             onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
@@ -186,14 +215,15 @@ export function StockTransferScreen() {
 
             {/* Form */}
             <Text style={styles.inputLabel}>Transfer Miktarı</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="0"
-              placeholderTextColor={Colors.outline}
-              keyboardType="numeric"
-              value={quantity}
-              onChangeText={setQuantity}
-            />
+            <TouchableOpacity 
+              style={styles.quantityInputTouchable} 
+              onPress={() => setNumpadVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.quantityInputText, !quantity && styles.quantityInputPlaceholder]}>
+                {quantity || '0'}
+              </Text>
+            </TouchableOpacity>
 
             <Text style={styles.inputLabel}>Not / Belge No</Text>
             <TextInput
@@ -241,6 +271,23 @@ export function StockTransferScreen() {
           </View>
         </View>
       </Modal>
+
+      <WarehouseSelectModal
+        visible={warehouseModalVisible}
+        onClose={() => setWarehouseModalVisible(false)}
+      />
+
+      {product && (
+        <Numpad 
+          visible={numpadVisible}
+          onClose={() => setNumpadVisible(false)}
+          onType={(val) => setQuantity(prev => prev + val)}
+          onDelete={() => setQuantity(prev => prev.slice(0, -1))}
+          onSubmit={handleTransfer}
+          submitLabel="TRANSFERİ BAŞLAT"
+          submitColor={Colors.primary}
+        />
+      )}
     </View>
   );
 }
@@ -278,16 +325,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  barcodeInput: {
+  barcodeInputContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 56,
     backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
-    borderRadius: BorderRadius.md,
+    paddingRight: Spacing.xs,
+  },
+  barcodeInput: {
+    flex: 1,
+    height: '100%',
     paddingHorizontal: Spacing.md,
-    height: 56,
     ...Typography.bodyLg,
     color: Colors.onSurface,
+  },
+  keyboardToggleBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scanButton: {
     width: 56,
@@ -367,6 +427,23 @@ const styles = StyleSheet.create({
     ...Typography.bodyLg,
     color: Colors.onSurface,
     marginBottom: Spacing.lg,
+  },
+  quantityInputTouchable: {
+    height: 56,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  quantityInputText: {
+    ...Typography.headlineMd,
+    color: Colors.onSurface,
+  },
+  quantityInputPlaceholder: {
+    color: Colors.outline,
   },
   actionButton: {
     backgroundColor: Colors.primary,

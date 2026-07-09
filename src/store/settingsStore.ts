@@ -7,6 +7,10 @@ interface SettingsState {
   activeWarehouseName: string | null;
   setActiveWarehouse: (id: number, name: string) => void;
   clearActiveWarehouse: () => void;
+  activePrinterId: string | null;
+  activePrinterName: string | null;
+  setActivePrinter: (id: string | null, name: string | null) => void;
+  clearActivePrinter: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -16,6 +20,10 @@ export const useSettingsStore = create<SettingsState>()(
       activeWarehouseName: null,
       setActiveWarehouse: (id, name) => set({ activeWarehouseId: id, activeWarehouseName: name }),
       clearActiveWarehouse: () => set({ activeWarehouseId: null, activeWarehouseName: null }),
+      activePrinterId: null,
+      activePrinterName: null,
+      setActivePrinter: (id, name) => set({ activePrinterId: id, activePrinterName: name }),
+      clearActivePrinter: () => set({ activePrinterId: null, activePrinterName: null }),
     }),
     {
       name: 'terminal-settings',

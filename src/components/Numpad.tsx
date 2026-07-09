@@ -11,9 +11,21 @@ interface NumpadProps {
   onSubmit?: () => void;
   submitLabel?: string;
   submitColor?: string;
+  title?: string;
+  value?: string;
 }
 
-export function Numpad({ visible, onClose, onType, onDelete, onSubmit, submitLabel = 'TAMAM', submitColor = Colors.primary }: NumpadProps) {
+export function Numpad({ 
+  visible, 
+  onClose, 
+  onType, 
+  onDelete, 
+  onSubmit, 
+  submitLabel = 'TAMAM', 
+  submitColor = Colors.primary,
+  title,
+  value
+}: NumpadProps) {
   const keys = [
     ['1', '2', '3'],
     ['4', '5', '6'],
@@ -39,6 +51,16 @@ export function Numpad({ visible, onClose, onType, onDelete, onSubmit, submitLab
         <View style={styles.handleContainer}>
           <View style={styles.handle} />
         </View>
+        
+        {title && (
+          <View style={styles.headerDisplay}>
+            <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+            {value !== undefined && (
+              <Text style={styles.headerValue}>{value || '0'}</Text>
+            )}
+          </View>
+        )}
+
         <View style={styles.grid}>
           {keys.map((row, rowIndex) => (
             <View key={rowIndex} style={styles.row}>
@@ -100,6 +122,22 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: Colors.outlineVariant,
     borderRadius: BorderRadius.full,
+  },
+  headerDisplay: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+  },
+  headerTitle: {
+    ...Typography.bodyMd,
+    color: Colors.outline,
+    textAlign: 'center',
+  },
+  headerValue: {
+    ...Typography.headlineLg,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
   },
   grid: {
     gap: Spacing.xs || 4,

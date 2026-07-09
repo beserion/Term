@@ -107,7 +107,10 @@ export function ProductCheckScreen() {
             <TouchableOpacity
               style={styles.updateButton}
               activeOpacity={0.8}
-              onPress={() => navigation.navigate('StockIncrease', { product })}
+              onPress={() => {
+                navigation.navigate('StockIncrease', { product });
+                setProduct(null);
+              }}
             >
               <CustomIcon name="pencil-box-outline" size={20} color={Colors.onPrimary} />
               <Text style={styles.updateButtonText}>Stok Güncelle</Text>

@@ -5,12 +5,17 @@ import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
 import { useAuthStore } from '../store/authStore';
 import { Colors } from '../theme';
+import { useSettingsStore } from '../store/settingsStore';
 
 export function AppNavigator() {
   const { isAuthenticated, isLoading, initialize } = useAuthStore();
+  const { clearActiveWarehouse, clearActivePrinter } = useSettingsStore();
 
   useEffect(() => {
     initialize();
+    // Program her başlatıldığında aktif depo ve yazıcıyı sıfırla
+    clearActiveWarehouse();
+    clearActivePrinter();
   }, []);
 
   // Başlangıç yüklemesi

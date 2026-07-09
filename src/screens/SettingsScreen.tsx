@@ -1,26 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
 import { Config } from '../config';
-import { resetApiInstance, createApiInstance } from '../services/api';
 import { useSettingsStore } from '../store/settingsStore';
 import { getWarehouses, Warehouse } from '../services/inventory';
 
 export function SettingsScreen() {
   const { user, logout } = useAuthStore();
   const showToast = useUIStore((s) => s.showToast);
-  const [apiUrl, setApiUrl] = useState('');
   
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehousesLoading, setWarehousesLoading] = useState(true);
   const { activeWarehouseId, setActiveWarehouse } = useSettingsStore();
 
   useEffect(() => {
-    Config.getApiBaseUrl().then(setApiUrl);
     loadWarehouses();
   }, []);
 
@@ -45,17 +42,6 @@ export function SettingsScreen() {
     } finally {
       setWarehousesLoading(false);
     }
-  };
-
-  const handleSaveUrl = async () => {
-    if (!apiUrl.trim()) {
-      showToast({ message: 'Geçerli bir URL girin', type: 'error' });
-      return;
-    }
-    await Config.setApiBaseUrl(apiUrl.trim());
-    resetApiInstance();
-    await createApiInstance();
-    showToast({ message: 'API adresi güncellendi', type: 'success' });
   };
 
   const handleLogout = () => {
@@ -90,31 +76,7 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        {/* Sunucu Ayarları */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sunucu Ayarları</Text>
-          <View style={styles.card}>
-            <Text style={styles.inputLabel}>API Adresi</Text>
-            <TextInput
-              style={styles.input}
-              value={apiUrl}
-              onChangeText={setApiUrl}
-              placeholder="http://192.168.1.100:5000/api"
-              placeholderTextColor={Colors.outline}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSaveUrl}
-              activeOpacity={0.8}
-            >
-              <CustomIcon name="content-save" size={20} color={Colors.onPrimary} />
-              <Text style={styles.saveButtonText}>Kaydet</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
 
         {/* Terminal Depo Ayarı */}
         <View style={styles.section}>
@@ -209,22 +171,7 @@ const styles = StyleSheet.create({
   userName: { ...Typography.headlineSm, color: Colors.onSurface },
   userEmail: { ...Typography.bodyMd, color: Colors.onSurfaceVariant },
   userRole: { ...Typography.labelMd, color: Colors.primary, marginTop: 2 },
-  inputLabel: {
-    ...Typography.labelLg, color: Colors.onSurfaceVariant, marginBottom: Spacing.sm,
-  },
-  input: {
-    height: Spacing.touchTargetMin,
-    backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: BorderRadius.sm, borderWidth: 1,
-    borderColor: Colors.outlineVariant, paddingHorizontal: Spacing.lg,
-    ...Typography.bodyMd, color: Colors.onSurface, marginBottom: Spacing.md,
-  },
-  saveButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, backgroundColor: Colors.primaryContainer,
-    borderRadius: BorderRadius.sm, minHeight: Spacing.touchTargetMin,
-  },
-  saveButtonText: { ...Typography.labelLg, color: Colors.onPrimary },
+
   infoRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingVertical: Spacing.sm,

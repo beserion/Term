@@ -156,3 +156,16 @@ export async function completeCycleCount(id: number): Promise<void> {
   const api = await getApi();
   await api.post(`/Inventory/cycle-count/${id}/complete`);
 }
+
+/** Etiket Yazdırma (Mock/Ön Hazırlık)
+ * Swagger'a eklenene kadar mock istek simülasyonu yapar.
+ */
+export async function printLabel(barcode: string, quantity: number): Promise<void> {
+  // Gelecekte gerçek endpoint eklendiğinde kullanılacak yapı:
+  // const api = await getApi();
+  // await api.post('/Inventory/print-label', { barcode, quantity });
+  
+  // Şimdilik mock gecikme simülasyonu yapıyoruz.
+  await new Promise((resolve) => setTimeout(resolve, 800));
+}
+

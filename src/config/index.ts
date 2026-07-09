@@ -1,12 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 /**
  * Uygulama Yapılandırması
- * API Base URL, Ayarlar ekranından değiştirilebilir
  */
 
 const STORAGE_KEYS = {
-  API_BASE_URL: '@wms_api_base_url',
   AUTH_TOKEN: '@wms_auth_token',
   REFRESH_TOKEN: '@wms_refresh_token',
   USER_DATA: '@wms_user_data',
@@ -14,32 +10,16 @@ const STORAGE_KEYS = {
 
 const DEFAULT_API_BASE_URL = 'https://api.blackskyqore.com/api';
 
-/** API Base URL'i AsyncStorage'dan al */
+/** API Base URL'i al */
 async function getApiBaseUrl(): Promise<string> {
-  try {
-    let url = await AsyncStorage.getItem(STORAGE_KEYS.API_BASE_URL);
-    // Eğer hafızadaki adres eski IP'yi içeriyorsa veya geçersizse otomatik sıfırla
-    if (url && (url.includes('20.34.5.180') || (!url.startsWith('https://') && !url.startsWith('http://')))) {
-      await AsyncStorage.setItem(STORAGE_KEYS.API_BASE_URL, DEFAULT_API_BASE_URL);
-      url = DEFAULT_API_BASE_URL;
-    }
-    return url || DEFAULT_API_BASE_URL;
-  } catch {
-    return DEFAULT_API_BASE_URL;
-  }
-}
-
-/** API Base URL'i AsyncStorage'a kaydet */
-async function setApiBaseUrl(url: string): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEYS.API_BASE_URL, url);
+  return DEFAULT_API_BASE_URL;
 }
 
 export const Config = {
   DEFAULT_API_BASE_URL,
   STORAGE_KEYS,
   getApiBaseUrl,
-  setApiBaseUrl,
-  APP_NAME: 'WMS Terminal',
+  APP_NAME: 'BlueHub Terminal',
   APP_VERSION: '1.0.0',
   /** Arama debounce süresi (ms) */
   SEARCH_DEBOUNCE_MS: 300,
