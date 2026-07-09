@@ -36,7 +36,21 @@ export function StockTransferScreen() {
 
   // Depoları çek
   useEffect(() => {
-    getWarehouses().then(setWarehouses).catch(() => {});
+    getWarehouses()
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setWarehouses(data);
+        } else if (data && typeof data === 'object' && Array.isArray((data as any).data)) {
+          setWarehouses((data as any).data);
+        } else if (data && typeof data === 'object' && Array.isArray((data as any).items)) {
+          setWarehouses((data as any).items);
+        } else {
+          setWarehouses([]);
+        }
+      })
+      .catch(() => {
+        setWarehouses([]);
+      });
   }, []);
 
   const handleScan = async (scannedBarcode: string) => {
@@ -252,7 +266,7 @@ export function StockTransferScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Hedef Depo Seçin</Text>
             <ScrollView style={{ maxHeight: 300 }}>
-              {warehouses.map(w => (
+              {(Array.isArray(warehouses) ? warehouses : []).map(w => (
                 <TouchableOpacity
                   key={w.id}
                   style={styles.modalItem}

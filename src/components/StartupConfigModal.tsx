@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { CustomIcon } from './CustomIcon';
 import { useSettingsStore } from '../store/settingsStore';
-import { getWarehouses, Warehouse } from '../services/inventory';
+import { getWarehouses, Warehouse, getPrinters, PrinterDto } from '../services/inventory';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useUIStore } from '../store/uiStore';
 
@@ -11,12 +11,7 @@ interface StartupConfigModalProps {
   onClose: () => void;
 }
 
-// Mock Yazıcı listesi
-const MOCK_PRINTERS = [
-  { id: 'PRT-01', name: 'Zebra ZD420 (Merkez)' },
-  { id: 'PRT-02', name: 'TSC ME240 (Sevkiyat)' },
-  { id: 'PRT-03', name: 'Honeywell PC43t (Kabul)' },
-];
+
 
 export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps) {
   const { 
@@ -36,11 +31,32 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
   // Alt Seçim Ekranı Durumları
   const [pickerType, setPickerType] = useState<'none' | 'warehouse' | 'printer'>('none');
 
+  const [printers, setPrinters] = useState<PrinterDto[]>([]);
+  const [loadingPrinters, setLoadingPrinters] = useState(false);
+
   useEffect(() => {
     if (visible) {
       loadWarehouses();
+      loadPrinters();
     }
   }, [visible]);
+
+  const loadPrinters = async () => {
+    try {
+      setLoadingPrinters(true);
+      const list = await getPrinters();
+      setPrinters(list);
+      
+      if (list.length > 0 && !activePrinterId) {
+        setActivePrinter(list[0].id, list[0].name);
+      }
+    } catch {
+      showToast({ message: 'Yazıcılar yüklenirken hata oluştu', type: 'error' });
+      setPrinters([]);
+    } finally {
+      setLoadingPrinters(false);
+    }
+  };
 
   const loadWarehouses = async () => {
     try {
@@ -77,7 +93,7 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
 
   const handleSave = () => {
     if (!activeWarehouseId) {
-      showToast({ message: 'Lütfen aktif depo seçimi yapın!', type: 'warning' });
+      showToast({ message: 'Lütfen aktif depo seçimi yapın!', type: 'info' });
       return;
     }
     showToast({ message: 'Yapılandırma başarıyla kaydedildi', type: 'success' });
@@ -201,29 +217,35 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
 
             {pickerType === 'printer' && (
               <ScrollView style={styles.pickerList} contentContainerStyle={styles.pickerListContent}>
-                {MOCK_PRINTERS.map((p) => {
-                  const isSelected = activePrinterId === p.id;
-                  return (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
-                      onPress={() => {
-                        setActivePrinter(p.id, p.name);
-                        setPickerType('none');
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <CustomIcon
-                        name={isSelected ? 'radiobox-marked' : 'radiobox-blank'}
-                        size={24}
-                        color={isSelected ? Colors.primary : Colors.outline}
-                      />
-                      <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
-                        {p.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                {loadingPrinters ? (
+                  <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: Spacing.xl }} />
+                ) : printers.length === 0 ? (
+                  <Text style={{ textAlign: 'center', color: Colors.outline, marginTop: Spacing.xl }}>Yazıcı bulunamadı</Text>
+                ) : (
+                  printers.map((p) => {
+                    const isSelected = activePrinterId === p.id;
+                    return (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
+                        onPress={() => {
+                          setActivePrinter(p.id, p.name);
+                          setPickerType('none');
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <CustomIcon
+                          name={isSelected ? 'radiobox-marked' : 'radiobox-blank'}
+                          size={24}
+                          color={isSelected ? Colors.primary : Colors.outline}
+                        />
+                        <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
+                          {p.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
               </ScrollView>
             )}
           </View>
@@ -247,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
     alignItems: 'center',
-    ...Shadow.lg,
+    ...Shadow.card,
   },
   iconContainer: {
     width: 64,
@@ -308,7 +330,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadow.md,
+    ...Shadow.sm,
   },
   saveButtonDisabled: {
     backgroundColor: Colors.outlineVariant,
@@ -334,7 +356,7 @@ const styles = StyleSheet.create({
     maxHeight: '60%',
     minHeight: '40%',
     paddingBottom: Spacing.xl,
-    ...Shadow.lg,
+    ...Shadow.card,
   },
   pickerHeader: {
     flexDirection: 'row',

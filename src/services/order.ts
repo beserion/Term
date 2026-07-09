@@ -27,7 +27,7 @@ export interface Order {
 
 export async function getOrderList(): Promise<Order[]> {
   const api = await getApi();
-  const response = await api.get('/Order/list?startRow=0&endRow=100');
+  const response = await api.get('/terminal/Orderlist?startRow=0&endRow=100');
   
   let orderData: any[] = [];
   if (response.data) {
@@ -55,7 +55,7 @@ export async function getOrderList(): Promise<Order[]> {
 
 export async function getOrderDetails(id: number): Promise<Order> {
   const api = await getApi();
-  const response = await api.get(`/Order/simple-details?id=${id}`);
+  const response = await api.get(`/terminal/Orders/Details?id=${id}`);
   
   const rawLines = Array.isArray(response.data) ? response.data : [];
   const partnerName = rawLines.length > 0 ? rawLines[0].partnername : 'Cari Yok';

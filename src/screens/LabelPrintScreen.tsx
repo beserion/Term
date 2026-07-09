@@ -14,17 +14,15 @@ import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { getStockByBarcode, printLabel, Stock } from '../services/inventory';
+import { getStockByBarcode, printLabel, getPrinters, PrinterDto, Stock } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { Numpad } from '../components/Numpad';
 import { useSettingsStore } from '../store/settingsStore';
 import { Modal } from 'react-native';
+import { FeedbackService } from '../services/feedback';
+import { sendCpclToPrinter } from '../services/printHelper';
 
-const MOCK_PRINTERS = [
-  { id: 'PRT-01', name: 'Zebra ZD420 (Merkez)' },
-  { id: 'PRT-02', name: 'TSC ME240 (Sevkiyat)' },
-  { id: 'PRT-03', name: 'Honeywell PC43t (Kabul)' },
-];
+
 
 export function LabelPrintScreen() {
   const navigation = useNavigation<any>();
@@ -43,6 +41,41 @@ export function LabelPrintScreen() {
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const manualBarcodeRef = React.useRef<TextInput>(null);
   const [scanning, setScanning] = useState(true);
+  const [printers, setPrinters] = useState<PrinterDto[]>([]);
+  const [loadingPrinters, setLoadingPrinters] = useState(false);
+
+  useEffect(() => {
+    const fetchPrinters = async () => {
+      setLoadingPrinters(true);
+      try {
+        const list = await getPrinters();
+        setPrinters(list);
+        if (list.length > 0) {
+          const exists = list.some(p => p.id === activePrinterId);
+          if (!exists || activePrinterId === null) {
+            setActivePrinter(list[0].id, list[0].name);
+          }
+        }
+      } catch (err) {
+        console.error("Yazıcılar yüklenemedi:", err);
+        showToast({ message: 'Yazıcı listesi yüklenemedi.', type: 'error' });
+      } finally {
+        setLoadingPrinters(false);
+      }
+    };
+    fetchPrinters();
+  }, []);
+
+  // Giriş alanına barkod girildiğinde (Keystroke veya manuel) otomatik algılama ve arama
+  useEffect(() => {
+    if (manualBarcode.trim().length >= 4) {
+      const timeout = setTimeout(() => {
+        handleScan(manualBarcode.trim());
+        setManualBarcode('');
+      }, 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [manualBarcode]);
 
   // Barkod arama ve yükleme işlemi
   const handleScan = async (scannedBarcode: string) => {
@@ -55,6 +88,7 @@ export function LabelPrintScreen() {
       if (data && data.id && data.id !== 0) {
         setProduct(data);
         showToast({ message: 'Ürün bulundu: ' + data.stockName, type: 'success' });
+        FeedbackService.playSuccess();
 
         // Eğer otomatik yazdırma aktifse hemen yazdır
         if (autoPrint) {
@@ -65,8 +99,9 @@ export function LabelPrintScreen() {
         setProduct(null);
         showToast({
           message: 'Ürün sistemde bulunamadı. Barkod yine de yazdırılabilir.',
-          type: 'warning',
+          type: 'info',
         });
+        FeedbackService.playError();
         if (autoPrint) {
           await triggerPrint(scannedBarcode);
         }
@@ -77,6 +112,7 @@ export function LabelPrintScreen() {
         message: 'Barkod bilgisi sorgulanırken hata oluştu.',
         type: 'error',
       });
+      FeedbackService.playError();
       if (autoPrint) {
         await triggerPrint(scannedBarcode);
       }
@@ -94,26 +130,47 @@ export function LabelPrintScreen() {
       handleScan(manualBarcode.trim());
       setManualBarcode('');
     } else {
-      showToast({ message: 'Lütfen en az 3 karakter girin.', type: 'warning' });
+      showToast({ message: 'Lütfen en az 3 karakter girin.', type: 'info' });
     }
   };
 
   // Etiket Yazdırma tetikleyicisi
   const triggerPrint = async (barcodeToPrint: string) => {
     if (!barcodeToPrint) return;
+    if (activePrinterId === null) {
+      showToast({ message: 'Lütfen önce bir yazıcı seçin.', type: 'info' });
+      setShowPrinterModal(true);
+      return;
+    }
 
     setPrinting(true);
     try {
-      await printLabel(barcodeToPrint, quantity);
+      // 1. API'den CPCL verisini ve yazıcı IP/Port bilgilerini al
+      const result = await printLabel({
+        printerId: activePrinterId,
+        barcode: barcodeToPrint,
+        qrCode: barcodeToPrint,
+        quantity: quantity
+      });
+
+      if (!result.cpclData || !result.printerIp) {
+        throw new Error('API\'den CPCL veri veya IP adresi dönmedi.');
+      }
+
+      // 2. TCP Soketi üzerinden yazıcıya CPCL verisini doğrudan gönder
+      await sendCpclToPrinter(result.printerIp, result.printerPort || 6101, result.cpclData);
+
       showToast({
-        message: `${quantity} adet etiket yazdırma kuyruğuna gönderildi.`,
+        message: `${quantity} adet etiket yazıcıya başarıyla gönderildi.`,
         type: 'success',
       });
+      FeedbackService.playSuccess();
     } catch (err: any) {
       showToast({
         message: 'Etiket yazdırılamadı: ' + (err.message || 'Bilinmeyen hata'),
         type: 'error',
       });
+      FeedbackService.playError();
     } finally {
       setPrinting(false);
     }
@@ -332,7 +389,7 @@ export function LabelPrintScreen() {
       <Numpad
         visible={numpadVisible}
         onClose={() => setNumpadVisible(false)}
-        onType={(val) => {
+        onType={(val: string) => {
           setQuantity(prev => {
             const currentStr = String(prev);
             const nextStr = (prev === 1 && currentStr.length === 1) ? val : (currentStr + val);
@@ -370,30 +427,36 @@ export function LabelPrintScreen() {
             </View>
 
             <ScrollView style={styles.pickerList} contentContainerStyle={styles.pickerListContent}>
-              {MOCK_PRINTERS.map((p) => {
-                const isSelected = activePrinterId === p.id;
-                return (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
-                    onPress={() => {
-                      setActivePrinter(p.id, p.name);
-                      setShowPrinterModal(false);
-                      showToast({ message: 'Aktif yazıcı güncellendi', type: 'success' });
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <CustomIcon
-                      name={isSelected ? 'radiobox-marked' : 'radiobox-blank'}
-                      size={24}
-                      color={isSelected ? Colors.primary : Colors.outline}
-                    />
-                    <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
-                      {p.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {loadingPrinters ? (
+                <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: Spacing.xl }} />
+              ) : printers.length === 0 ? (
+                <Text style={{ textAlign: 'center', color: Colors.outline, marginTop: Spacing.xl }}>Yazıcı bulunamadı</Text>
+              ) : (
+                printers.map((p) => {
+                  const isSelected = activePrinterId === p.id;
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
+                      onPress={() => {
+                        setActivePrinter(p.id, p.name);
+                        setShowPrinterModal(false);
+                        showToast({ message: 'Aktif yazıcı güncellendi', type: 'success' });
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <CustomIcon
+                        name={isSelected ? 'radiobox-marked' : 'radiobox-blank'}
+                        size={24}
+                        color={isSelected ? Colors.primary : Colors.outline}
+                      />
+                      <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
             </ScrollView>
           </View>
         </View>
@@ -620,7 +683,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadow.md,
+    ...Shadow.sm,
   },
   printButtonDisabled: {
     backgroundColor: Colors.outlineVariant,
@@ -648,7 +711,7 @@ const styles = StyleSheet.create({
     maxHeight: '60%',
     minHeight: '40%',
     paddingBottom: Spacing.xl,
-    ...Shadow.lg,
+    ...Shadow.card,
   },
   pickerHeader: {
     flexDirection: 'row',

@@ -39,7 +39,7 @@ export interface ShipmentItem {
 export async function getShipments(search?: string): Promise<Shipment[]> {
   const api = await getApi();
   // Delivery/list endpoint'i startRow, endRow ve kriter parametrelerini doğrudan desteklemediği için sadeleştirildi
-  const response = await api.get('/Delivery/list');
+  const response = await api.get('/terminal/Delivery/List');
   
   let deliveryData: any[] = [];
   if (response.data) {
@@ -100,7 +100,7 @@ export async function getShipmentDetail(shipmentId: string | number): Promise<Sh
   const api = await getApi();
   
   try {
-    const response = await api.get(`/Delivery/details?id=${shipmentId}`);
+    const response = await api.get(`/terminal/Delivery/Details?id=${shipmentId}`);
     if (response.data) {
       const item = response.data.data || response.data;
       
@@ -142,7 +142,7 @@ export async function getShipmentDetail(shipmentId: string | number): Promise<Sh
   }
 
   // Fallback: Get all shipments from list API and map items from delivery lines
-  const response = await api.get('/Delivery/list');
+  const response = await api.get('/terminal/Delivery/List');
   let deliveryData: any[] = [];
   if (response.data) {
     if (Array.isArray(response.data.data)) {

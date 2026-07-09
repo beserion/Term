@@ -36,6 +36,7 @@ export function DashboardScreen() {
       iconBgColor: 'rgba(30, 58, 138, 0.1)',
       onPress: () => navigation.navigate('ProductCheck'),
     },
+
     {
       title: 'Mal Çıkış',
       icon: 'minus-circle-outline' as const,
@@ -51,11 +52,11 @@ export function DashboardScreen() {
       onPress: () => navigation.navigate('StockIncrease'),
     },
     {
-      title: 'Depo Transferi',
-      icon: 'swap-horizontal' as const,
+      title: 'Barkod Eşleme',
+      icon: 'link-variant' as const,
       iconColor: Colors.primary,
-      iconBgColor: 'rgba(208, 225, 251, 0.5)',
-      onPress: () => navigation.navigate('StockTransfer'),
+      iconBgColor: 'rgba(30, 58, 138, 0.1)',
+      onPress: () => navigation.navigate('BarcodeLink'),
     },
     {
       title: 'Depo Sayım',
@@ -63,6 +64,13 @@ export function DashboardScreen() {
       iconColor: Colors.primary,
       iconBgColor: 'rgba(30, 58, 138, 0.1)',
       onPress: () => navigation.navigate('CycleCount'),
+    },
+    {
+      title: 'Depo Transferi',
+      icon: 'swap-horizontal' as const,
+      iconColor: Colors.primary,
+      iconBgColor: 'rgba(208, 225, 251, 0.5)',
+      onPress: () => navigation.navigate('StockTransfer'),
     },
     {
       title: 'Etiket Yazdırma',

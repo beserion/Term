@@ -40,7 +40,7 @@ export interface OrderSupplier {
 export async function getOrders(search?: string): Promise<Order[]> {
   const api = await getApi();
   // Not: summary-list endpoint'i filtre parametreleri alıyorsa geçilebilir
-  const response = await api.get('/Order/summary-list');
+  const response = await api.get('/terminal/Orders/List');
   
   let orderData: any[] = [];
   if (response.data) {
@@ -84,7 +84,7 @@ export async function getOrders(search?: string): Promise<Order[]> {
 
 export async function getOrderDetail(id: number | string): Promise<Order> {
   const api = await getApi();
-  const response = await api.get(`/Order/simple-details?id=${id}`);
+  const response = await api.get(`/terminal/Orders/Details?id=${id}`);
   
   const rawLines = Array.isArray(response.data) ? response.data : [];
   const partnerName = rawLines.length > 0 ? rawLines[0].partnername : 'Cari Yok';
@@ -117,7 +117,7 @@ export async function getOrderDetail(id: number | string): Promise<Order> {
 
 export async function getOrderSuppliers(orderId: number): Promise<OrderSupplier[]> {
   const api = await getApi();
-  const response = await api.get(`/Order/${orderId}/suppliers`);
+  const response = await api.get(`/terminal/Orders/${orderId}/Suppliers`);
   
   let data: any[] = [];
   if (response.data) {
@@ -137,7 +137,7 @@ export async function getOrderSuppliers(orderId: number): Promise<OrderSupplier[
 
 export async function getSupplierOrderDetail(orderId: number, supplierId: number): Promise<Order> {
   const api = await getApi();
-  const response = await api.get(`/Order/${orderId}/supplier/${supplierId}/details`);
+  const response = await api.get(`/terminal/Orders/${orderId}/Supplier/${supplierId}/Details`);
   
   const rawLines = Array.isArray(response.data) ? response.data : 
                    (response.data && Array.isArray(response.data.data) ? response.data.data : []);

@@ -1,25 +1,27 @@
 import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-av';
+import { createAudioPlayer } from 'expo-audio';
 
 const scanSoundFile = require('../../assets/sounds/scan.wav');
 const successSoundFile = require('../../assets/sounds/success.wav');
 const errorSoundFile = require('../../assets/sounds/error.wav');
 
-// Expo Audio'nun sessiz modda da çalışmasını sağla
-Audio.setAudioModeAsync({
-  playsInSilentModeIOS: true,
-  shouldRouteThroughEarpieceAndroid: false,
-}).catch(() => {});
+let scanPlayer: any = null;
+let successPlayer: any = null;
+let errorPlayer: any = null;
 
-async function playSound(source: any) {
+try {
+  scanPlayer = createAudioPlayer(scanSoundFile);
+  successPlayer = createAudioPlayer(successSoundFile);
+  errorPlayer = createAudioPlayer(errorSoundFile);
+} catch (e) {
+  console.log('Error creating audio players:', e);
+}
+
+async function playSound(player: any) {
+  if (!player) return;
   try {
-    const { sound } = await Audio.Sound.createAsync(source);
-    await sound.playAsync();
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        sound.unloadAsync().catch(() => {});
-      }
-    });
+    await player.seekTo(0);
+    await player.play();
   } catch (error) {
     console.log('Audio playback error:', error);
   }
@@ -30,7 +32,7 @@ export const FeedbackService = {
   playSuccess: async () => {
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await playSound(successSoundFile);
+      await playSound(successPlayer);
     } catch (error) {
       console.log('Feedback error:', error);
     }
@@ -40,7 +42,7 @@ export const FeedbackService = {
   playError: async () => {
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      await playSound(errorSoundFile);
+      await playSound(errorPlayer);
     } catch (error) {
       console.log('Feedback error:', error);
     }
@@ -50,7 +52,7 @@ export const FeedbackService = {
   playLightImpact: async () => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await playSound(scanSoundFile);
+      await playSound(scanPlayer);
     } catch (error) {}
   },
   

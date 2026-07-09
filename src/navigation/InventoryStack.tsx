@@ -7,6 +7,7 @@ import { StockIncreaseScreen } from '../screens/StockIncreaseScreen';
 import { StockTransferScreen } from '../screens/StockTransferScreen';
 import { CycleCountScreen } from '../screens/CycleCountScreen';
 import { LabelPrintScreen } from '../screens/LabelPrintScreen';
+import { BarcodeLinkScreen } from '../screens/BarcodeLinkScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,7 +21,9 @@ export function InventoryStack() {
       <Stack.Screen name="StockTransfer" component={StockTransferScreen} />
       <Stack.Screen name="CycleCount" component={CycleCountScreen} />
       <Stack.Screen name="LabelPrint" component={LabelPrintScreen} />
+      <Stack.Screen name="BarcodeLink" component={BarcodeLinkScreen} />
     </Stack.Navigator>
   );
 }
+
 

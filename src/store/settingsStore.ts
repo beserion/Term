@@ -7,9 +7,9 @@ interface SettingsState {
   activeWarehouseName: string | null;
   setActiveWarehouse: (id: number, name: string) => void;
   clearActiveWarehouse: () => void;
-  activePrinterId: string | null;
+  activePrinterId: number | null;
   activePrinterName: string | null;
-  setActivePrinter: (id: string | null, name: string | null) => void;
+  setActivePrinter: (id: number | null, name: string | null) => void;
   clearActivePrinter: () => void;
 }
 

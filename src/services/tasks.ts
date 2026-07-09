@@ -13,7 +13,7 @@ export interface Task {
 
 export async function getTasks(): Promise<Task[]> {
   const api = await getApi();
-  const response = await api.get('/ToDo/list?startRow=0&endRow=100');
+  const response = await api.get('/terminal/ToDo/List?startRow=0&endRow=100');
   
   if (response.data && response.data.data) {
     return response.data.data;
@@ -23,5 +23,8 @@ export async function getTasks(): Promise<Task[]> {
 
 export async function updateTaskStatus(taskId: string, newStatus: 'InProgress' | 'Completed'): Promise<void> {
   const api = await getApi();
-  await api.post(`/Task/updateStatus`, { taskId, status: newStatus });
+  await api.post('/terminal/Task/UpdateStatus', { 
+    taskId: parseInt(taskId, 10), 
+    status: newStatus 
+  });
 }
