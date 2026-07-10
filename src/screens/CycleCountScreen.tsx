@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, FlatList, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
@@ -11,10 +11,12 @@ import { useSettingsStore } from '../store/settingsStore';
 import { Numpad } from '../components/Numpad';
 import { WarehouseSelectModal } from '../components/WarehouseSelectModal';
 import { FeedbackService } from '../services/feedback';
+import * as ImagePicker from 'expo-image-picker';
 
 interface CountedItem {
   product: Stock;
   countedQty: number;
+  photo?: string;
 }
 
 export function CycleCountScreen() {
@@ -157,6 +159,50 @@ export function CycleCountScreen() {
     setCountedItems(prev => prev.filter(item => item.product.id !== stockId));
   };
 
+  const handleTakePhoto = async (stockId: number) => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      showToast({ message: 'Kamera izni reddedildi!', type: 'error' });
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photoAsset = result.assets[0];
+        const base64Data = photoAsset.base64 ? `data:image/jpeg;base64,${photoAsset.base64}` : undefined;
+        
+        setCountedItems(prev => prev.map(item => 
+          item.product.id === stockId
+            ? { ...item, photo: base64Data || photoAsset.uri }
+            : item
+        ));
+        
+        showToast({ message: 'Fotoğraf eklendi', type: 'success' });
+      }
+    } catch (error) {
+      console.error(error);
+      showToast({ message: 'Fotoğraf çekilirken hata oluştu.', type: 'error' });
+    }
+  };
+
+  const handleRemovePhoto = (stockId: number) => {
+    setCountedItems(prev => prev.map(item => 
+      item.product.id === stockId
+        ? { ...item, photo: undefined }
+        : item
+    ));
+    showToast({ message: 'Fotoğraf kaldırıldı', type: 'info' });
+  };
+
   const handleSubmit = async () => {
     if (!activeWarehouseId) {
       showToast({ message: 'Lütfen ayarlardan depo seçin', type: 'error' });
@@ -176,7 +222,8 @@ export function CycleCountScreen() {
         warehouseId: activeWarehouseId,
         lines: countedItems.map(item => ({
           stockId: item.product.id,
-          countedQty: item.countedQty
+          countedQty: item.countedQty,
+          photo: item.photo
         }))
       });
       showToast({ message: 'Sayım fişi başarıyla güncellendi ve tamamlandı', type: 'success' });
@@ -279,6 +326,34 @@ export function CycleCountScreen() {
             }
             renderItem={({ item }) => (
               <View style={styles.listItem}>
+                {/* Fotoğraf Butonu / Önizleme */}
+                <TouchableOpacity
+                  style={styles.photoContainer}
+                  onPress={() => {
+                    if (item.photo) {
+                      Alert.alert(
+                        'Fotoğraf İşlemleri',
+                        'Ne yapmak istersiniz?',
+                        [
+                          { text: 'Yeniden Çek', onPress: () => handleTakePhoto(item.product.id) },
+                          { text: 'Fotoğrafı Sil', onPress: () => handleRemovePhoto(item.product.id), style: 'destructive' },
+                          { text: 'Vazgeç', style: 'cancel' }
+                        ]
+                      );
+                    } else {
+                      handleTakePhoto(item.product.id);
+                    }
+                  }}
+                >
+                  {item.photo ? (
+                    <Image source={{ uri: item.photo }} style={styles.photoThumbnail} />
+                  ) : (
+                    <View style={styles.photoPlaceholder}>
+                      <CustomIcon name="camera" size={18} color={Colors.outline} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
                 <View style={styles.listItemInfo}>
                   <Text style={styles.listItemCode}>{item.product.stockCode || '-'}</Text>
                   <Text style={styles.listItemName} numberOfLines={2}>{item.product.stockName}</Text>
@@ -409,6 +484,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  photoContainer: {
+    marginRight: 2,
+  },
+  photoThumbnail: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+  },
+  photoPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.outlineVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
   warehouseAlert: {
     flexDirection: 'row',

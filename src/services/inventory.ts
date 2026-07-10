@@ -15,6 +15,8 @@ export interface Stock {
   shelfAddress?: string;
   unit?: string;
   qty?: number;
+  photo?: string;
+  imageUrl?: string;
 }
 
 export interface GoodsReceiptLine {
@@ -83,6 +85,7 @@ export interface CycleCountDto {
     stockId: number;
     countedQty: number;
     shelfAddress?: string;
+    photo?: string;
   }>;
 }
 
@@ -209,7 +212,8 @@ export async function createCycleCount(payload: CycleCountDto): Promise<any> {
       cycleCountId,
       stockId: line.stockId,
       countedQty: line.countedQty,
-      shelfAddress: line.shelfAddress
+      shelfAddress: line.shelfAddress,
+      photo: line.photo
     });
 
     if (saveResponse.data && saveResponse.data.success === false) {

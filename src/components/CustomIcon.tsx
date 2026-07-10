@@ -46,6 +46,7 @@ import {
   faLinkSlash,
   faCircleDot,
   faPrint,
+  faCamera,
 } from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -75,6 +76,7 @@ const IconMap: Record<string, any> = {
   'link-variant': faLink,
   'link-variant-off': faLinkSlash,
   'printer': faPrint,
+  'camera': faCamera,
 
   // Auth
   'warehouse': faWarehouse,

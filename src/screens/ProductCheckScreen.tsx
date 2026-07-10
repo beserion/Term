@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Animated, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
@@ -77,7 +77,22 @@ export function ProductCheckScreen() {
         {product && (
           <View style={styles.resultCard}>
             <View style={styles.resultHeader}>
-              <View style={{ flex: 1 }}>
+              {/* Ürün Görseli */}
+              <View style={styles.imageContainer}>
+                {product.photo || product.imageUrl ? (
+                  <Image
+                    source={{ uri: product.photo || product.imageUrl }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.imagePlaceholder}>
+                    <CustomIcon name="package-variant" size={28} color={Colors.outline} />
+                  </View>
+                )}
+              </View>
+
+              <View style={{ flex: 1, justifyContent: 'center' }}>
                 <Text style={styles.productName}>{product.stockName}</Text>
               </View>
             </View>
@@ -168,9 +183,29 @@ const styles = StyleSheet.create({
   },
   resultHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  imageContainer: {
+    marginRight: 10,
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+  },
+  imagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.outlineVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
   productName: {
     fontSize: 15,
