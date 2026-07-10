@@ -31,6 +31,7 @@ export function StockDecreaseScreen() {
   const handleScan = async (scannedBarcode: string) => {
     try {
       const data = await getStockByBarcode(scannedBarcode);
+      console.log('🔍 [STOCK DEBUG] Gelen data.qty:', data?.qty, '| Tüm data:', JSON.stringify(data));
       if (!data || !data.id || data.id === 0) {
         throw new Error('Ürün kaydı bulunamadı (Eksik veya boş kayıt)');
       }
