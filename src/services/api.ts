@@ -10,6 +10,11 @@ import { Config } from '../config';
  */
 
 let apiInstance: AxiosInstance | null = null;
+let onUnauthorizedCallback: (() => void) | null = null;
+
+export function registerOnUnauthorized(callback: () => void) {
+  onUnauthorizedCallback = callback;
+}
 
 /** API instance'ını oluştur veya güncelle */
 export async function createApiInstance(): Promise<AxiosInstance> {
@@ -67,6 +72,9 @@ export async function createApiInstance(): Promise<AxiosInstance> {
       if (error.response?.status === 401) {
         await AsyncStorage.removeItem(Config.STORAGE_KEYS.AUTH_TOKEN);
         await AsyncStorage.removeItem(Config.STORAGE_KEYS.USER_DATA);
+        if (onUnauthorizedCallback) {
+          onUnauthorizedCallback();
+        }
       }
       return Promise.reject(error);
     }

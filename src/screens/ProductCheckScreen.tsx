@@ -7,6 +7,7 @@ import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
 import { getStockByBarcode, Stock } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
+import { FeedbackService } from '../services/feedback';
 
 export function ProductCheckScreen() {
   const navigation = useNavigation<any>();
@@ -22,9 +23,11 @@ export function ProductCheckScreen() {
         throw new Error('Ürün bulunamadı');
       }
       setProduct(data);
+      FeedbackService.playLightImpact();
     } catch {
       showToast({ message: 'Barkod bulunamadı: ' + barcode, type: 'error' });
       setProduct(null);
+      FeedbackService.playError();
     }
   };
 

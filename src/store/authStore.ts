@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { UserData, getStoredUser, hasValidToken, login as loginService, logout as logoutService, LoginRequest } from '../services/auth';
-import { createApiInstance } from '../services/api';
+import { createApiInstance, registerOnUnauthorized } from '../services/api';
 
 /**
  * Auth State Store (Zustand)
@@ -94,3 +94,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   clearError: () => set({ error: null }),
 }));
+
+// 401 Yetkisiz istek hatasında oturumu kapat ve kullanıcıyı yönlendir
+registerOnUnauthorized(() => {
+  useAuthStore.setState({
+    isAuthenticated: false,
+    user: null,
+    isLoading: false,
+    error: 'Oturum süreniz doldu, lütfen tekrar giriş yapın.'
+  });
+});
