@@ -61,38 +61,40 @@ export function OrderCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surfaceContainerLowest,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.cardPadding,
+    borderRadius: BorderRadius.xs,
+    padding: 8,
     ...Shadow.card,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.stackGap,
+    marginBottom: 4,
   },
   orderNo: {
     ...Typography.dataMono,
+    fontSize: 13,
     color: Colors.onSurface,
     fontWeight: '600',
     flex: 1,
     marginRight: Spacing.sm,
   },
   companyName: {
-    ...Typography.headlineSm,
+    fontSize: 13,
+    fontWeight: 'bold',
     color: Colors.onSurfaceVariant,
-    marginBottom: Spacing.stackGap,
+    marginBottom: 4,
   },
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Spacing.sm,
+    paddingTop: 4,
     borderTopWidth: 1,
     borderTopColor: Colors.surfaceContainerHighest,
   },
   meta: {
-    ...Typography.bodyMd,
+    fontSize: 11,
     color: Colors.onSurfaceVariant,
     flex: 1,
   },
@@ -101,7 +103,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   date: {
-    ...Typography.labelMd,
+    fontSize: 11,
     color: Colors.outline,
   },
 });

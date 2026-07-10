@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { AuthStack } from './AuthStack';
-import { MainTabs } from './MainTabs';
+import { InventoryStack } from './InventoryStack';
 import { useAuthStore } from '../store/authStore';
 import { Colors } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
@@ -29,7 +29,7 @@ export function AppNavigator() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <MainTabs /> : <AuthStack />}
+      {isAuthenticated ? <InventoryStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }

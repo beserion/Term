@@ -27,7 +27,7 @@ export function DashboardScreen() {
       icon: 'eye' as const,
       iconColor: Colors.primary,
       iconBgColor: 'rgba(30, 58, 138, 0.1)',
-      onPress: () => navigation.navigate('ReceivingTab'),
+      onPress: () => navigation.navigate('ReceivingStack'),
     },
     {
       title: 'Ürün Kontrol',
@@ -84,8 +84,15 @@ export function DashboardScreen() {
       icon: 'truck-delivery' as const,
       iconColor: Colors.primary,
       iconBgColor: 'rgba(30, 58, 138, 0.1)',
-      onPress: () => navigation.navigate('ShippingTab'),
+      onPress: () => navigation.navigate('ShippingStack'),
     },
+    {
+      title: 'Hızlı Kurulum',
+      icon: 'cog-outline' as const,
+      iconColor: Colors.primary,
+      iconBgColor: 'rgba(208, 225, 251, 0.5)',
+      onPress: () => navigation.navigate('QuickSetup'),
+    }
   ];
 
   return (
@@ -102,7 +109,11 @@ export function DashboardScreen() {
             Hoş geldin, {user?.name || 'Kullanıcı'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.avatarButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.avatarButton}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('Settings')}
+        >
           <CustomIcon name="account" size={24} color={Colors.primary} />
         </TouchableOpacity>
       </View>

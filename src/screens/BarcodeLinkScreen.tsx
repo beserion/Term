@@ -16,9 +16,11 @@ import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { getStocks, updateStockBarcode, Stock } from '../services/inventory';
+import { getStocks, updateStockBarcode, printLabel, Stock } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
+import { useSettingsStore } from '../store/settingsStore';
+import { sendCpclToPrinter } from '../services/printHelper';
 
 export function BarcodeLinkScreen() {
   const navigation = useNavigation<any>();
@@ -31,6 +33,27 @@ export function BarcodeLinkScreen() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [printAfterAssign, setPrintAfterAssign] = useState(false);
+
+  const { activePrinterId, activePrinterName } = useSettingsStore();
+
+  // Otomatik yazdırma işlemi yardımcı fonksiyonu
+  const printAndSendLabel = async (barcodeToPrint: string) => {
+    try {
+      const result = await printLabel({
+        printerId: activePrinterId!,
+        barcode: barcodeToPrint,
+        qrCode: barcodeToPrint,
+        quantity: 1
+      });
+      if (result.cpclData && result.printerIp) {
+        await sendCpclToPrinter(result.printerIp, result.printerPort || 6101, result.cpclData);
+        showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
+      }
+    } catch (err: any) {
+      showToast({ message: 'Otomatik etiket yazdırma hatası: ' + err.message, type: 'error' });
+    }
+  };
 
   // Verileri yükle
   const fetchProducts = async () => {
@@ -85,6 +108,15 @@ export function BarcodeLinkScreen() {
 
       showToast({ message: `${selectedProduct.stockName} ürününe barkod başarıyla atandı!`, type: 'success' });
       FeedbackService.playSuccess();
+
+      // Otomatik etiket yazdırma seçeneği aktifse
+      if (printAfterAssign) {
+        if (activePrinterId !== null) {
+          printAndSendLabel(cleanBarcode);
+        } else {
+          showToast({ message: 'Barkod atandı fakat aktif yazıcı seçili olmadığı için etiket basılamadı.', type: 'info' });
+        }
+      }
 
       // Temizleme ve otomatik ilerleme
       setBarcodeInput('');
@@ -266,6 +298,36 @@ export function BarcodeLinkScreen() {
               trackColor={{ false: Colors.surfaceContainer, true: Colors.primaryFixedDim }}
             />
           </View>
+ 
+          {/* Otomatik Etiket Yazdırma Switch */}
+          <View style={[styles.autoAdvanceRow, { borderTopWidth: 1, borderTopColor: Colors.outlineVariant, paddingTop: Spacing.sm, marginTop: 2 }]}>
+            <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+              <Text style={styles.autoAdvanceText}>
+                Barkod atanınca 1 adet etiket yazdır
+              </Text>
+              {activePrinterName ? (
+                <Text style={{ fontSize: 11, color: Colors.primary, fontWeight: 'bold', marginTop: 2 }}>
+                  Aktif Yazıcı: {activePrinterName}
+                </Text>
+              ) : (
+                <Text style={{ fontSize: 11, color: Colors.error, fontWeight: 'bold', marginTop: 2 }}>
+                  Seçili yazıcı yok
+                </Text>
+              )}
+            </View>
+            <Switch
+              value={printAfterAssign}
+              onValueChange={(val) => {
+                if (val && activePrinterId === null) {
+                  showToast({ message: 'Lütfen önce ayarlardan bir yazıcı seçin.', type: 'info' });
+                  return;
+                }
+                setPrintAfterAssign(val);
+              }}
+              thumbColor={printAfterAssign ? Colors.primary : Colors.outlineVariant}
+              trackColor={{ false: Colors.surfaceContainer, true: Colors.primaryFixedDim }}
+            />
+          </View>
 
           {/* Manuel Barkod Giriş Satırı */}
           <View style={styles.inputRow}>
@@ -308,36 +370,36 @@ const styles = StyleSheet.create({
   },
   filterSection: {
     backgroundColor: Colors.surface,
-    padding: Spacing.marginMobile,
+    padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.outlineVariant,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     ...Shadow.sm,
   },
   searchRow: {
     position: 'relative',
   },
   searchInput: {
-    height: 48,
+    height: 36,
     backgroundColor: Colors.surfaceContainerLowest,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.sm,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
-    paddingLeft: 44,
+    paddingLeft: 36,
     paddingRight: Spacing.md,
     color: Colors.onSurface,
-    ...Typography.bodyLg,
+    fontSize: 13,
   },
   searchIcon: {
     position: 'absolute',
-    left: Spacing.md,
-    top: 14,
+    left: 10,
+    top: 8,
   },
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: Spacing.xs,
+    marginTop: 2,
   },
   toggleOption: {
     flexDirection: 'row',
@@ -346,18 +408,18 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   toggleLabel: {
-    ...Typography.bodyMd,
+    ...Typography.bodySm,
     color: Colors.onSurfaceVariant,
   },
   listContent: {
-    padding: Spacing.marginMobile,
-    paddingBottom: 260, // Alt panel kapandığında/açıldığında listenin arkasında kalmaması için pay bırakıldı
-    gap: Spacing.md,
+    padding: 8,
+    paddingBottom: 260,
+    gap: 6,
   },
   stockCard: {
     backgroundColor: Colors.surfaceContainerLowest,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.cardPadding,
+    borderRadius: BorderRadius.xs,
+    padding: 8,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
     ...Shadow.card,
@@ -374,60 +436,61 @@ const styles = StyleSheet.create({
   },
   cardTextContainer: {
     flex: 1,
-    paddingRight: Spacing.md,
+    paddingRight: Spacing.sm,
   },
   stockName: {
-    ...Typography.bodyLg,
+    fontSize: 14,
     fontWeight: 'bold',
     color: Colors.onSurface,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   stockTextSelected: {
     color: Colors.onPrimaryFixed,
   },
   stockCode: {
-    ...Typography.bodySm,
+    fontSize: 11,
     color: Colors.onSurfaceVariant,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   stockBarcode: {
-    ...Typography.bodySm,
+    fontSize: 11,
     color: Colors.primary,
     fontWeight: 'bold',
   },
   boldMono: {
     ...Typography.dataMono,
     fontWeight: 'bold',
+    fontSize: 11,
   },
   noBarcodeBadge: {
     alignSelf: 'flex-start',
     backgroundColor: Colors.errorContainer,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-    marginTop: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 2,
+    marginTop: 1,
   },
   noBarcodeBadgeText: {
-    ...Typography.labelSm,
+    fontSize: 8,
     color: Colors.onErrorContainer,
     fontWeight: 'bold',
   },
   cardRight: {
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    minHeight: 50,
+    minHeight: 36,
   },
   shelfText: {
-    ...Typography.labelMd,
+    fontSize: 11,
     color: Colors.secondary,
     fontWeight: 'bold',
     backgroundColor: Colors.surfaceContainer,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
   },
   qtyText: {
-    ...Typography.bodyMd,
+    fontSize: 13,
     color: Colors.primary,
     fontWeight: 'bold',
   },
@@ -460,11 +523,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceContainerLowest,
     borderTopWidth: 2,
     borderTopColor: Colors.primary,
-    borderTopLeftRadius: BorderRadius.lg,
-    borderTopRightRadius: BorderRadius.lg,
-    padding: Spacing.marginMobile,
-    gap: Spacing.md,
-    ...Shadow.lg,
+    borderTopLeftRadius: BorderRadius.md,
+    borderTopRightRadius: BorderRadius.md,
+    padding: 10,
+    gap: 8,
+    ...Shadow.card,
     elevation: 10,
   },
   panelHeader: {
@@ -473,23 +536,23 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     borderBottomWidth: 1,
     borderBottomColor: Colors.outlineVariant,
-    paddingBottom: Spacing.sm,
+    paddingBottom: 4,
   },
   panelTitle: {
-    ...Typography.labelSm,
+    fontSize: 9,
     color: Colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   panelSubName: {
-    ...Typography.headlineSm,
+    fontSize: 15,
     color: Colors.onSurface,
     fontWeight: 'bold',
   },
   panelCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: Colors.surfaceContainer,
     alignItems: 'center',
     justifyContent: 'center',
@@ -498,13 +561,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primaryFixed,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.md,
+    padding: 6,
+    borderRadius: BorderRadius.xs,
+    gap: 6,
   },
   scannerPromptText: {
     flex: 1,
-    ...Typography.bodyMd,
+    fontSize: 11,
     color: Colors.onPrimaryFixedVariant,
   },
   autoAdvanceRow: {
@@ -513,7 +576,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   autoAdvanceText: {
-    ...Typography.bodyMd,
+    fontSize: 12,
     color: Colors.onSurfaceVariant,
   },
   inputRow: {
@@ -522,29 +585,29 @@ const styles = StyleSheet.create({
   },
   barcodeTextInput: {
     flex: 1,
-    height: 48,
+    height: 38,
     backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.xs,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
     paddingHorizontal: Spacing.md,
     color: Colors.onSurface,
-    ...Typography.bodyLg,
+    fontSize: 13,
   },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.lg,
-    height: 48,
-    gap: Spacing.sm,
+    borderRadius: BorderRadius.xs,
+    paddingHorizontal: 12,
+    height: 38,
+    gap: 4,
   },
   saveButtonDisabled: {
     backgroundColor: Colors.outlineVariant,
   },
   saveButtonText: {
-    ...Typography.labelLg,
+    fontSize: 13,
     color: Colors.onPrimary,
     fontWeight: 'bold',
   },

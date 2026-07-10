@@ -29,6 +29,8 @@ export interface GoodsReceiptDto {
   lines: Array<{
     stockId: number;
     receivedQty: number;
+    qty?: number;
+    orderedQty?: number;
   }>;
 }
 
@@ -44,6 +46,8 @@ export interface GoodsIssueDto {
   lines: Array<{
     stockId: number;
     issuedQty: number;
+    qty?: number;
+    requestedQty?: number;
   }>;
 }
 
@@ -55,6 +59,8 @@ export interface StockTransferDto {
   lines: Array<{
     stockId: number;
     transferQty: number;
+    qty?: number;
+    receivedQty?: number;
   }>;
 }
 
@@ -76,6 +82,7 @@ export interface CycleCountDto {
   lines: Array<{
     stockId: number;
     countedQty: number;
+    shelfAddress?: string;
   }>;
 }
 
@@ -142,7 +149,7 @@ export async function getStockOnHandForProduct(warehouseId: number, stockId: num
 export async function createGoodsReceipt(data: GoodsReceiptDto): Promise<void> {
   const api = await getApi();
   if (!data.documentNo) data.documentNo = '';
-  const response = await api.post('/terminal/Inventory/GoodsReceipt', data);
+  const response = await api.post('/Inventory/goods-receipt', data);
   
   if (response.data && response.data.success === false) {
     const err: any = new Error(response.data.message || 'Stok ekleme işlemi başarısız oldu.');
@@ -154,7 +161,7 @@ export async function createGoodsReceipt(data: GoodsReceiptDto): Promise<void> {
 /** Mal Çıkış / Stok Düşme (Goods Issue) */
 export async function createGoodsIssue(payload: GoodsIssueDto): Promise<void> {
   const api = await getApi();
-  const response = await api.post('/terminal/Inventory/GoodsIssue', payload);
+  const response = await api.post('/Inventory/goods-issue', payload);
   
   if (response.data && response.data.success === false) {
     const err: any = new Error(response.data.message || 'Stok azaltma işlemi başarısız oldu.');
@@ -163,10 +170,16 @@ export async function createGoodsIssue(payload: GoodsIssueDto): Promise<void> {
   }
 }
 
-/** Stok Transfer */
+/** Stok Transferi (Stock Transfer) */
 export async function createStockTransfer(payload: StockTransferDto): Promise<void> {
   const api = await getApi();
-  await api.post('/terminal/Inventory/StockTransfer', payload);
+  const response = await api.post('/Inventory/stock-transfer', payload);
+  
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Stok transferi işlemi başarısız oldu.');
+    err.response = response;
+    throw err;
+  }
 }
 
 /** Depo Sayım (Cycle-Count) Başlatma, Kaydetme ve Tamamlama sıralı akışı */
@@ -195,7 +208,8 @@ export async function createCycleCount(payload: CycleCountDto): Promise<any> {
     const saveResponse = await api.post('/terminal/Inventory/CycleCount/SaveItem', {
       cycleCountId,
       stockId: line.stockId,
-      countedQty: line.countedQty
+      countedQty: line.countedQty,
+      shelfAddress: line.shelfAddress
     });
 
     if (saveResponse.data && saveResponse.data.success === false) {
@@ -313,6 +327,21 @@ export async function updateStockBarcode(stockId: number, barcode: string): Prom
   
   if (response.data && response.data.success === false) {
     const err: any = new Error(response.data.message || 'Barkod güncellenemedi.');
+    err.response = response;
+    throw err;
+  }
+}
+
+/** Stok ürünün raf konumunu günceller */
+export async function updateStockShelfAddress(stockId: number, shelfAddress: string): Promise<void> {
+  const api = await getApi();
+  const response = await api.post('/terminal/Inventory/Stock/UpdateShelf', {
+    stockId,
+    shelfAddress
+  });
+  
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Raf konumu güncellenemedi.');
     err.response = response;
     throw err;
   }

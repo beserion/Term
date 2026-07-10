@@ -50,7 +50,7 @@ export function OrdersListScreen() {
         orderNo={item.documentNo || 'No Yok'}
         companyName={item.partnerName || 'Cari Yok'}
         status={item.status || 'Bilinmiyor'}
-        itemCount={0}
+        itemCount={item.productCount || 0}
         buyerName={''}
         date={formattedDate}
         onPress={() => navigation.navigate('OrderSuppliers', { orderId: item.id, documentNo: item.documentNo })}

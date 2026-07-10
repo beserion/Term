@@ -91,7 +91,7 @@ export function StockTransferScreen() {
       return;
     }
     if (activeWarehouseId === targetWarehouseId) {
-      showToast({ message: 'Çıkış deposu ile Hedef depo aynı olamaz', type: 'warning' });
+      showToast({ message: 'Çıkış deposu ile Hedef depo aynı olamaz', type: 'info' });
       return;
     }
     
@@ -108,7 +108,7 @@ export function StockTransferScreen() {
         fromWarehouseId: activeWarehouseId,
         toWarehouseId: targetWarehouseId,
         lines: [
-          { stockId: product.id, transferQty: qty }
+          { stockId: product.id, transferQty: qty, qty: qty, receivedQty: qty }
         ]
       });
       FeedbackService.playSuccess();
@@ -337,15 +337,15 @@ const styles = StyleSheet.create({
   },
   scanRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: 6,
   },
   barcodeInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 56,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    height: 40,
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.xs,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
     paddingRight: Spacing.xs,
@@ -354,40 +354,40 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     paddingHorizontal: Spacing.md,
-    ...Typography.bodyLg,
+    fontSize: 14,
     color: Colors.onSurface,
   },
   keyboardToggleBtn: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scanButton: {
-    width: 56,
-    height: 56,
+    width: 40,
+    height: 40,
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.xs,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadow.sm,
   },
   productCard: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    ...Shadow.md,
+    borderRadius: BorderRadius.xs,
+    padding: 8,
+    ...Shadow.card,
   },
   productHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    gap: 6,
+    marginBottom: 8,
   },
   iconBoxContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.md,
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.xs,
     backgroundColor: 'rgba(30, 58, 138, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -396,12 +396,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stockCode: {
-    ...Typography.labelMd,
+    fontSize: 11,
     color: Colors.outline,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   stockName: {
-    ...Typography.titleLg,
+    fontSize: 14,
+    fontWeight: 'bold',
     color: Colors.onSurface,
   },
   qtyContainer: {
@@ -409,51 +410,52 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.sm,
+    padding: 6,
+    borderRadius: BorderRadius.xs,
   },
   qtyLabel: {
-    ...Typography.bodyMd,
+    ...Typography.bodySm,
     color: Colors.onSurfaceVariant,
   },
   qtyValue: {
-    ...Typography.titleLg,
+    fontSize: 14,
     color: Colors.primary,
     fontWeight: 'bold',
   },
   divider: {
     height: 1,
     backgroundColor: Colors.outlineVariant,
-    marginVertical: Spacing.lg,
+    marginVertical: 8,
   },
   inputLabel: {
-    ...Typography.labelMd,
+    fontSize: 11,
     color: Colors.onSurfaceVariant,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   input: {
     backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.xs,
     paddingHorizontal: Spacing.md,
-    height: 56,
-    ...Typography.bodyLg,
+    height: 38,
+    fontSize: 14,
     color: Colors.onSurface,
-    marginBottom: Spacing.lg,
+    marginBottom: 8,
   },
   quantityInputTouchable: {
-    height: 56,
-    borderRadius: BorderRadius.md,
+    height: 38,
+    borderRadius: BorderRadius.xs,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
     backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: 8,
   },
   quantityInputText: {
-    ...Typography.headlineMd,
+    fontSize: 16,
+    fontWeight: 'bold',
     color: Colors.onSurface,
   },
   quantityInputPlaceholder: {
@@ -461,8 +463,8 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-    height: 56,
+    borderRadius: BorderRadius.xs,
+    height: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -477,37 +479,38 @@ const styles = StyleSheet.create({
   actionButtonText: {
     ...Typography.labelLg,
     color: Colors.onPrimary,
+    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
   modalContent: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    padding: 10,
   },
   modalTitle: {
-    ...Typography.titleLg,
-    marginBottom: Spacing.md,
+    ...Typography.titleMedium,
+    marginBottom: 8,
     textAlign: 'center',
   },
   modalItem: {
-    padding: Spacing.md,
+    padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.outlineVariant,
   },
   modalItemText: {
-    ...Typography.bodyLg,
+    fontSize: 13,
   },
   modalCloseButton: {
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
+    marginTop: 10,
+    padding: 8,
     alignItems: 'center',
     backgroundColor: Colors.outlineVariant,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.xs,
   },
   modalCloseText: {
     ...Typography.labelLg,

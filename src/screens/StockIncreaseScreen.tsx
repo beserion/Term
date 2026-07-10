@@ -81,7 +81,7 @@ export function StockIncreaseScreen() {
         documentNo: note.trim() || 'TRM-' + Date.now(), // minLength 1 zorunluluğu var
         warehouseId: activeWarehouseId,
         lines: [
-          { stockId: product.id, receivedQty: qty }
+          { stockId: product.id, receivedQty: qty, qty: qty, orderedQty: qty }
         ]
       });
       FeedbackService.playSuccess();
@@ -296,9 +296,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    height: Spacing.touchTargetMin,
+    height: 40,
     backgroundColor: Colors.surfaceContainerLowest,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.xs,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
     paddingRight: Spacing.xs,
@@ -306,70 +306,70 @@ const styles = StyleSheet.create({
   barcodeInput: {
     flex: 1,
     height: '100%',
-    paddingHorizontal: Spacing.lg,
-    ...Typography.bodyLg,
+    paddingHorizontal: 12,
+    fontSize: 14,
     color: Colors.onSurface,
   },
   keyboardToggleBtn: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scanButton: {
-    width: Spacing.touchTargetMin, height: Spacing.touchTargetMin,
-    borderRadius: BorderRadius.md, backgroundColor: Colors.primaryContainer,
+    width: 40, height: 40,
+    borderRadius: BorderRadius.xs, backgroundColor: Colors.primaryContainer,
     alignItems: 'center', justifyContent: 'center',
   },
   productCard: {
     backgroundColor: Colors.surfaceContainerLowest,
-    borderRadius: BorderRadius.md, padding: Spacing.cardPadding,
+    borderRadius: BorderRadius.xs, padding: 8,
     borderWidth: 1, borderColor: Colors.surfaceContainer, ...Shadow.card,
   },
   productHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginBottom: 8,
   },
-  productName: { ...Typography.headlineSm, color: Colors.onSurface, flex: 1 },
+  productName: { fontSize: 15, fontWeight: 'bold', color: Colors.onSurface, flex: 1 },
   stockInfo: {
-    backgroundColor: Colors.secondaryContainer, borderRadius: BorderRadius.sm,
-    padding: Spacing.md, marginBottom: Spacing.lg,
+    backgroundColor: Colors.secondaryContainer, borderRadius: BorderRadius.xs,
+    padding: 6, marginBottom: 8,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  stockLabel: { ...Typography.labelMd, color: Colors.onSecondaryContainer },
-  stockValue: { ...Typography.headlineMd, color: Colors.primary, fontWeight: '700' },
-  inputGroup: { marginBottom: Spacing.lg },
+  stockLabel: { ...Typography.labelSm, color: Colors.onSecondaryContainer },
+  stockValue: { fontSize: 16, color: Colors.primary, fontWeight: '700' },
+  inputGroup: { marginBottom: 8 },
   inputLabel: {
-    ...Typography.labelLg, color: Colors.onSurfaceVariant, marginBottom: Spacing.sm,
+    ...Typography.labelSm, color: Colors.onSurfaceVariant, marginBottom: 4,
   },
-  quantityRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   qtyButton: {
-    width: Spacing.touchTargetMin, height: Spacing.touchTargetMin,
-    borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant,
+    width: 38, height: 38,
+    borderRadius: BorderRadius.xs, borderWidth: 1, borderColor: Colors.outlineVariant,
     alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface,
   },
   quantityInputTouchable: {
-    flex: 1, height: Spacing.touchTargetMin,
-    borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant,
+    flex: 1, height: 38,
+    borderRadius: BorderRadius.xs, borderWidth: 1, borderColor: Colors.outlineVariant,
     backgroundColor: Colors.surface,
     alignItems: 'center', justifyContent: 'center',
   },
   quantityInputText: {
-    ...Typography.headlineMd, color: Colors.onSurface,
+    fontSize: 16, fontWeight: 'bold', color: Colors.onSurface,
   },
   quantityInputPlaceholder: {
     color: Colors.outline,
   },
   noteInput: {
-    height: 80, backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant,
-    paddingHorizontal: Spacing.lg, paddingTop: Spacing.md,
+    height: 50, backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xs, borderWidth: 1, borderColor: Colors.outlineVariant,
+    paddingHorizontal: 8, paddingTop: 4,
     ...Typography.bodyMd, color: Colors.onSurface, textAlignVertical: 'top',
   },
   increaseButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, backgroundColor: Colors.primaryContainer, borderRadius: BorderRadius.sm,
-    minHeight: Spacing.touchTargetMin,
+    gap: Spacing.sm, backgroundColor: Colors.primaryContainer, borderRadius: BorderRadius.xs,
+    minHeight: 38,
   },
-  increaseButtonText: { ...Typography.labelLg, color: Colors.onPrimary, fontSize: 16 },
+  increaseButtonText: { ...Typography.labelLg, color: Colors.onPrimary, fontWeight: 'bold', fontSize: 14 },
 });

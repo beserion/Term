@@ -433,6 +433,28 @@
         }
       }
     },
+    "/api/Delivery/details": {
+      "get": {
+        "tags": [
+          "Delivery"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/files/upload": {
       "post": {
         "tags": [
@@ -1326,10 +1348,21 @@
         }
       }
     },
-    "/api/Order/summary-list": {
+    "/api/Order/orderlist": {
       "get": {
         "tags": [
           "Order"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -1386,6 +1419,37 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Order/save-picking": {
+      "post": {
+        "tags": [
+          "Order"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -1789,6 +1853,695 @@
         }
       }
     },
+    "/api/terminal/Orderlist": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "kriter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startRow",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "endRow",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/Warehouses": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/Stocks": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/Stock/QrCode": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/StockOnHand/{warehouseId}": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "parameters": [
+          {
+            "name": "warehouseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/StockOnHand/{warehouseId}/{stockId}": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "parameters": [
+          {
+            "name": "warehouseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "stockId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/GoodsReceipt": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/GoodsIssue": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/StockTransfer": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/CycleCount/List": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/CycleCount/Start": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountStartDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountStartDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountStartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/CycleCount/SaveItem": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/CycleCount/Complete": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/Stock/UpdateShelf": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalUpdateShelfDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalUpdateShelfDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalUpdateShelfDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Inventory/Stock/UpdateBarcode": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalUpdateBarcodeDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalUpdateBarcodeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalUpdateBarcodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Settings/PrintLabel": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalPrintLabelDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalPrintLabelDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalPrintLabelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Orders/List": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Orders/Details": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Orders/{orderId}/Suppliers": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Orders/{orderId}/Supplier/{supplierId}/Details": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/save-picking": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/save-order-supplier-receipt": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalOrderReceiptDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalOrderReceiptDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalOrderReceiptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Delivery/List": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Delivery/Details": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/ToDo/List": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Task/UpdateStatus": {
+      "post": {
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalTaskUpdateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalTaskUpdateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EDModels.TerminalTaskUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/terminal/Settings/Printers": {
+      "get": {
+        "tags": [
+          "Terminal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/ToDo/list": {
       "get": {
         "tags": [
@@ -2060,6 +2813,48 @@
             "type": "array",
             "items": {
               "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDApi.Controllers.SavePickingLineDto": {
+        "type": "object",
+        "properties": {
+          "stockId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pickedQty": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDApi.Controllers.SavePickingRequestDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "supplierId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warehouseId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "forceSave": {
+            "type": "boolean"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EDApi.Controllers.SavePickingLineDto"
             },
             "nullable": true
           }
@@ -3656,6 +4451,11 @@
             "type": "string",
             "nullable": true
           },
+          "shelfAddress": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
           "stockCode": {
             "type": "string",
             "nullable": true
@@ -3746,6 +4546,14 @@
           "invoiceId": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          },
+          "rfqNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNo": {
+            "type": "string",
             "nullable": true
           },
           "lines": {
@@ -3917,6 +4725,14 @@
             "format": "int32",
             "nullable": true
           },
+          "rfqNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNo": {
+            "type": "string",
+            "nullable": true
+          },
           "lines": {
             "type": "array",
             "items": {
@@ -3999,6 +4815,15 @@
             "type": "number",
             "format": "double"
           },
+          "receivedQty": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
           "unitPrice": {
             "type": "number",
             "format": "double"
@@ -4038,6 +4863,10 @@
             "format": "int32",
             "nullable": true
           },
+          "productCode": {
+            "type": "string",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "nullable": true
@@ -4045,6 +4874,15 @@
           "qty": {
             "type": "number",
             "format": "double"
+          },
+          "receivedQty": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
           },
           "unitPrice": {
             "type": "number",
@@ -4862,6 +5700,14 @@
             "nullable": true
           },
           "partnerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "rfqNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNo": {
             "type": "string",
             "nullable": true
           }
@@ -7679,6 +8525,14 @@
           },
           "isPosted": {
             "type": "boolean"
+          },
+          "rfqNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNo": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -7802,6 +8656,14 @@
             "nullable": true
           },
           "purchaseOrderNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "rfqNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNo": {
             "type": "string",
             "nullable": true
           },
@@ -8471,6 +9333,14 @@
           "partner": {
             "$ref": "#/components/schemas/EDModels.Partner"
           },
+          "rfqNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNo": {
+            "type": "string",
+            "nullable": true
+          },
           "partnerName": {
             "type": "string",
             "nullable": true
@@ -8721,14 +9591,6 @@
             "type": "string",
             "nullable": true
           },
-          "orderNo": {
-            "type": "string",
-            "nullable": true
-          },
-          "rfqNo": {
-            "type": "string",
-            "nullable": true
-          },
           "statusId": {
             "type": "integer",
             "format": "int32",
@@ -8771,6 +9633,14 @@
             "nullable": true
           },
           "projectNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "rfqNo": {
             "type": "string",
             "nullable": true
           },
@@ -8889,6 +9759,22 @@
           "procureShipStatusClass": {
             "type": "string",
             "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsiblePerson": {
+            "type": "string",
+            "nullable": true
+          },
+          "productCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalQty": {
+            "type": "number",
+            "format": "double"
           },
           "workflowTemplateId": {
             "type": "integer",
@@ -9101,6 +9987,10 @@
           "remark": {
             "type": "string",
             "nullable": true
+          },
+          "supplierName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -9212,6 +10102,29 @@
           },
           "statusCounts": {
             "$ref": "#/components/schemas/EDModels.OrderStatusCount"
+          },
+          "chartLabels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "chartSalesData": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "chartPurchaseData": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -9248,6 +10161,26 @@
             "format": "int32"
           },
           "waitingAcceptanceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalSales": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPurchase": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deliveredSales": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deliveredPurchase": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "delayedOrders": {
             "type": "integer",
             "format": "int32"
           }
@@ -11088,6 +12021,14 @@
             "format": "double",
             "nullable": true
           },
+          "rfqNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectNo": {
+            "type": "string",
+            "nullable": true
+          },
           "ttlCost": {
             "type": "number",
             "format": "double",
@@ -11412,6 +12353,10 @@
           "request": {
             "$ref": "#/components/schemas/EDModels.Request"
           },
+          "projectNo": {
+            "type": "string",
+            "nullable": true
+          },
           "partners": {
             "type": "array",
             "items": {
@@ -11610,6 +12555,11 @@
             "nullable": true
           },
           "barCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "qrCode": {
+            "maxLength": 500,
             "type": "string",
             "nullable": true
           },
@@ -11882,6 +12832,11 @@
             "type": "string",
             "nullable": true,
             "readOnly": true
+          },
+          "packageRatio": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
           },
           "remarks": {
             "maxLength": -1,
@@ -12175,6 +13130,220 @@
             "nullable": true
           },
           "warehouseName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalCycleCountItemDto": {
+        "type": "object",
+        "properties": {
+          "cycleCountId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stockId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "countedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "shelfAddress": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalCycleCountStartDto": {
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "countDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalGoodsLineDto": {
+        "type": "object",
+        "properties": {
+          "stockId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "receivedQty": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "issuedQty": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "transferQty": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalGoodsTransactionDto": {
+        "type": "object",
+        "properties": {
+          "documentDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "documentNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "warehouseId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "fromWarehouseId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "toWarehouseId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsLineDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalOrderReceiptDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "supplierId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warehouseId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "remarks": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EDModels.TerminalOrderReceiptLineDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalOrderReceiptLineDto": {
+        "type": "object",
+        "properties": {
+          "orderDetailId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "receivedQty": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalPrintLabelDto": {
+        "type": "object",
+        "properties": {
+          "printerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "barcode": {
+            "type": "string",
+            "nullable": true
+          },
+          "qrCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalTaskUpdateDto": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalUpdateBarcodeDto": {
+        "type": "object",
+        "properties": {
+          "stockId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "barcode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EDModels.TerminalUpdateShelfDto": {
+        "type": "object",
+        "properties": {
+          "stockId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shelfAddress": {
             "type": "string",
             "nullable": true
           }
@@ -13825,7 +14994,7 @@
   },
   "security": [
     {
-      "Bearer": [ ]
+      "Bearer": []
     }
   ]
 }

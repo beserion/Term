@@ -29,6 +29,7 @@ export interface Order {
   lines?: OrderLine[];
   note?: string;
   rfqNo?: string;
+  productCount?: number;
 }
 
 export interface OrderSupplier {
@@ -65,6 +66,7 @@ export async function getOrders(search?: string): Promise<Order[]> {
     warehouseId: item.outputWarehouseId || item.OutputWarehouseId || item.warehouseId || item.WarehouseId,
     note: item.note || item.Note,
     rfqNo: item.rfqNo || item.RfqNo,
+    productCount: item.productCount || item.ProductCount || 0,
     lines: item.details || item.Details || item.lines || item.Lines || []
   }));
 
@@ -87,7 +89,7 @@ export async function getOrderDetail(id: number | string): Promise<Order> {
   const response = await api.get(`/terminal/Orders/Details?id=${id}`);
   
   const rawLines = Array.isArray(response.data) ? response.data : [];
-  const partnerName = rawLines.length > 0 ? rawLines[0].partnername : 'Cari Yok';
+  const partnerName = rawLines.length > 0 ? (rawLines[0].partnerName || rawLines[0].partnername || 'Cari Yok') : 'Cari Yok';
 
   return {
     id: Number(id),
@@ -98,17 +100,18 @@ export async function getOrderDetail(id: number | string): Promise<Order> {
     status: 'Sipariş Detayı',
     totalAmount: 0,
     lines: rawLines.map((item: any, index: number) => {
-      const trimmedCode = item.productcode ? String(item.productcode).trim() : '';
-      const stockId = parseInt(trimmedCode, 10) || index;
+      const trimmedCode = item.productCode || item.ProductCode || item.productcode ? String(item.productCode || item.ProductCode || item.productcode).trim() : '';
+      const stockId = item.productId || item.ProductId || item.stockId || item.StockId || parseInt(trimmedCode, 10) || index;
       return {
-        id: index,
+        id: item.id || item.Id || index,
         orderId: Number(id),
         stockId: stockId,
         stockCode: trimmedCode || `CODE-${index}`,
-        stockName: item.productname || 'Ürün Adı Yok',
-        quantity: item.qty || 0,
+        stockName: item.productName || item.ProductName || item.productname || 'Ürün Adı Yok',
+        quantity: item.qty || item.Qty || item.quantity || item.Quantity || 0,
         pickedQty: 0,
-        unit: item.unit || undefined,
+        unit: item.unit || item.Unit || undefined,
+        unitPrice: item.price || item.Price || item.unitPrice || item.UnitPrice || 0,
         isPicked: false
       };
     })
@@ -168,3 +171,31 @@ export async function getSupplierOrderDetail(orderId: number, supplierId: number
     })
   };
 }
+
+export interface TerminalOrderReceiptLineDto {
+  orderDetailId: number;
+  receivedQty: number;
+}
+
+export interface TerminalOrderReceiptDto {
+  orderId: number;
+  supplierId: number;
+  warehouseId: number;
+  documentNo?: string;
+  remarks?: string;
+  lines: TerminalOrderReceiptLineDto[];
+}
+
+/** Sipariş toplama/kabul makbuzunu sunucuya kaydeder */
+export async function saveOrderSupplierReceipt(payload: TerminalOrderReceiptDto): Promise<any> {
+  const api = await getApi();
+  const response = await api.post('/terminal/save-order-supplier-receipt', payload);
+  
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Sipariş kabulü kaydedilemedi.');
+    err.response = response;
+    throw err;
+  }
+  return response.data;
+}
+
