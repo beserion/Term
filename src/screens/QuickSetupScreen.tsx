@@ -229,7 +229,7 @@ export function QuickSetupScreen() {
     }
   };
 
-  // Ürün Arama Modalı Filtreleme (Ad, Türkçe ad, Kod, Marka ve Modele göre esnek arama)
+  // Ürün Arama Modalı Filtreleme (Ad, Türkçe ad, Kod, Marka, Model ve IMPA Koduna göre esnek arama)
   const filteredStocks = stocks.filter((item) => {
     if (!searchQuery.trim()) return true;
     const searchString = [
@@ -237,7 +237,8 @@ export function QuickSetupScreen() {
       item.stockNameTr,
       item.stockCode,
       item.brand,
-      item.model
+      item.model,
+      item.impaCode
     ].filter(Boolean).join(' ');
     return flexMatch(searchString, searchQuery);
   });

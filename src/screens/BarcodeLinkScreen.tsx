@@ -73,7 +73,7 @@ export function BarcodeLinkScreen() {
     fetchProducts();
   }, []);
 
-  // Filtreleme mantığı (Ad, Türkçe ad, Kod, Marka ve Modele göre esnek arama)
+  // Filtreleme mantığı (Ad, Türkçe ad, Kod, Marka, Model ve IMPA Koduna göre esnek arama)
   const filteredStocks = stocks.filter((item) => {
     let matchSearch = true;
     if (searchTerm.trim()) {
@@ -82,7 +82,8 @@ export function BarcodeLinkScreen() {
         item.stockNameTr,
         item.stockCode,
         item.brand,
-        item.model
+        item.model,
+        item.impaCode
       ].filter(Boolean).join(' ');
       matchSearch = flexMatch(searchString, searchTerm);
     }
