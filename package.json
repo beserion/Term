@@ -15,6 +15,7 @@
     "@react-navigation/native-stack": "^7.17.6",
     "axios": "^1.18.1",
     "expo": "~56.0.15",
+    "expo-asset": "~56.0.19",
     "expo-audio": "~56.0.12",
     "expo-build-properties": "~56.0.22",
     "expo-font": "^56.0.7",

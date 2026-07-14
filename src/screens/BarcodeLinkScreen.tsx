@@ -21,6 +21,7 @@ import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
 import { sendCpclToPrinter } from '../services/printHelper';
+import { flexMatch } from '../utils/searchHelper';
 
 export function BarcodeLinkScreen() {
   const navigation = useNavigation<any>();
@@ -72,12 +73,19 @@ export function BarcodeLinkScreen() {
     fetchProducts();
   }, []);
 
-  // Filtreleme mantığı
+  // Filtreleme mantığı (Ad, Türkçe ad, Kod, Marka ve Modele göre esnek arama)
   const filteredStocks = stocks.filter((item) => {
-    const matchSearch =
-      !searchTerm ||
-      (item.stockName && item.stockName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.stockCode && item.stockCode.toLowerCase().includes(searchTerm.toLowerCase()));
+    let matchSearch = true;
+    if (searchTerm.trim()) {
+      const searchString = [
+        item.stockName,
+        item.stockNameTr,
+        item.stockCode,
+        item.brand,
+        item.model
+      ].filter(Boolean).join(' ');
+      matchSearch = flexMatch(searchString, searchTerm);
+    }
 
     if (onlyNoBarcode) {
       return matchSearch && (!item.barCode || item.barCode.trim() === '');
@@ -98,7 +106,7 @@ export function BarcodeLinkScreen() {
     try {
       setSaving(true);
       await updateStockBarcode(selectedProduct.id, cleanBarcode);
-      
+
       // Lokal state güncellemesi
       setStocks((prev) =>
         prev.map((item) =>
@@ -120,7 +128,7 @@ export function BarcodeLinkScreen() {
 
       // Temizleme ve otomatik ilerleme
       setBarcodeInput('');
-      
+
       if (autoAdvance) {
         // Filtrelenmiş listede sıradaki ürünü bul
         const currentIndex = filteredStocks.findIndex((item) => item.id === selectedProduct.id);
@@ -172,18 +180,30 @@ export function BarcodeLinkScreen() {
             <Text style={[styles.stockName, isSelected && styles.stockTextSelected]}>
               {item.stockName || 'İsimsiz Ürün'}
             </Text>
+            {item.stockNameTr ? (
+              <Text style={styles.stockNameTr}>{item.stockNameTr}</Text>
+            ) : null}
             <Text style={styles.stockCode}>
-              Kod: <Text style={styles.boldMono}>{item.stockCode || '-'}</Text>
+              <Text style={styles.boldMono}>{item.stockCode || '-'}</Text>
+              {item.barCode ? (
+                <Text style={styles.stockBarcode}>
+                  {' | '}<Text style={styles.boldMono}>{item.barCode}</Text>
+                </Text>
+              ) : (
+                <>
+                  <Text style={{ color: Colors.outline }}>{' | '}</Text>
+                  <View style={styles.noBarcodeBadge}>
+                    <Text style={styles.noBarcodeBadgeText}>BARKODSUZ</Text>
+                  </View>
+                </>
+              )}
             </Text>
-            {item.barCode ? (
-              <Text style={styles.stockBarcode}>
-                Barkod: <Text style={styles.boldMono}>{item.barCode}</Text>
-              </Text>
-            ) : (
-              <View style={styles.noBarcodeBadge}>
-                <Text style={styles.noBarcodeBadgeText}>BARKODSUZ</Text>
-              </View>
-            )}
+            <Text style={styles.stockCode}>
+              {item.brand ? (
+                <><Text style={styles.stockBrand}>{item.brand}</Text></>
+              ) : null}
+              {item.model ? `${item.model}` : ''}
+            </Text>
           </View>
           <View style={styles.cardRight}>
             <Text style={styles.shelfText}>{item.shelfAddress || 'Raf Yok'}</Text>
@@ -298,7 +318,7 @@ export function BarcodeLinkScreen() {
               trackColor={{ false: Colors.surfaceContainer, true: Colors.primaryFixedDim }}
             />
           </View>
- 
+
           {/* Otomatik Etiket Yazdırma Switch */}
           <View style={[styles.autoAdvanceRow, { borderTopWidth: 1, borderTopColor: Colors.outlineVariant, paddingTop: Spacing.sm, marginTop: 2 }]}>
             <View style={{ flex: 1, paddingRight: Spacing.sm }}>
@@ -443,6 +463,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.onSurface,
     marginBottom: 2,
+  },
+  stockNameTr: {
+    fontSize: 12,
+    color: '#1d4ed8',
+    fontStyle: 'italic',
+    marginBottom: 2,
+  },
+  stockBrand: {
+    fontWeight: '600',
+    color: '#b85c00',
   },
   stockTextSelected: {
     color: Colors.onPrimaryFixed,

@@ -10,6 +10,7 @@ export interface Stock {
   id: number;
   stockCode?: string;
   stockName?: string;
+  stockNameTr?: string;
   barCode?: string;
   companyId?: number;
   shelfAddress?: string;
@@ -17,6 +18,9 @@ export interface Stock {
   qty?: number;
   photo?: string;
   imageUrl?: string;
+  brand?: string;
+  model?: string;
+  impaCode?: string;
 }
 
 export interface GoodsReceiptLine {

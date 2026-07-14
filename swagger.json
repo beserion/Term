@@ -3432,6 +3432,16 @@
         },
         "additionalProperties": false
       },
+      "EDModels.ApprovalStatus": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
       "EDModels.AssigneeTaskCountRow": {
         "type": "object",
         "properties": {
@@ -4456,6 +4466,10 @@
             "type": "string",
             "nullable": true
           },
+          "photo": {
+            "type": "string",
+            "nullable": true
+          },
           "stockCode": {
             "type": "string",
             "nullable": true
@@ -5136,6 +5150,9 @@
             "type": "string",
             "nullable": true
           },
+          "approvalStatus": {
+            "$ref": "#/components/schemas/EDModels.ApprovalStatus"
+          },
           "documentNo": {
             "maxLength": 50,
             "minLength": 1,
@@ -5195,20 +5212,8 @@
             "format": "int32",
             "nullable": true
           },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "workflowTemplate": {
-            "$ref": "#/components/schemas/EDModels.WorkflowTemplate"
-          },
-          "currentApprovalStep": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "approvedByUserId": {
+            "maxLength": 50,
             "type": "string",
             "nullable": true
           },
@@ -5559,6 +5564,9 @@
             "type": "string",
             "nullable": true
           },
+          "approvalStatus": {
+            "$ref": "#/components/schemas/EDModels.ApprovalStatus"
+          },
           "documentNo": {
             "maxLength": 50,
             "minLength": 1,
@@ -5656,20 +5664,8 @@
             "format": "date-time",
             "nullable": true
           },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "workflowTemplate": {
-            "$ref": "#/components/schemas/EDModels.WorkflowTemplate"
-          },
-          "currentApprovalStep": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "voucherId": {
+            "maxLength": 50,
             "type": "integer",
             "format": "int32",
             "nullable": true
@@ -7082,18 +7078,6 @@
             },
             "nullable": true
           },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "workflowTemplate": {
-            "$ref": "#/components/schemas/EDModels.WorkflowTemplate"
-          },
-          "currentStepOrder": {
-            "type": "integer",
-            "format": "int32"
-          },
           "status": {
             "maxLength": 50,
             "type": "string",
@@ -7194,10 +7178,6 @@
           "status": {
             "type": "string",
             "nullable": true
-          },
-          "currentStepOrder": {
-            "type": "integer",
-            "format": "int32"
           },
           "currentStepName": {
             "type": "string",
@@ -7470,18 +7450,6 @@
           },
           "deputyEmployee": {
             "$ref": "#/components/schemas/EDModels.HREmployee"
-          },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "workflowTemplate": {
-            "$ref": "#/components/schemas/EDModels.WorkflowTemplate"
-          },
-          "currentStepOrder": {
-            "type": "integer",
-            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -8508,15 +8476,8 @@
             },
             "nullable": true
           },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "workflowTemplate": {
-            "$ref": "#/components/schemas/EDModels.WorkflowTemplate"
-          },
           "currentStepOrder": {
+            "maxLength": 50,
             "type": "integer",
             "format": "int32"
           },
@@ -9188,6 +9149,9 @@
             "type": "string",
             "nullable": true
           },
+          "approvalStatus": {
+            "$ref": "#/components/schemas/EDModels.ApprovalStatus"
+          },
           "statusId": {
             "type": "integer",
             "format": "int32",
@@ -9255,15 +9219,6 @@
           "status": {
             "type": "string",
             "nullable": true
-          },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "currentStepOrder": {
-            "type": "integer",
-            "format": "int32"
           },
           "remark": {
             "type": "string",
@@ -9591,6 +9546,9 @@
             "type": "string",
             "nullable": true
           },
+          "approvalStatus": {
+            "$ref": "#/components/schemas/EDModels.ApprovalStatus"
+          },
           "statusId": {
             "type": "integer",
             "format": "int32",
@@ -9776,15 +9734,6 @@
             "type": "number",
             "format": "double"
           },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "currentStepOrder": {
-            "type": "integer",
-            "format": "int32"
-          },
           "details": {
             "type": "array",
             "items": {
@@ -9893,6 +9842,9 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "stock": {
+            "$ref": "#/components/schemas/EDModels.Stock"
           },
           "vesselRemark": {
             "type": "string",
@@ -10067,10 +10019,6 @@
             "items": {
               "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.Rendering.SelectListItem"
             },
-            "nullable": true
-          },
-          "workflowTemplateName": {
-            "type": "string",
             "nullable": true
           }
         },
@@ -11446,6 +11394,9 @@
             "type": "string",
             "nullable": true
           },
+          "approvalStatus": {
+            "$ref": "#/components/schemas/EDModels.ApprovalStatus"
+          },
           "partnerId": {
             "type": "integer",
             "format": "int32",
@@ -11503,15 +11454,8 @@
             "type": "string",
             "nullable": true
           },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "workflowTemplate": {
-            "$ref": "#/components/schemas/EDModels.WorkflowTemplate"
-          },
           "currentStepOrder": {
+            "maxLength": 50,
             "type": "integer",
             "format": "int32"
           },
@@ -12165,8 +12109,13 @@
             "format": "int32",
             "nullable": true
           },
-          "product": {
-            "$ref": "#/components/schemas/EDModels.Product"
+          "stockId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "stock": {
+            "$ref": "#/components/schemas/EDModels.Stock"
           },
           "description": {
             "type": "string",
@@ -12597,6 +12546,11 @@
             "nullable": true
           },
           "stockName": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "stockNameTr": {
             "maxLength": 1000,
             "type": "string",
             "nullable": true
@@ -13152,6 +13106,10 @@
             "format": "double"
           },
           "shelfAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "photo": {
             "type": "string",
             "nullable": true
           }
@@ -14015,6 +13973,9 @@
             "type": "string",
             "nullable": true
           },
+          "approvalStatus": {
+            "$ref": "#/components/schemas/EDModels.ApprovalStatus"
+          },
           "docNo": {
             "type": "string",
             "nullable": true
@@ -14104,15 +14065,8 @@
             },
             "nullable": true
           },
-          "workflowTemplateId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "workflowTemplate": {
-            "$ref": "#/components/schemas/EDModels.WorkflowTemplate"
-          },
           "currentStepOrder": {
+            "maxLength": 50,
             "type": "integer",
             "format": "int32"
           },
@@ -14655,214 +14609,6 @@
         },
         "additionalProperties": false
       },
-      "EDModels.WorkflowStep": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "createdBy": {
-            "type": "string",
-            "nullable": true
-          },
-          "modifiedBy": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "modifiedDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "isDeleted": {
-            "type": "boolean"
-          },
-          "isNew": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "companyId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "company": {
-            "$ref": "#/components/schemas/EDModels.Companies"
-          },
-          "rowCnt": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "rowNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentStepName": {
-            "type": "string",
-            "nullable": true
-          },
-          "templateId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "template": {
-            "$ref": "#/components/schemas/EDModels.WorkflowTemplate"
-          },
-          "stepOrder": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "stepName": {
-            "maxLength": 100,
-            "type": "string",
-            "nullable": true
-          },
-          "requiredRoleName": {
-            "maxLength": 100,
-            "type": "string",
-            "nullable": true
-          },
-          "rejectAction": {
-            "maxLength": 20,
-            "type": "string",
-            "nullable": true
-          },
-          "minAmount": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "maxAmount": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "conditionQuery": {
-            "maxLength": 500,
-            "type": "string",
-            "nullable": true
-          },
-          "approverType": {
-            "maxLength": 50,
-            "type": "string",
-            "nullable": true
-          },
-          "specificUserId": {
-            "maxLength": 450,
-            "type": "string",
-            "nullable": true
-          },
-          "timeoutDays": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "timeoutAction": {
-            "maxLength": 20,
-            "type": "string",
-            "nullable": true
-          },
-          "escalationRoleName": {
-            "maxLength": 100,
-            "type": "string",
-            "nullable": true
-          },
-          "isParallel": {
-            "type": "boolean"
-          },
-          "parallelGroupId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "EDModels.WorkflowTemplate": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "createdBy": {
-            "type": "string",
-            "nullable": true
-          },
-          "modifiedBy": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "modifiedDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "isDeleted": {
-            "type": "boolean"
-          },
-          "isNew": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "companyId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "company": {
-            "$ref": "#/components/schemas/EDModels.Companies"
-          },
-          "rowCnt": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "rowNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentStepName": {
-            "type": "string",
-            "nullable": true
-          },
-          "name": {
-            "maxLength": 100,
-            "type": "string",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "moduleName": {
-            "maxLength": 50,
-            "type": "string",
-            "nullable": true
-          },
-          "steps": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EDModels.WorkflowStep"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "EDUtility.DeliveryStatus": {
         "enum": [
           0,
@@ -14994,7 +14740,7 @@
   },
   "security": [
     {
-      "Bearer": []
+      "Bearer": [ ]
     }
   ]
 }

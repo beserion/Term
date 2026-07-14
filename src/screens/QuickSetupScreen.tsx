@@ -34,6 +34,7 @@ import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { FeedbackService } from '../services/feedback';
 import { sendCpclToPrinter } from '../services/printHelper';
+import { flexMatch } from '../utils/searchHelper';
 
 interface CountedItem {
   product: Stock;
@@ -228,14 +229,17 @@ export function QuickSetupScreen() {
     }
   };
 
-  // Ürün Arama Modalı Filtreleme (Ad ve Koda göre)
+  // Ürün Arama Modalı Filtreleme (Ad, Türkçe ad, Kod, Marka ve Modele göre esnek arama)
   const filteredStocks = stocks.filter((item) => {
     if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      (item.stockName && item.stockName.toLowerCase().includes(q)) ||
-      (item.stockCode && item.stockCode.toLowerCase().includes(q))
-    );
+    const searchString = [
+      item.stockName,
+      item.stockNameTr,
+      item.stockCode,
+      item.brand,
+      item.model
+    ].filter(Boolean).join(' ');
+    return flexMatch(searchString, searchQuery);
   });
 
   // Ürün arama modalından ürün seçildiğinde
@@ -789,9 +793,16 @@ export function QuickSetupScreen() {
                 activeOpacity={0.7}
               >
                 <View style={{ flex: 1, paddingRight: Spacing.sm }}>
-                  <Text style={styles.modalItemName} numberOfLines={1}>{item.stockName}</Text>
+                  <Text style={styles.modalItemName}>{item.stockName}</Text>
+                  {item.stockNameTr ? (
+                    <Text style={styles.modalItemNameTr}>{item.stockNameTr}</Text>
+                  ) : null}
                   <Text style={styles.modalItemCode}>
-                    Kod: {item.stockCode} {item.barCode ? `| Barkod: ${item.barCode}` : '| BARKODSUZ'}
+                    {item.stockCode} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
+                    {item.brand ? (
+                      <> | <Text style={styles.modalItemBrand}>{item.brand}</Text></>
+                    ) : null}
+                    {item.model ? ` | ${item.model}` : ''}
                   </Text>
                 </View>
                 <CustomIcon name="chevron-right" size={16} color={Colors.outline} />
@@ -824,8 +835,8 @@ export function QuickSetupScreen() {
                 {activePickerType === 'letter'
                   ? 'Harf Seçin'
                   : activePickerType === 'number'
-                  ? 'Raf No Seçin'
-                  : 'Kat/Seviye Seçin'}
+                    ? 'Raf No Seçin'
+                    : 'Kat/Seviye Seçin'}
               </Text>
               <TouchableOpacity onPress={() => setActivePickerType(null)} style={styles.pickerCloseBtn}>
                 <CustomIcon name="close" size={20} color={Colors.onSurface} />
@@ -842,8 +853,8 @@ export function QuickSetupScreen() {
                   activePickerType === 'letter'
                     ? shelfLetter === item
                     : activePickerType === 'number'
-                    ? shelfNumber === item
-                    : shelfLevel === item;
+                      ? shelfNumber === item
+                      : shelfLevel === item;
                 return (
                   <TouchableOpacity
                     style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
@@ -1308,6 +1319,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: Colors.onSurface,
+  },
+  modalItemNameTr: {
+    fontSize: 12,
+    color: '#1d4ed8',
+    fontStyle: 'italic',
+    marginTop: 1,
+  },
+  modalItemBrand: {
+    fontWeight: '600',
+    color: '#b85c00',
   },
   modalItemCode: {
     fontSize: 11,

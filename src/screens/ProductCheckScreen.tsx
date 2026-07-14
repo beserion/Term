@@ -23,6 +23,7 @@ export function ProductCheckScreen() {
         throw new Error('Ürün bulunamadı');
       }
       setProduct(data);
+      console.log('Ürün Kontrol API Yanıtı:', JSON.stringify(data, null, 2));
       FeedbackService.playLightImpact();
     } catch {
       showToast({ message: 'Barkod bulunamadı: ' + barcode, type: 'error' });
@@ -97,6 +98,9 @@ export function ProductCheckScreen() {
 
               <View style={{ flex: 1, justifyContent: 'center' }}>
                 <Text style={styles.productName}>{product.stockName}</Text>
+                {product.stockNameTr ? (
+                  <Text style={styles.productNameTr}>{product.stockNameTr}</Text>
+                ) : null}
               </View>
             </View>
 
@@ -109,6 +113,22 @@ export function ProductCheckScreen() {
               <View style={styles.dataCell}>
                 <Text style={styles.dataCellLabel}>KONUM</Text>
                 <Text style={styles.dataCellValue}>{product.shelfAddress || '-'}</Text>
+              </View>
+              {product.brand ? (
+                <View style={styles.dataCell}>
+                  <Text style={styles.dataCellLabel}>MARKA</Text>
+                  <Text style={[styles.dataCellValue, styles.brandValue]}>{product.brand}</Text>
+                </View>
+              ) : null}
+              {product.model ? (
+                <View style={styles.dataCell}>
+                  <Text style={styles.dataCellLabel}>MODEL</Text>
+                  <Text style={styles.dataCellValue}>{product.model}</Text>
+                </View>
+              ) : null}
+              <View style={styles.dataCell}>
+                <Text style={styles.dataCellLabel}>IMPA KODU</Text>
+                <Text style={styles.dataCellValue}>{product.impaCode || '-'}</Text>
               </View>
               <View style={styles.dataCellFull}>
                 <View style={styles.stockRow}>
@@ -215,6 +235,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.onSurface,
     marginBottom: 2,
+  },
+  productNameTr: {
+    fontSize: 13,
+    color: '#1d4ed8',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  brandValue: {
+    color: '#b85c00',
+    fontWeight: 'bold',
   },
   productCompany: {
     fontSize: 12,

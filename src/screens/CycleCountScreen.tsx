@@ -355,8 +355,17 @@ export function CycleCountScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.listItemInfo}>
-                  <Text style={styles.listItemCode}>{item.product.stockCode || '-'}</Text>
-                  <Text style={styles.listItemName} numberOfLines={2}>{item.product.stockName}</Text>
+                  <Text style={styles.listItemCode}>
+                    {item.product.stockCode || '-'}
+                    {item.product.brand ? (
+                      <> | <Text style={styles.listItemBrand}>{item.product.brand}</Text></>
+                    ) : null}
+                    {item.product.model ? ` | ${item.product.model}` : ''}
+                  </Text>
+                  <Text style={styles.listItemName}>{item.product.stockName}</Text>
+                  {item.product.stockNameTr ? (
+                    <Text style={styles.listItemNameTr}>{item.product.stockNameTr}</Text>
+                  ) : null}
                 </View>
 
                 <TouchableOpacity
@@ -584,10 +593,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.outline,
   },
+  listItemBrand: {
+    fontWeight: '600',
+    color: '#b85c00',
+  },
   listItemName: {
     fontSize: 13,
     color: Colors.onSurface,
     fontWeight: '500',
+  },
+  listItemNameTr: {
+    fontSize: 12,
+    color: '#1d4ed8',
+    fontStyle: 'italic',
+    marginTop: 1,
   },
   qtyBadge: {
     backgroundColor: 'rgba(30, 58, 138, 0.1)',
