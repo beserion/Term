@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, FlatList, Image, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, FlatList, Image, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { getStockByBarcode, Stock, createCycleCount, getCycleCounts, CycleCountListItemDto } from '../services/inventory';
+import { getStockByBarcode, Stock, createCycleCount, getCycleCounts, CycleCountListItemDto, uploadImage } from '../services/inventory';
+import { Config } from '../config';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { Numpad } from '../components/Numpad';
@@ -26,6 +27,7 @@ export function CycleCountScreen() {
   const [barcode, setBarcode] = useState('');
   const [countedItems, setCountedItems] = useState<CountedItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingStockId, setUploadingStockId] = useState<number | null>(null);
 
   // Edit Quantity Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -37,6 +39,23 @@ export function CycleCountScreen() {
 
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
   const showToast = useUIStore((s) => s.showToast);
+  const [baseUrl, setBaseUrl] = useState('');
+
+  useEffect(() => {
+    Config.getApiBaseUrl().then((url) => {
+      const origin = url.replace(/\/api$/, '');
+      setBaseUrl(origin);
+    });
+  }, []);
+
+  const resolveImageUri = (uri?: string) => {
+    if (!uri) return undefined;
+    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:')) {
+      return uri;
+    }
+    const path = uri.startsWith('/') ? uri : `/${uri}`;
+    return `${baseUrl}${path}`;
+  };
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
@@ -175,20 +194,29 @@ export function CycleCountScreen() {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.5,
-        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const photoAsset = result.assets[0];
-        const base64Data = photoAsset.base64 ? `data:image/jpeg;base64,${photoAsset.base64}` : undefined;
-        
-        setCountedItems(prev => prev.map(item => 
-          item.product.id === stockId
-            ? { ...item, photo: base64Data || photoAsset.uri }
-            : item
-        ));
-        
-        showToast({ message: 'Fotoğraf eklendi', type: 'success' });
+        setUploadingStockId(stockId);
+        try {
+          const uploadedUrl = await uploadImage(photoAsset.uri);
+          if (uploadedUrl) {
+            setCountedItems(prev => prev.map(item => 
+              item.product.id === stockId
+                ? { ...item, photo: uploadedUrl }
+                : item
+            ));
+            showToast({ message: 'Fotoğraf sunucuya yüklendi', type: 'success' });
+          } else {
+            showToast({ message: 'Fotoğraf yüklendi fakat sunucudan adres alınamadı.', type: 'error' });
+          }
+        } catch (uploadErr: any) {
+          console.error(uploadErr);
+          showToast({ message: 'Fotoğraf yüklenirken hata oluştu: ' + uploadErr.message, type: 'error' });
+        } finally {
+          setUploadingStockId(null);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -332,6 +360,7 @@ export function CycleCountScreen() {
                 <TouchableOpacity
                   style={styles.photoContainer}
                   onPress={() => {
+                    if (uploadingStockId !== null) return;
                     if (item.photo) {
                       Alert.alert(
                         'Fotoğraf İşlemleri',
@@ -346,9 +375,14 @@ export function CycleCountScreen() {
                       handleTakePhoto(item.product.id);
                     }
                   }}
+                  disabled={uploadingStockId !== null}
                 >
-                  {item.photo ? (
-                    <Image source={{ uri: item.photo }} style={styles.photoThumbnail} />
+                  {uploadingStockId === item.product.id ? (
+                    <View style={styles.photoPlaceholder}>
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    </View>
+                  ) : item.photo ? (
+                    <Image source={{ uri: resolveImageUri(item.photo) }} style={styles.photoThumbnail} />
                   ) : (
                     <View style={styles.photoPlaceholder}>
                       <CustomIcon name="camera" size={18} color={Colors.outline} />
@@ -397,9 +431,9 @@ export function CycleCountScreen() {
               <Text style={styles.summaryValue}>{countedItems.length}</Text>
             </View>
             <TouchableOpacity
-              style={[styles.submitButton, countedItems.length === 0 && styles.submitButtonDisabled]}
+              style={[styles.submitButton, (countedItems.length === 0 || uploadingStockId !== null) && styles.submitButtonDisabled]}
               onPress={handleSubmit}
-              disabled={countedItems.length === 0 || isSubmitting}
+              disabled={countedItems.length === 0 || isSubmitting || uploadingStockId !== null}
             >
               <Text style={styles.submitButtonText}>
                 {isSubmitting ? 'Kaydediliyor...' : 'Sayımı Kaydet'}

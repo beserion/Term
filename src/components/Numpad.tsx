@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
-    ...Shadow.md,
+    ...Shadow.card,
   },
   handleContainer: {
     alignItems: 'center',
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadow.md,
+    ...Shadow.card,
   },
   submitText: {
     ...Typography.titleLg,

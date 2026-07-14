@@ -9,15 +9,19 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Switch
+  Switch,
+  Image,
+  Alert
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { getStocks, updateStockBarcode, printLabel, Stock } from '../services/inventory';
+import { getStocks, updateStockBarcode, printLabel, uploadImage, Stock } from '../services/inventory';
+import { Config } from '../config';
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
@@ -37,8 +41,71 @@ export function BarcodeLinkScreen() {
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [saving, setSaving] = useState(false);
   const [printAfterAssign, setPrintAfterAssign] = useState(false);
+  const [photo, setPhoto] = useState<string | undefined>(undefined);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
 
   const { activePrinterId, activePrinterName } = useSettingsStore();
+
+  useEffect(() => {
+    Config.getApiBaseUrl().then((url) => {
+      const origin = url.replace(/\/api$/, '');
+      setBaseUrl(origin);
+    });
+  }, []);
+
+  const resolveImageUri = (uri?: string) => {
+    if (!uri) return undefined;
+    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:')) {
+      return uri;
+    }
+    const path = uri.startsWith('/') ? uri : `/${uri}`;
+    return `${baseUrl}${path}`;
+  };
+
+  useEffect(() => {
+    setPhoto(undefined);
+  }, [selectedProduct]);
+
+  const handleTakePhoto = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      showToast({ message: 'Kamera izni reddedildi!', type: 'error' });
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photoAsset = result.assets[0];
+        setUploadingPhoto(true);
+        try {
+          const uploadedUrl = await uploadImage(photoAsset.uri);
+          if (uploadedUrl) {
+            setPhoto(uploadedUrl);
+            showToast({ message: 'Fotoğraf sunucuya yüklendi', type: 'success' });
+          } else {
+            showToast({ message: 'Fotoğraf yüklendi fakat sunucudan adres alınamadı.', type: 'error' });
+          }
+        } catch (uploadErr: any) {
+          console.error(uploadErr);
+          showToast({ message: 'Fotoğraf yüklenirken hata oluştu: ' + uploadErr.message, type: 'error' });
+        } finally {
+          setUploadingPhoto(false);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      showToast({ message: 'Fotoğraf çekilirken hata oluştu.', type: 'error' });
+    }
+  };
 
   // Otomatik yazdırma işlemi yardımcı fonksiyonu
   const printAndSendLabel = async (barcodeToPrint: string) => {
@@ -108,14 +175,16 @@ export function BarcodeLinkScreen() {
 
     try {
       setSaving(true);
-      await updateStockBarcode(selectedProduct.id, cleanBarcode);
+      await updateStockBarcode(selectedProduct.id, cleanBarcode, photo);
 
       // Lokal state güncellemesi
       setStocks((prev) =>
         prev.map((item) =>
-          item.id === selectedProduct.id ? { ...item, barCode: cleanBarcode } : item
+          item.id === selectedProduct.id ? { ...item, barCode: cleanBarcode, photo } : item
         )
       );
+
+      setPhoto(undefined);
 
       showToast({ message: `${selectedProduct.stockName} ürününe barkod başarıyla atandı!`, type: 'success' });
       FeedbackService.playSuccess();
@@ -352,6 +421,47 @@ export function BarcodeLinkScreen() {
             />
           </View>
 
+          {/* Fotoğraf Ekleme Alanı (Opsiyonel) */}
+          <View style={styles.photoRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.photoLabel}>Ürün Fotoğrafı (Opsiyonel)</Text>
+              <Text style={styles.photoSubLabel}>Eşleştirme esnasında fotoğraf da güncellenir.</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.photoButton}
+              onPress={() => {
+                if (uploadingPhoto) return;
+                if (photo) {
+                  Alert.alert(
+                    'Fotoğraf İşlemleri',
+                    'Ne yapmak istersiniz?',
+                    [
+                      { text: 'Yeniden Çek', onPress: handleTakePhoto },
+                      { text: 'Fotoğrafı Sil', onPress: () => setPhoto(undefined), style: 'destructive' },
+                      { text: 'Vazgeç', style: 'cancel' }
+                    ]
+                  );
+                } else {
+                  handleTakePhoto();
+                }
+              }}
+              activeOpacity={0.7}
+              disabled={uploadingPhoto}
+            >
+              {uploadingPhoto ? (
+                <View style={styles.photoPlaceholder}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                </View>
+              ) : photo ? (
+                <Image source={{ uri: resolveImageUri(photo) }} style={styles.photoThumbnail} />
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <CustomIcon name="camera" size={20} color={Colors.primary} />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           {/* Manuel Barkod Giriş Satırı */}
           <View style={styles.inputRow}>
             <TextInput
@@ -365,9 +475,9 @@ export function BarcodeLinkScreen() {
               autoFocus={true}
             />
             <TouchableOpacity
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+              style={[styles.saveButton, (saving || uploadingPhoto) && styles.saveButtonDisabled]}
               onPress={() => handleSaveBarcode(barcodeInput)}
-              disabled={saving}
+              disabled={saving || uploadingPhoto}
               activeOpacity={0.8}
             >
               {saving ? (
@@ -643,5 +753,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.onPrimary,
     fontWeight: 'bold',
+  },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.outlineVariant,
+    marginTop: 2,
+  },
+  photoLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: Colors.onSurface,
+  },
+  photoSubLabel: {
+    fontSize: 10,
+    color: Colors.outline,
+    marginTop: 1,
+  },
+  photoButton: {
+    marginLeft: Spacing.md,
+  },
+  photoThumbnail: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+  },
+  photoPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.outlineVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
 });

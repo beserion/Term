@@ -1,4 +1,5 @@
 import { getApi } from './api';
+import { Platform } from 'react-native';
 
 export interface Warehouse {
   id: number;
@@ -326,11 +327,12 @@ export async function printLabel(payload: PrintLabelDto): Promise<PrintLabelResp
 }
 
 /** Stok ürünün barkodunu günceller/tanımlar */
-export async function updateStockBarcode(stockId: number, barcode: string): Promise<void> {
+export async function updateStockBarcode(stockId: number, barcode: string, photo?: string): Promise<void> {
   const api = await getApi();
   const response = await api.post('/terminal/Inventory/Stock/UpdateBarcode', {
     stockId,
-    barcode
+    barcode,
+    photo
   });
   
   if (response.data && response.data.success === false) {
@@ -353,6 +355,39 @@ export async function updateStockShelfAddress(stockId: number, shelfAddress: str
     err.response = response;
     throw err;
   }
+}
+
+/** Resmi sunucuya yükler ve kaydedilen dosya yolunu/URL'ini döner */
+export async function uploadImage(imageUri: string): Promise<string> {
+  const api = await getApi();
+  const formData = new FormData();
+  
+  const filename = imageUri.split('/').pop() || 'photo.jpg';
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : `image/jpeg`;
+  
+  formData.append('file', {
+    uri: Platform.OS === 'ios' ? imageUri.replace('file://', '') : imageUri,
+    name: filename,
+    type,
+  } as any);
+
+  const response = await api.post('/files/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  const data = response.data;
+  console.log('Upload image response data:', data);
+
+  if (typeof data === 'string') {
+    return data;
+  }
+  if (data && typeof data === 'object') {
+    return data.data || data.url || data.path || data.fileName || data.filePath || '';
+  }
+  return '';
 }
 
 

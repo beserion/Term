@@ -10,8 +10,11 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
-  Keyboard
+  Keyboard,
+  Image,
+  Alert
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomIcon } from '../components/CustomIcon';
@@ -27,10 +30,12 @@ import {
   getPrinters,
   getCycleCounts,
   createCycleCount,
+  uploadImage,
   PrinterDto,
   CycleCountListItemDto,
   Stock
 } from '../services/inventory';
+import { Config } from '../config';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { FeedbackService } from '../services/feedback';
@@ -42,6 +47,7 @@ interface CountedItem {
   countedQty: number;
   barcodeMatched?: boolean;
   shelfAddress?: string;
+  photo?: string;
 }
 
 export function QuickSetupScreen() {
@@ -87,7 +93,7 @@ export function QuickSetupScreen() {
   // Picker Seçenekleri
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
   const numbers = Array.from({ length: 30 }, (_, i) => String(i + 1));
-  const levels = Array.from({ length: 10 }, (_, i) => String(i + 1));
+  const levels = Array.from({ length: 5 }, (_, i) => String(i + 1));
 
   // Ürün Arama Modalı (Tanımsız barkod için tam ekran arama)
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -97,6 +103,69 @@ export function QuickSetupScreen() {
   const [countedItems, setCountedItems] = useState<CountedItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savingLine, setSavingLine] = useState(false);
+  const [photo, setPhoto] = useState<string | undefined>(undefined);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
+
+  useEffect(() => {
+    Config.getApiBaseUrl().then((url) => {
+      const origin = url.replace(/\/api$/, '');
+      setBaseUrl(origin);
+    });
+  }, []);
+
+  const resolveImageUri = (uri?: string) => {
+    if (!uri) return undefined;
+    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:')) {
+      return uri;
+    }
+    const path = uri.startsWith('/') ? uri : `/${uri}`;
+    return `${baseUrl}${path}`;
+  };
+
+  useEffect(() => {
+    setPhoto(undefined);
+  }, [activeProduct]);
+
+  const handleTakePhoto = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      showToast({ message: 'Kamera izni reddedildi!', type: 'error' });
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photoAsset = result.assets[0];
+        setUploadingPhoto(true);
+        try {
+          const uploadedUrl = await uploadImage(photoAsset.uri);
+          if (uploadedUrl) {
+            setPhoto(uploadedUrl);
+            showToast({ message: 'Fotoğraf sunucuya yüklendi', type: 'success' });
+          } else {
+            showToast({ message: 'Fotoğraf yüklendi fakat sunucudan adres alınamadı.', type: 'error' });
+          }
+        } catch (uploadErr: any) {
+          console.error(uploadErr);
+          showToast({ message: 'Fotoğraf yüklenirken hata oluştu: ' + uploadErr.message, type: 'error' });
+        } finally {
+          setUploadingPhoto(false);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      showToast({ message: 'Fotoğraf çekilirken hata oluştu.', type: 'error' });
+    }
+  };
 
   const barcodeInputRef = useRef<TextInput>(null);
   const searchInputRef = useRef<TextInput>(null);
@@ -176,6 +245,18 @@ export function QuickSetupScreen() {
             setShelfLetter(parts[0]);
             setShelfNumber(parts[1]);
             setShelfLevel(parts[2]);
+          } else if (parts.length === 2) {
+            const firstPart = parts[0];
+            const level = parts[1];
+            if (firstPart.length >= 2) {
+              setShelfLetter(firstPart.charAt(0));
+              setShelfNumber(firstPart.substring(1));
+              setShelfLevel(level);
+            } else if (firstPart.length === 1) {
+              setShelfLetter(firstPart);
+              setShelfNumber('1');
+              setShelfLevel(level);
+            }
           }
         }
         FeedbackService.playSuccess();
@@ -255,6 +336,18 @@ export function QuickSetupScreen() {
         setShelfLetter(parts[0]);
         setShelfNumber(parts[1]);
         setShelfLevel(parts[2]);
+      } else if (parts.length === 2) {
+        const firstPart = parts[0];
+        const level = parts[1];
+        if (firstPart.length >= 2) {
+          setShelfLetter(firstPart.charAt(0));
+          setShelfNumber(firstPart.substring(1));
+          setShelfLevel(level);
+        } else if (firstPart.length === 1) {
+          setShelfLetter(firstPart);
+          setShelfNumber('1');
+          setShelfLevel(level);
+        }
       }
     }
     // Miktar alanına odaklan
@@ -264,6 +357,8 @@ export function QuickSetupScreen() {
   // Barkod Eşleme, Sayım Kaydı ve Yazdırma (KAYDET tetiklendiğinde)
   const handleSaveAndExecute = async () => {
     if (!activeProduct || !scannedBarcode) return;
+
+
 
     const qtyVal = parseFloat(quantity);
     if (isNaN(qtyVal) || qtyVal <= 0) {
@@ -277,19 +372,19 @@ export function QuickSetupScreen() {
 
       // AŞAMA 1: Eşleşme yoksa önce barkodu ata (updateStockBarcode)
       if (isNewBarcodeMapping) {
-        await updateStockBarcode(activeProduct.id, scannedBarcode);
+        await updateStockBarcode(activeProduct.id, scannedBarcode, photo);
         showToast({ message: 'Barkod eşleme başarılı!', type: 'success' });
       }
 
       // HER HALÜKARDA: Raf konumunu günceller (updateStockShelfAddress)
-      const shelfAddr = `${shelfLetter}-${shelfNumber}-${shelfLevel}`;
+      const shelfAddr = `${shelfLetter}${shelfNumber}-${shelfLevel}`;
       await updateStockShelfAddress(activeProduct.id, shelfAddr);
 
       // Lokal stok listesinde hem barkodu hem de raf adresini güncelle
       setStocks(prev =>
         prev.map(item =>
           item.id === activeProduct.id
-            ? { ...item, barCode: isNewBarcodeMapping ? scannedBarcode : item.barCode, shelfAddress: shelfAddr }
+            ? { ...item, barCode: isNewBarcodeMapping ? scannedBarcode : item.barCode, shelfAddress: shelfAddr, photo: photo || item.photo }
             : item
         )
       );
@@ -318,12 +413,12 @@ export function QuickSetupScreen() {
         if (existing) {
           return prev.map(item =>
             item.product.id === activeProduct.id && item.shelfAddress === shelfAddr
-              ? { ...item, countedQty: item.countedQty + qtyVal, barcodeMatched: isNewBarcodeMapping }
+              ? { ...item, countedQty: item.countedQty + qtyVal, barcodeMatched: isNewBarcodeMapping, photo }
               : item
           );
         } else {
           return [
-            { product: activeProduct, countedQty: qtyVal, barcodeMatched: isNewBarcodeMapping, shelfAddress: shelfAddr },
+            { product: activeProduct, countedQty: qtyVal, barcodeMatched: isNewBarcodeMapping, shelfAddress: shelfAddr, photo },
             ...prev
           ];
         }
@@ -337,6 +432,7 @@ export function QuickSetupScreen() {
       setScannedBarcode('');
       setIsNewBarcodeMapping(false);
       setQuantity('1');
+      setPhoto(undefined);
       Keyboard.dismiss();
 
       // Tekrar barkod inputuna odaklan
@@ -370,7 +466,9 @@ export function QuickSetupScreen() {
         warehouseId: activeWarehouseId,
         lines: countedItems.map(item => ({
           stockId: item.product.id,
-          countedQty: item.countedQty
+          countedQty: item.countedQty,
+          shelfAddress: item.shelfAddress,
+          photo: item.photo
         }))
       });
 
@@ -612,6 +710,49 @@ export function QuickSetupScreen() {
             </View>
           </View>
 
+          {/* Fotoğraf Ekleme Alanı (İsteğe Bağlı) */}
+          <View style={styles.photoRowContainer}>
+            <Text style={styles.photoLabelText}>Ürün Fotoğrafı: <Text style={{ color: Colors.outline }}></Text></Text>
+            <TouchableOpacity
+              style={styles.photoSelectBtn}
+              onPress={() => {
+                if (uploadingPhoto) return;
+                if (photo) {
+                  Alert.alert(
+                    'Fotoğraf İşlemleri',
+                    'Ne yapmak istersiniz?',
+                    [
+                      { text: 'Yeniden Çek', onPress: handleTakePhoto },
+                      { text: 'Fotoğrafı Sil', onPress: () => setPhoto(undefined), style: 'destructive' },
+                      { text: 'Vazgeç', style: 'cancel' }
+                    ]
+                  );
+                } else {
+                  handleTakePhoto();
+                }
+              }}
+              activeOpacity={0.7}
+              disabled={uploadingPhoto}
+            >
+              {uploadingPhoto ? (
+                <View style={styles.photoPlaceholderWrapper}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={[styles.photoPlaceholderText, { color: Colors.primary }]}>Yükleniyor...</Text>
+                </View>
+              ) : photo ? (
+                <View style={styles.photoPreviewWrapper}>
+                  <Image source={{ uri: resolveImageUri(photo) }} style={styles.photoThumbnail} />
+                  <Text style={styles.photoBtnText}>Değiştir</Text>
+                </View>
+              ) : (
+                <View style={styles.photoPlaceholderWrapper}>
+                  <CustomIcon name="camera" size={18} color={Colors.error} />
+                  <Text style={styles.photoPlaceholderText}>Fotoğraf Çek</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           {/* Sayım Miktarı Giriş Satırı */}
           <View style={styles.qtyRowContainer}>
             <Text style={styles.qtyLabelText}>Sayım Miktarı:</Text>
@@ -656,9 +797,9 @@ export function QuickSetupScreen() {
 
             {/* KAYDET BUTONU */}
             <TouchableOpacity
-              style={[styles.saveBtn, savingLine && styles.saveBtnDisabled]}
+              style={[styles.saveBtn, (savingLine || uploadingPhoto) && styles.saveBtnDisabled]}
               onPress={handleSaveAndExecute}
-              disabled={savingLine}
+              disabled={savingLine || uploadingPhoto}
               activeOpacity={0.8}
             >
               {savingLine ? (
@@ -703,6 +844,9 @@ export function QuickSetupScreen() {
           contentContainerStyle={styles.denseListContent}
           renderItem={({ item }) => (
             <View style={styles.denseListItem}>
+              {item.photo ? (
+                <Image source={{ uri: resolveImageUri(item.photo) }} style={styles.listPhotoThumbnail} />
+              ) : null}
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemCodeText}>{item.product.stockCode} {item.shelfAddress ? `| Raf: ${item.shelfAddress}` : ''}</Text>
                 <Text style={styles.itemNameText} numberOfLines={1}>{item.product.stockName}</Text>
@@ -1442,5 +1586,65 @@ const styles = StyleSheet.create({
   pickerItemTextActive: {
     fontWeight: 'bold',
     color: Colors.onPrimaryFixed,
+  },
+  photoRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  photoLabelText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: Colors.onSurface,
+  },
+  photoSelectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 100,
+    height: 32,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.outlineVariant,
+    backgroundColor: 'rgba(0,0,0,0.01)',
+  },
+  photoPreviewWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 4,
+  },
+  photoPlaceholderWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  photoPlaceholderText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  photoThumbnail: {
+    width: 24,
+    height: 24,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+  },
+  photoBtnText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: Colors.onSurface,
+  },
+  listPhotoThumbnail: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.xs,
+    marginRight: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
   },
 });

@@ -8,6 +8,7 @@ import { useBarcode } from '../hooks/useBarcode';
 import { getStockByBarcode, Stock } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
+import { Config } from '../config';
 
 export function ProductCheckScreen() {
   const navigation = useNavigation<any>();
@@ -15,6 +16,23 @@ export function ProductCheckScreen() {
   const [manualBarcode, setManualBarcode] = useState('');
   const [scanning, setScanning] = useState(true);
   const showToast = useUIStore((s) => s.showToast);
+  const [baseUrl, setBaseUrl] = useState('');
+
+  useEffect(() => {
+    Config.getApiBaseUrl().then((url) => {
+      const origin = url.replace(/\/api$/, '');
+      setBaseUrl(origin);
+    });
+  }, []);
+
+  const resolveImageUri = (uri?: string) => {
+    if (!uri) return undefined;
+    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:')) {
+      return uri;
+    }
+    const path = uri.startsWith('/') ? uri : `/${uri}`;
+    return `${baseUrl}${path}`;
+  };
 
   const handleScan = async (barcode: string) => {
     try {
@@ -85,7 +103,7 @@ export function ProductCheckScreen() {
               <View style={styles.imageContainer}>
                 {product.photo || product.imageUrl ? (
                   <Image
-                    source={{ uri: product.photo || product.imageUrl }}
+                    source={{ uri: resolveImageUri(product.photo || product.imageUrl) }}
                     style={styles.productImage}
                     resizeMode="cover"
                   />
