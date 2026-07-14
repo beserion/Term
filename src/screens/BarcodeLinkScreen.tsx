@@ -12,6 +12,7 @@ import {
   Switch
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
@@ -25,6 +26,7 @@ import { flexMatch } from '../utils/searchHelper';
 
 export function BarcodeLinkScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const showToast = useUIStore((s) => s.showToast);
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -280,7 +282,7 @@ export function BarcodeLinkScreen() {
 
       {/* Seçili Ürün Eşleştirme Alt Paneli */}
       {selectedProduct && (
-        <View style={styles.matchingPanel}>
+        <View style={[styles.matchingPanel, { paddingBottom: Math.max(insets.bottom, 10) }]}>
           <View style={styles.panelHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.panelTitle}>Barkod Eşleştiriliyor</Text>

@@ -13,6 +13,7 @@ import {
   Keyboard
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
@@ -45,6 +46,7 @@ interface CountedItem {
 
 export function QuickSetupScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const showToast = useUIStore((s) => s.showToast);
   const {
     activePrinterId,
@@ -407,7 +409,7 @@ export function QuickSetupScreen() {
             <Text style={{ marginTop: 12, ...Typography.bodyMd, color: Colors.outline }}>Yapılandırmalar yükleniyor...</Text>
           </View>
         ) : (
-          <View style={[styles.setupContent, { padding: Spacing.md }]}>
+          <View style={[styles.setupContent, { padding: Spacing.md, paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
             <Text style={styles.setupTitle}>Hızlı Kurulum Ayarları</Text>
             <Text style={styles.setupSubtitle}>İşleme başlamak için yazıcı ve sayım fişi seçin:</Text>
 
@@ -730,7 +732,7 @@ export function QuickSetupScreen() {
       </View>
 
       {/* SAYIMI KAYDET VE TAMAMLA BUTONU */}
-      <View style={styles.footerSection}>
+      <View style={[styles.footerSection, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
         <TouchableOpacity
           style={[styles.submitAllBtn, (countedItems.length === 0 || isSubmitting) && styles.submitAllBtnDisabled]}
           onPress={handleSubmitAll}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, FlatList, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
@@ -21,6 +22,7 @@ interface CountedItem {
 
 export function CycleCountScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [barcode, setBarcode] = useState('');
   const [countedItems, setCountedItems] = useState<CountedItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -389,7 +391,7 @@ export function CycleCountScreen() {
             )}
           />
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.sm) }]}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Toplam Kalem:</Text>
               <Text style={styles.summaryValue}>{countedItems.length}</Text>
