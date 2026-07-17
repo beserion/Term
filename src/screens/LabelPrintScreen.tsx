@@ -8,19 +8,21 @@ import {
   ScrollView,
   Switch,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { getStockByBarcode, printLabel, getPrinters, PrinterDto, Stock } from '../services/inventory';
+import { getStockByBarcode, printLabel, getPrinters, getStocks, PrinterDto, Stock } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { Numpad } from '../components/Numpad';
 import { useSettingsStore } from '../store/settingsStore';
 import { Modal } from 'react-native';
 import { FeedbackService } from '../services/feedback';
 import { sendCpclToPrinter } from '../services/printHelper';
+import { flexMatch } from '../utils/searchHelper';
 
 
 
@@ -44,8 +46,13 @@ export function LabelPrintScreen() {
   const [printers, setPrinters] = useState<PrinterDto[]>([]);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
 
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = React.useRef<TextInput>(null);
+
   useEffect(() => {
-    const fetchPrinters = async () => {
+    const initData = async () => {
       setLoadingPrinters(true);
       try {
         const list = await getPrinters();
@@ -62,18 +69,33 @@ export function LabelPrintScreen() {
       } finally {
         setLoadingPrinters(false);
       }
+
+      try {
+        const stockList = await getStocks();
+        setStocks(stockList || []);
+      } catch (err) {
+        console.error("Stoklar yüklenemedi:", err);
+      }
     };
-    fetchPrinters();
+    initData();
   }, []);
 
   // Giriş alanına barkod girildiğinde (Keystroke veya manuel) otomatik algılama ve arama
   useEffect(() => {
-    if (manualBarcode.trim().length >= 4) {
-      const timeout = setTimeout(() => {
-        handleScan(manualBarcode.trim());
+    const term = manualBarcode.trim();
+    if (term.length >= 4) {
+      const isNumeric = /^\d+$/.test(term);
+      if (isNumeric) {
+        const timeout = setTimeout(() => {
+          handleScan(term);
+          setManualBarcode('');
+        }, 300);
+        return () => clearTimeout(timeout);
+      } else {
+        setSearchQuery(term);
+        setShowSearchModal(true);
         setManualBarcode('');
-      }, 300);
-      return () => clearTimeout(timeout);
+      }
     }
   }, [manualBarcode]);
 
@@ -83,6 +105,23 @@ export function LabelPrintScreen() {
 
     setLoading(true);
     setBarcode(scannedBarcode);
+
+    // 1. Önce lokal stocks listesinden barkod veya kod tam eşleşmesi arayalım
+    const matchedLocal = stocks.find(
+      s => s.barCode?.trim() === scannedBarcode.trim() || s.stockCode?.trim() === scannedBarcode.trim()
+    );
+
+    if (matchedLocal) {
+      setProduct(matchedLocal);
+      showToast({ message: 'Ürün bulundu: ' + matchedLocal.stockName, type: 'success' });
+      FeedbackService.playSuccess();
+      setLoading(false);
+      if (autoPrint) {
+        await triggerPrint(scannedBarcode);
+      }
+      return;
+    }
+
     try {
       const data = await getStockByBarcode(scannedBarcode);
       if (data && data.id && data.id !== 0) {
@@ -95,27 +134,25 @@ export function LabelPrintScreen() {
           await triggerPrint(scannedBarcode);
         }
       } else {
-        // Ürün bulunamadı ama barkod yazdırılabilir
+        // Ürün bulunamadı, Hızlı Kurulum sayfasındaki gibi barkod bulunamadığında arama modalını aç
         setProduct(null);
+        setSearchQuery(scannedBarcode);
+        setShowSearchModal(true);
         showToast({
-          message: 'Ürün sistemde bulunamadı. Barkod yine de yazdırılabilir.',
+          message: 'Ürün bulunamadı, eşleştirmek için arama yapın.',
           type: 'info',
         });
         FeedbackService.playError();
-        if (autoPrint) {
-          await triggerPrint(scannedBarcode);
-        }
       }
     } catch (err) {
       setProduct(null);
+      setSearchQuery(scannedBarcode);
+      setShowSearchModal(true);
       showToast({
-        message: 'Barkod bilgisi sorgulanırken hata oluştu.',
+        message: 'Ürün bulunamadı, listeden seçebilirsiniz.',
         type: 'error',
       });
       FeedbackService.playError();
-      if (autoPrint) {
-        await triggerPrint(scannedBarcode);
-      }
     } finally {
       setLoading(false);
     }
@@ -126,12 +163,42 @@ export function LabelPrintScreen() {
 
   // Manuel barkod arama tetikleyicisi
   const handleManualSearch = () => {
-    if (manualBarcode.trim().length >= 3) {
-      handleScan(manualBarcode.trim());
-      setManualBarcode('');
+    const term = manualBarcode.trim();
+    if (term.length >= 1) {
+      const isNumeric = /^\d+$/.test(term);
+      if (isNumeric) {
+        handleScan(term);
+        setManualBarcode('');
+      } else {
+        setSearchQuery(term);
+        setShowSearchModal(true);
+        setManualBarcode('');
+      }
     } else {
-      showToast({ message: 'Lütfen en az 3 karakter girin.', type: 'info' });
+      showToast({ message: 'Lütfen arama terimi girin.', type: 'info' });
     }
+  };
+
+  // Arama modalındaki filtreleme mantığı (flexMatch kullanarak)
+  const filteredStocks = stocks.filter((item) => {
+    if (!searchQuery.trim()) return true;
+    const searchString = [
+      item.stockName,
+      item.stockNameTr,
+      item.stockCode,
+      item.brand,
+      item.model,
+      item.impaCode
+    ].filter(Boolean).join(' ');
+    return flexMatch(searchString, searchQuery);
+  });
+
+  const handleSelectProductFromSearch = (selectedItem: Stock) => {
+    setProduct(selectedItem);
+    setBarcode(selectedItem.barCode || selectedItem.stockCode || String(selectedItem.id));
+    setShowSearchModal(false);
+    showToast({ message: 'Ürün seçildi: ' + selectedItem.stockName, type: 'success' });
+    FeedbackService.playSuccess();
   };
 
   // Etiket Yazdırma tetikleyicisi
@@ -461,6 +528,83 @@ export function LabelPrintScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* TAM EKRAN ÜRÜN ARAMA VE SEÇİM MODALİ */}
+      <Modal
+        visible={showSearchModal}
+        animationType="slide"
+        onRequestClose={() => setShowSearchModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.modalTitleText}>Ürün Seçin</Text>
+              {searchQuery ? (
+                <Text style={styles.modalSubtitleText}>Arama: "{searchQuery}" için sonuçlar</Text>
+              ) : (
+                <Text style={styles.modalSubtitleText}>Esnek arama yapmak için yazın</Text>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowSearchModal(false)}
+              style={styles.modalCloseBtn}
+            >
+              <CustomIcon name="close" size={24} color={Colors.onSurface} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Modal Arama Çubuğu */}
+          <View style={styles.modalSearchRow}>
+            <TextInput
+              style={styles.modalSearchInput}
+              placeholder="Ürün adı veya stok kodu ile ara..."
+              placeholderTextColor={Colors.outline}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              ref={searchInputRef}
+              autoFocus={true}
+              clearButtonMode="while-editing"
+            />
+            <View style={styles.modalSearchIcon}>
+              <CustomIcon name="magnify" size={20} color={Colors.outline} />
+            </View>
+          </View>
+
+          {/* Yoğun Ürün Listesi */}
+          <FlatList
+            data={filteredStocks}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.modalListContent}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.modalListItem}
+                onPress={() => handleSelectProductFromSearch(item)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                  <Text style={styles.modalItemName}>{item.stockName}</Text>
+                  {item.stockNameTr ? (
+                    <Text style={styles.modalItemNameTr}>{item.stockNameTr}</Text>
+                  ) : null}
+                  <Text style={styles.modalItemCode}>
+                    {item.stockCode} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
+                    {item.brand ? (
+                      <> | <Text style={styles.modalItemBrand}>{item.brand}</Text></>
+                    ) : null}
+                    {item.model ? ` | ${item.model}` : ''}
+                  </Text>
+                </View>
+                <CustomIcon name="chevron-right" size={16} color={Colors.outline} />
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyList}>
+                <Text style={styles.emptyListText}>Aranan ürün bulunamadı.</Text>
+              </View>
+            }
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -764,5 +908,107 @@ const styles = StyleSheet.create({
   pickerItemTextActive: {
     fontWeight: 'bold',
     color: Colors.onPrimaryFixed,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.outlineVariant,
+    backgroundColor: Colors.surface,
+  },
+  modalTitleText: {
+    ...Typography.titleMedium,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+  },
+  modalSubtitleText: {
+    ...Typography.bodySm,
+    color: Colors.onSurfaceVariant,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surfaceContainerLow,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.outlineVariant,
+  },
+  modalSearchInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    paddingLeft: 40,
+    paddingRight: 12,
+    fontSize: 14,
+    color: Colors.onSurface,
+  },
+  modalSearchIcon: {
+    position: 'absolute',
+    left: Spacing.lg + 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalListContent: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  modalListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderColor: Colors.surfaceContainer,
+    ...Shadow.sm,
+  },
+  modalItemName: {
+    ...Typography.bodyMd,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+  },
+  modalItemNameTr: {
+    ...Typography.bodySm,
+    color: '#1d4ed8',
+    fontStyle: 'italic',
+    marginTop: 1,
+  },
+  modalItemBrand: {
+    fontWeight: 'bold',
+    color: '#b85c00',
+  },
+  modalItemCode: {
+    ...Typography.bodySm,
+    color: Colors.onSurfaceVariant,
+    marginTop: 3,
+  },
+  emptyList: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyListText: {
+    color: Colors.outline,
+    ...Typography.bodyMd,
   },
 });

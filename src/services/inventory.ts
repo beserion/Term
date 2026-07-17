@@ -390,4 +390,29 @@ export async function uploadImage(imageUri: string): Promise<string> {
   return '';
 }
 
+/** Stok Kartı Ekleme (Inventory/Stock/Add) */
+export async function addStock(payload: Partial<Stock>): Promise<any> {
+  const api = await getApi();
+  const response = await api.post('/terminal/Inventory/Stock/Add', payload);
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Stok kartı eklenemedi.');
+    err.response = response;
+    throw err;
+  }
+  return response.data?.data || response.data;
+}
+
+/** Stok Kartı Güncelleme (Inventory/Stock/Update) */
+export async function updateStock(payload: Stock): Promise<any> {
+  const api = await getApi();
+  const response = await api.post('/terminal/Inventory/Stock/Update', payload);
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Stok kartı güncellenemedi.');
+    err.response = response;
+    throw err;
+  }
+  return response.data?.data || response.data;
+}
+
+
 

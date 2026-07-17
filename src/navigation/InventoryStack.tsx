@@ -12,6 +12,7 @@ import { QuickSetupScreen } from '../screens/QuickSetupScreen';
 import { ReceivingStack } from './ReceivingStack';
 import { ShippingStack } from './ShippingStack';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { StockAddEditScreen } from '../screens/StockAddEditScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,7 @@ export function InventoryStack() {
       <Stack.Screen name="ReceivingStack" component={ReceivingStack} />
       <Stack.Screen name="ShippingStack" component={ShippingStack} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="StockAddEdit" component={StockAddEditScreen} />
     </Stack.Navigator>
   );
 }

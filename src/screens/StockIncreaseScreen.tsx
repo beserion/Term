@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, FlatList } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { getStockByBarcode, Stock, createGoodsReceipt } from '../services/inventory';
+import { getStockByBarcode, getStocks, Stock, createGoodsReceipt } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { Numpad } from '../components/Numpad';
 import { FeedbackService } from '../services/feedback';
 import { WarehouseSelectModal } from '../components/WarehouseSelectModal';
+import { flexMatch } from '../utils/searchHelper';
 
 export function StockIncreaseScreen() {
   const navigation = useNavigation<any>();
@@ -28,37 +29,97 @@ export function StockIncreaseScreen() {
   const showToast = useUIStore((s) => s.showToast);
   const showErrorLock = useUIStore((s) => s.showErrorLock);
 
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = React.useRef<TextInput>(null);
+
+  useEffect(() => {
+    const loadStocks = async () => {
+      try {
+        const list = await getStocks();
+        setStocks(list || []);
+      } catch (err) {
+        console.error("Stoklar yüklenemedi:", err);
+      }
+    };
+    loadStocks();
+  }, []);
+
   const handleScan = async (scannedBarcode: string) => {
+    if (!scannedBarcode || scannedBarcode.trim() === '') return;
+
+    // 1. Önce lokal stocks listesinden barkod veya kod tam eşleşmesi arayalım
+    const matchedLocal = stocks.find(
+      s => s.barCode?.trim() === scannedBarcode.trim() || s.stockCode?.trim() === scannedBarcode.trim()
+    );
+
+    if (matchedLocal) {
+      setProduct(matchedLocal);
+      FeedbackService.playLightImpact();
+      return;
+    }
+
     try {
       const data = await getStockByBarcode(scannedBarcode);
-      if (!data || !data.id || data.id === 0) {
-        throw new Error('Ürün kaydı bulunamadı (Eksik veya boş kayıt)');
+      if (data && data.id && data.id !== 0) {
+        setProduct(data);
+        FeedbackService.playLightImpact();
+      } else {
+        setProduct(null);
+        setSearchQuery(scannedBarcode);
+        setShowSearchModal(true);
+        showToast({ message: 'Barkod bulunamadı. Eşleştirmek için arayın.', type: 'info' });
+        FeedbackService.playError();
       }
-      setProduct(data);
-      FeedbackService.playLightImpact();
     } catch (err: any) {
-      let msg = 'Barkod bulunamadı: ' + scannedBarcode;
-      if (err.response?.data?.message) {
-        msg = err.response.data.message;
-      } else if (err.message) {
-        msg = err.message;
-      }
+      setProduct(null);
+      setSearchQuery(scannedBarcode);
+      setShowSearchModal(true);
+      showToast({ message: 'Barkod bulunamadı. Listeden seçebilirsiniz.', type: 'error' });
       FeedbackService.playError();
-      showErrorLock(msg);
     }
   };
 
   useBarcode(handleScan);
 
   useEffect(() => {
-    if (barcode.trim().length >= 4) {
-      const timeout = setTimeout(() => {
-        handleScan(barcode.trim());
+    const term = barcode.trim();
+    if (term.length >= 4) {
+      const isNumeric = /^\d+$/.test(term);
+      if (isNumeric) {
+        const timeout = setTimeout(() => {
+          handleScan(term);
+          setBarcode('');
+        }, 500);
+        return () => clearTimeout(timeout);
+      } else {
+        setSearchQuery(term);
+        setShowSearchModal(true);
         setBarcode('');
-      }, 500);
-      return () => clearTimeout(timeout);
+      }
     }
   }, [barcode]);
+
+  // Arama modalındaki filtreleme mantığı (flexMatch kullanarak)
+  const filteredStocks = stocks.filter((item) => {
+    if (!searchQuery.trim()) return true;
+    const searchString = [
+      item.stockName,
+      item.stockNameTr,
+      item.stockCode,
+      item.brand,
+      item.model,
+      item.impaCode
+    ].filter(Boolean).join(' ');
+    return flexMatch(searchString, searchQuery);
+  });
+
+  const handleSelectProductFromSearch = (selectedItem: Stock) => {
+    setProduct(selectedItem);
+    setShowSearchModal(false);
+    FeedbackService.playSuccess();
+  };
 
   const handleIncrease = async () => {
     if (!product) return;
@@ -277,6 +338,83 @@ export function StockIncreaseScreen() {
         visible={warehouseModalVisible}
         onClose={() => setWarehouseModalVisible(false)}
       />
+
+      {/* TAM EKRAN ÜRÜN ARAMA VE SEÇİM MODALİ */}
+      <Modal
+        visible={showSearchModal}
+        animationType="slide"
+        onRequestClose={() => setShowSearchModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.modalTitleText}>Ürün Seçin</Text>
+              {searchQuery ? (
+                <Text style={styles.modalSubtitleText}>Arama: "{searchQuery}" için sonuçlar</Text>
+              ) : (
+                <Text style={styles.modalSubtitleText}>Esnek arama yapmak için yazın</Text>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowSearchModal(false)}
+              style={styles.modalCloseBtn}
+            >
+              <CustomIcon name="close" size={24} color={Colors.onSurface} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Modal Arama Çubuğu */}
+          <View style={styles.modalSearchRow}>
+            <TextInput
+              style={styles.modalSearchInput}
+              placeholder="Ürün adı veya stok kodu ile ara..."
+              placeholderTextColor={Colors.outline}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              ref={searchInputRef}
+              autoFocus={true}
+              clearButtonMode="while-editing"
+            />
+            <View style={styles.modalSearchIcon}>
+              <CustomIcon name="magnify" size={20} color={Colors.outline} />
+            </View>
+          </View>
+
+          {/* Yoğun Ürün Listesi */}
+          <FlatList
+            data={filteredStocks}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.modalListContent}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.modalListItem}
+                onPress={() => handleSelectProductFromSearch(item)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                  <Text style={styles.modalItemName}>{item.stockName}</Text>
+                  {item.stockNameTr ? (
+                    <Text style={styles.modalItemNameTr}>{item.stockNameTr}</Text>
+                  ) : null}
+                  <Text style={styles.modalItemCode}>
+                    {item.stockCode} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
+                    {item.brand ? (
+                      <> | <Text style={styles.modalItemBrand}>{item.brand}</Text></>
+                    ) : null}
+                    {item.model ? ` | ${item.model}` : ''}
+                  </Text>
+                </View>
+                <CustomIcon name="chevron-right" size={16} color={Colors.outline} />
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyList}>
+                <Text style={styles.emptyListText}>Aranan ürün bulunamadı.</Text>
+              </View>
+            }
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -372,4 +510,106 @@ const styles = StyleSheet.create({
     minHeight: 38,
   },
   increaseButtonText: { ...Typography.labelLg, color: Colors.onPrimary, fontWeight: 'bold', fontSize: 14 },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.outlineVariant,
+    backgroundColor: Colors.surface,
+  },
+  modalTitleText: {
+    ...Typography.titleMedium,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+  },
+  modalSubtitleText: {
+    ...Typography.bodySm,
+    color: Colors.onSurfaceVariant,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surfaceContainerLow,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.outlineVariant,
+  },
+  modalSearchInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    paddingLeft: 40,
+    paddingRight: 12,
+    fontSize: 14,
+    color: Colors.onSurface,
+  },
+  modalSearchIcon: {
+    position: 'absolute',
+    left: Spacing.lg + 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalListContent: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  modalListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderColor: Colors.surfaceContainer,
+    ...Shadow.sm,
+  },
+  modalItemName: {
+    ...Typography.bodyMd,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+  },
+  modalItemNameTr: {
+    ...Typography.bodySm,
+    color: '#1d4ed8',
+    fontStyle: 'italic',
+    marginTop: 1,
+  },
+  modalItemBrand: {
+    fontWeight: 'bold',
+    color: '#b85c00',
+  },
+  modalItemCode: {
+    ...Typography.bodySm,
+    color: Colors.onSurfaceVariant,
+    marginTop: 3,
+  },
+  emptyList: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyListText: {
+    color: Colors.outline,
+    ...Typography.bodyMd,
+  },
 });
