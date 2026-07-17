@@ -55,10 +55,6 @@ export function StockAddEditScreen() {
   }, true);
 
   const handleSave = async () => {
-    if (!stockCode.trim()) {
-      showToast({ message: 'Lütfen stok kodunu girin.', type: 'error' });
-      return;
-    }
     if (!stockName.trim()) {
       showToast({ message: 'Lütfen stok adını girin.', type: 'error' });
       return;
@@ -91,13 +87,18 @@ export function StockAddEditScreen() {
       showToast({ message: 'Barkodsuz ürün için benzersiz barkod üretildi: ' + finalBarcode, type: 'info' });
     }
 
+    let finalStockCode = stockCode.trim();
+    if (!finalStockCode) {
+      finalStockCode = 'STK-' + finalBarcode;
+    }
+
     setSaving(true);
     try {
       const payload: any = {
         id: isEditMode ? existingProduct.id : 0,
         companyId: existingProduct?.companyId || route.params?.companyId || null,
         barCode: finalBarcode,
-        stockCode: stockCode.trim(),
+        stockCode: finalStockCode,
         stockName: stockName.trim(),
         stockNameTr: stockNameTr.trim() || null,
         brand: brand.trim() || null,
@@ -178,7 +179,7 @@ export function StockAddEditScreen() {
         onBack={() => navigation.goBack()}
       />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -214,7 +215,7 @@ export function StockAddEditScreen() {
 
             {/* Stok Kodu */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>STOK KODU *</Text>
+              <Text style={styles.label}>STOK KODU (OPSİYONEL)</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Örn: STK-001"
