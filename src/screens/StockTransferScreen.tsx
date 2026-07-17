@@ -445,7 +445,7 @@ export function StockTransferScreen() {
                     <Text style={styles.modalItemNameTr}>{item.stockNameTr}</Text>
                   ) : null}
                   <Text style={styles.modalItemCode}>
-                    {item.stockCode} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
+                    {item.stockCode || 'KODSUZ'} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
                     {item.brand ? (
                       <> | <Text style={styles.modalItemBrand}>{item.brand}</Text></>
                     ) : null}

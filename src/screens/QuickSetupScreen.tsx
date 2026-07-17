@@ -667,7 +667,7 @@ export function QuickSetupScreen() {
           <View style={styles.productDetailsContainer}>
             <Text style={styles.productNameText} numberOfLines={1}>{activeProduct.stockName}</Text>
             <Text style={styles.productCodeText}>
-              Kod: <Text style={{ fontWeight: 'bold' }}>{activeProduct.stockCode}</Text>
+              Kod: <Text style={{ fontWeight: 'bold' }}>{activeProduct.stockCode || '-'}</Text>
               {activeProduct.shelfAddress ? `  |  Raf: ${activeProduct.shelfAddress}` : ''}
               {activeProduct.qty !== undefined ? `  |  Mevcut: ${activeProduct.qty} ${activeProduct.unit || 'Adet'}` : ''}
             </Text>
@@ -848,7 +848,7 @@ export function QuickSetupScreen() {
                 <Image source={{ uri: resolveImageUri(item.photo) }} style={styles.listPhotoThumbnail} />
               ) : null}
               <View style={{ flex: 1 }}>
-                <Text style={styles.itemCodeText}>{item.product.stockCode} {item.shelfAddress ? `| Raf: ${item.shelfAddress}` : ''}</Text>
+                <Text style={styles.itemCodeText}>{item.product.stockCode || '-'} {item.shelfAddress ? `| Raf: ${item.shelfAddress}` : ''}</Text>
                 <Text style={styles.itemNameText} numberOfLines={1}>{item.product.stockName}</Text>
               </View>
               {item.barcodeMatched && (
@@ -962,7 +962,7 @@ export function QuickSetupScreen() {
                     <Text style={styles.modalItemNameTr}>{item.stockNameTr}</Text>
                   ) : null}
                   <Text style={styles.modalItemCode}>
-                    {item.stockCode} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
+                    {item.stockCode || 'KODSUZ'} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
                     {item.brand ? (
                       <> | <Text style={styles.modalItemBrand}>{item.brand}</Text></>
                     ) : null}

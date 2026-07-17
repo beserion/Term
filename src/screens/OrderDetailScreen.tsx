@@ -307,7 +307,7 @@ export function OrderDetailScreen() {
           />
         </View>
         <View style={styles.productInfo}>
-          <Text style={styles.productCode}>{item.stockCode}</Text>
+          <Text style={styles.productCode}>{item.stockCode || '-'}</Text>
           <Text style={styles.productName}>{item.stockName}</Text>
         </View>
         <View style={styles.qtyBox}>
@@ -424,7 +424,7 @@ export function OrderDetailScreen() {
             <Text style={styles.modalTitle}>Miktar Girin</Text>
             {selectedLine && (
               <View style={styles.modalProductInfo}>
-                <Text style={styles.modalProductCode}>{selectedLine.stockCode}</Text>
+                <Text style={styles.modalProductCode}>{selectedLine.stockCode || '-'}</Text>
                 <Text style={styles.modalProductName}>{selectedLine.stockName}</Text>
                 <Text style={styles.modalProductMeta}>
                   Sipariş Miktarı: <Text style={{ fontWeight: 'bold', color: Colors.primary }}>{selectedLine.quantity}</Text> {selectedLine.unit || 'Adet'}

@@ -87,10 +87,7 @@ export function StockAddEditScreen() {
       showToast({ message: 'Barkodsuz ürün için benzersiz barkod üretildi: ' + finalBarcode, type: 'info' });
     }
 
-    let finalStockCode = stockCode.trim();
-    if (!finalStockCode) {
-      finalStockCode = 'STK-' + finalBarcode;
-    }
+    let finalStockCode = stockCode.trim() || null;
 
     setSaving(true);
     try {
