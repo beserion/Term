@@ -9,7 +9,7 @@ import { getStockByBarcode, getStocks, Stock } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { Config } from '../config';
-import { flexMatch } from '../utils/searchHelper';
+import { flexMatch, normalizeText } from '../utils/searchHelper';
 
 export function ProductCheckScreen() {
   const navigation = useNavigation<any>();
@@ -56,9 +56,11 @@ export function ProductCheckScreen() {
 
     setNotFoundBarcode(null);
 
-    // 1. Önce lokal stocks listesinden barkod veya kod tam eşleşmesi arayalım
+    // 1. Önce lokal stocks listesinden barkod veya kod tam eşleşmesi arayalım (normalize edilmiş olarak)
+    const normalizedScanned = normalizeText(scannedBarcode);
     const matchedLocal = stocks.find(
-      s => s.barCode?.trim() === scannedBarcode.trim() || s.stockCode?.trim() === scannedBarcode.trim()
+      s => (s.barCode && normalizeText(s.barCode) === normalizedScanned) || 
+           (s.stockCode && normalizeText(s.stockCode) === normalizedScanned)
     );
 
     if (matchedLocal) {
@@ -167,7 +169,7 @@ export function ProductCheckScreen() {
             returnKeyType="search"
             keyboardType="default"
             autoFocus={true}
-            showSoftInputOnFocus={false}
+            showSoftInputOnFocus={true}
           />
           <TouchableOpacity style={styles.searchButton} onPress={handleManualSearch} activeOpacity={0.7}>
             <CustomIcon name="magnify" size={24} color={Colors.onPrimary} />
@@ -321,6 +323,11 @@ export function ProductCheckScreen() {
         visible={showSearchModal}
         animationType="slide"
         onRequestClose={() => setShowSearchModal(false)}
+        onShow={() => {
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 150);
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -332,12 +339,24 @@ export function ProductCheckScreen() {
                 <Text style={styles.modalSubtitleText}>Esnek arama yapmak için yazın</Text>
               )}
             </View>
-            <TouchableOpacity
-              onPress={() => setShowSearchModal(false)}
-              style={styles.modalCloseBtn}
-            >
-              <CustomIcon name="close" size={24} color={Colors.onSurface} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowSearchModal(false);
+                  navigation.navigate('StockAddEdit');
+                  setNotFoundBarcode(null);
+                }}
+                style={styles.modalAddHeaderBtn}
+              >
+                <CustomIcon name="plus-circle" size={26} color={Colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowSearchModal(false)}
+                style={styles.modalCloseBtn}
+              >
+                <CustomIcon name="close" size={24} color={Colors.onSurface} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Modal Arama Çubuğu */}
@@ -350,6 +369,7 @@ export function ProductCheckScreen() {
               onChangeText={setSearchQuery}
               ref={searchInputRef}
               autoFocus={true}
+              showSoftInputOnFocus={true}
               clearButtonMode="while-editing"
             />
             <View style={styles.modalSearchIcon}>
@@ -387,6 +407,16 @@ export function ProductCheckScreen() {
             ListEmptyComponent={
               <View style={styles.emptyList}>
                 <Text style={styles.emptyListText}>Aranan ürün bulunamadı.</Text>
+                <TouchableOpacity
+                  style={styles.modalAddButton}
+                  onPress={() => {
+                    setShowSearchModal(false);
+                    navigation.navigate('StockAddEdit');
+                  }}
+                >
+                  <CustomIcon name="plus" size={16} color={Colors.onPrimaryContainer || '#21005d'} />
+                  <Text style={styles.modalAddButtonText}>Yeni Stok Kartı Ekle</Text>
+                </TouchableOpacity>
               </View>
             }
           />
@@ -738,5 +768,27 @@ const styles = StyleSheet.create({
   emptyListText: {
     color: Colors.outline,
     ...Typography.bodyMd,
+  },
+  modalAddButton: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryContainer || '#e8def8',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    gap: 6,
+  },
+  modalAddButtonText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: Colors.onPrimaryContainer || '#21005d',
+  },
+  modalAddHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

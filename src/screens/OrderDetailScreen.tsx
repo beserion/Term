@@ -361,7 +361,7 @@ export function OrderDetailScreen() {
             onChangeText={setBarcode}
             onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
             returnKeyType="search"
-            showSoftInputOnFocus={false}
+            showSoftInputOnFocus={true}
           />
         </View>
       </View>

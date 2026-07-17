@@ -625,7 +625,7 @@ export function QuickSetupScreen() {
             returnKeyType="search"
             ref={barcodeInputRef}
             autoFocus={true}
-            showSoftInputOnFocus={showSoftKeyboard}
+            showSoftInputOnFocus={true}
           />
           <TouchableOpacity
             style={styles.keyboardToggleBtn}
@@ -896,6 +896,11 @@ export function QuickSetupScreen() {
         visible={showSearchModal}
         animationType="slide"
         onRequestClose={() => setShowSearchModal(false)}
+        onShow={() => {
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 150);
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -903,12 +908,23 @@ export function QuickSetupScreen() {
               <Text style={styles.modalTitleText}>Ürün Seçin</Text>
               <Text style={styles.modalSubtitleText}>Barkod: {scannedBarcode} için ürün seçin</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => setShowSearchModal(false)}
-              style={styles.modalCloseBtn}
-            >
-              <CustomIcon name="close" size={24} color={Colors.onSurface} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowSearchModal(false);
+                  navigation.navigate('StockAddEdit');
+                }}
+                style={styles.modalAddHeaderBtn}
+              >
+                <CustomIcon name="plus-circle" size={26} color={Colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowSearchModal(false)}
+                style={styles.modalCloseBtn}
+              >
+                <CustomIcon name="close" size={24} color={Colors.onSurface} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Modal Arama Çubuğu */}
@@ -921,6 +937,7 @@ export function QuickSetupScreen() {
               onChangeText={setSearchQuery}
               ref={searchInputRef}
               autoFocus={true}
+              showSoftInputOnFocus={true}
               clearButtonMode="while-editing"
             />
             <View style={styles.modalSearchIcon}>
@@ -958,6 +975,16 @@ export function QuickSetupScreen() {
             ListEmptyComponent={
               <View style={styles.emptyList}>
                 <Text style={styles.emptyListText}>Aranan ürün bulunamadı.</Text>
+                <TouchableOpacity
+                  style={styles.modalAddButton}
+                  onPress={() => {
+                    setShowSearchModal(false);
+                    navigation.navigate('StockAddEdit');
+                  }}
+                >
+                  <CustomIcon name="plus" size={16} color={Colors.onPrimaryContainer || '#21005d'} />
+                  <Text style={styles.modalAddButtonText}>Yeni Stok Kartı Ekle</Text>
+                </TouchableOpacity>
               </View>
             }
           />
@@ -1646,5 +1673,36 @@ const styles = StyleSheet.create({
     marginRight: Spacing.xs,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
+  },
+  emptyList: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyListText: {
+    color: Colors.outline,
+    ...Typography.bodyMd,
+  },
+  modalAddButton: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryContainer || '#e8def8',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    gap: 6,
+  },
+  modalAddButtonText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: Colors.onPrimaryContainer || '#21005d',
+  },
+  modalAddHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

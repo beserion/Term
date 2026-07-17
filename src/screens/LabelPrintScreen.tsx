@@ -22,7 +22,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { Modal } from 'react-native';
 import { FeedbackService } from '../services/feedback';
 import { sendCpclToPrinter } from '../services/printHelper';
-import { flexMatch } from '../utils/searchHelper';
+import { flexMatch, normalizeText } from '../utils/searchHelper';
 
 
 
@@ -106,9 +106,11 @@ export function LabelPrintScreen() {
     setLoading(true);
     setBarcode(scannedBarcode);
 
-    // 1. Önce lokal stocks listesinden barkod veya kod tam eşleşmesi arayalım
+    // 1. Önce lokal stocks listesinden barkod veya kod tam eşleşmesi arayalım (normalize edilmiş olarak)
+    const normalizedScanned = normalizeText(scannedBarcode);
     const matchedLocal = stocks.find(
-      s => s.barCode?.trim() === scannedBarcode.trim() || s.stockCode?.trim() === scannedBarcode.trim()
+      s => (s.barCode && normalizeText(s.barCode) === normalizedScanned) || 
+           (s.stockCode && normalizeText(s.stockCode) === normalizedScanned)
     );
 
     if (matchedLocal) {
@@ -274,7 +276,7 @@ export function LabelPrintScreen() {
               returnKeyType="search"
               ref={manualBarcodeRef}
               autoFocus={true}
-              showSoftInputOnFocus={showSoftKeyboard}
+              showSoftInputOnFocus={true}
             />
             <TouchableOpacity 
               style={styles.keyboardToggleBtn}
@@ -534,6 +536,11 @@ export function LabelPrintScreen() {
         visible={showSearchModal}
         animationType="slide"
         onRequestClose={() => setShowSearchModal(false)}
+        onShow={() => {
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 150);
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -545,12 +552,23 @@ export function LabelPrintScreen() {
                 <Text style={styles.modalSubtitleText}>Esnek arama yapmak için yazın</Text>
               )}
             </View>
-            <TouchableOpacity
-              onPress={() => setShowSearchModal(false)}
-              style={styles.modalCloseBtn}
-            >
-              <CustomIcon name="close" size={24} color={Colors.onSurface} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowSearchModal(false);
+                  navigation.navigate('StockAddEdit');
+                }}
+                style={styles.modalAddHeaderBtn}
+              >
+                <CustomIcon name="plus-circle" size={26} color={Colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowSearchModal(false)}
+                style={styles.modalCloseBtn}
+              >
+                <CustomIcon name="close" size={24} color={Colors.onSurface} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Modal Arama Çubuğu */}
@@ -563,6 +581,7 @@ export function LabelPrintScreen() {
               onChangeText={setSearchQuery}
               ref={searchInputRef}
               autoFocus={true}
+              showSoftInputOnFocus={true}
               clearButtonMode="while-editing"
             />
             <View style={styles.modalSearchIcon}>
@@ -600,6 +619,16 @@ export function LabelPrintScreen() {
             ListEmptyComponent={
               <View style={styles.emptyList}>
                 <Text style={styles.emptyListText}>Aranan ürün bulunamadı.</Text>
+                <TouchableOpacity
+                  style={styles.modalAddButton}
+                  onPress={() => {
+                    setShowSearchModal(false);
+                    navigation.navigate('StockAddEdit');
+                  }}
+                >
+                  <CustomIcon name="plus" size={16} color={Colors.onPrimaryContainer || '#21005d'} />
+                  <Text style={styles.modalAddButtonText}>Yeni Stok Kartı Ekle</Text>
+                </TouchableOpacity>
               </View>
             }
           />
@@ -1010,5 +1039,27 @@ const styles = StyleSheet.create({
   emptyListText: {
     color: Colors.outline,
     ...Typography.bodyMd,
+  },
+  modalAddButton: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryContainer || '#e8def8',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    gap: 6,
+  },
+  modalAddButtonText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: Colors.onPrimaryContainer || '#21005d',
+  },
+  modalAddHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

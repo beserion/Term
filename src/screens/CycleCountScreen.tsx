@@ -323,7 +323,7 @@ export function CycleCountScreen() {
                   returnKeyType="search"
                   ref={barcodeInputRef}
                   autoFocus={true}
-                  showSoftInputOnFocus={showSoftKeyboard}
+                  showSoftInputOnFocus={true}
                 />
                 <TouchableOpacity
                   style={styles.keyboardToggleBtn}
