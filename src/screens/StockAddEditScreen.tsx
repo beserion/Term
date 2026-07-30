@@ -22,6 +22,7 @@ import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
 import { sendCpclToPrinter } from '../services/printHelper';
+import { CameraScannerModal } from '../components/CameraScannerModal';
 
 export function StockAddEditScreen() {
   const navigation = useNavigation<any>();
@@ -35,6 +36,7 @@ export function StockAddEditScreen() {
   const isEditMode = !!existingProduct;
 
   const [barcode, setBarcode] = useState(existingProduct?.barCode || initialBarcode);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [stockCode, setStockCode] = useState(existingProduct?.stockCode || '');
   const [stockName, setStockName] = useState(existingProduct?.stockName || '');
   const [stockNameTr, setStockNameTr] = useState(existingProduct?.stockNameTr || '');
@@ -206,11 +208,15 @@ export function StockAddEditScreen() {
                   value={barcode}
                   onChangeText={setBarcode}
                 />
-                <View style={styles.barcodeIcon}>
-                  <CustomIcon name="barcode-scan" size={20} color={Colors.outline} />
-                </View>
+                <TouchableOpacity
+                  style={[styles.barcodeIcon, { backgroundColor: Colors.secondaryContainer, width: 38, height: 38, borderRadius: BorderRadius.xs, alignItems: 'center', justifyContent: 'center' }]}
+                  onPress={() => setShowCameraScanner(true)}
+                  activeOpacity={0.7}
+                >
+                  <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
+                </TouchableOpacity>
               </View>
-              <Text style={styles.infoText}>Barkodu fiziksel okuyucuyla okutarak da doldurabilirsiniz. Barkodsuz ürünler için boş bırakabilirsiniz.</Text>
+              <Text style={styles.infoText}>Kamera butonuna basarak veya fiziki okuyucuyla okutarak doldurabilirsiniz.</Text>
             </View>
 
             {/* Stok Kodu */}
@@ -339,6 +345,14 @@ export function StockAddEditScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CameraScannerModal
+        visible={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={(scannedCode) => {
+          setBarcode(scannedCode);
+        }}
+      />
     </View>
   );
 }

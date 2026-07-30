@@ -13,6 +13,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { Numpad } from '../components/Numpad';
 import { WarehouseSelectModal } from '../components/WarehouseSelectModal';
 import { FeedbackService } from '../services/feedback';
+import { CameraScannerModal } from '../components/CameraScannerModal';
 import * as ImagePicker from 'expo-image-picker';
 
 interface CountedItem {
@@ -35,6 +36,7 @@ export function CycleCountScreen() {
   const [editQtyStr, setEditQtyStr] = useState('');
 
   const [showSoftKeyboard, setShowSoftKeyboard] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   const barcodeInputRef = React.useRef<TextInput>(null);
 
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
@@ -340,6 +342,19 @@ export function CycleCountScreen() {
                   />
                 </TouchableOpacity>
               </View>
+              <TouchableOpacity
+                style={[styles.scanButton, { backgroundColor: Colors.secondaryContainer, marginRight: 4 }]}
+                onPress={() => setShowCameraScanner(true)}
+                activeOpacity={0.7}
+              >
+                <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.scanButton}
+                onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
+              >
+                <CustomIcon name="barcode-scan" size={24} color={Colors.onPrimary} />
+              </TouchableOpacity>
             </View>
             <Text style={styles.hint}>Peş peşe okutulan aynı ürünlerin miktarı otomatik toplanır.</Text>
           </View>
@@ -521,6 +536,15 @@ export function CycleCountScreen() {
           </View>
         </View>
       </Modal>
+
+      <CameraScannerModal
+        visible={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={(scannedCode) => {
+          setBarcode(scannedCode);
+          handleScan(scannedCode);
+        }}
+      />
     </View>
   );
 }
@@ -600,6 +624,14 @@ const styles = StyleSheet.create({
   keyboardToggleBtn: {
     width: 32,
     height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanButton: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.xs,
+    backgroundColor: Colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },

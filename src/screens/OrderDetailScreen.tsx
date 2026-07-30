@@ -13,6 +13,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { FeedbackService } from '../services/feedback';
 import { ShipmentItemSkeleton } from '../components/skeletons/ShipmentItemSkeleton';
 import { Badge } from '../components/Badge';
+import { CameraScannerModal } from '../components/CameraScannerModal';
 
 export function OrderDetailScreen() {
   const route = useRoute<any>();
@@ -22,6 +23,7 @@ export function OrderDetailScreen() {
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [barcode, setBarcode] = useState('');
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   
   // Modal States
   const [showModal, setShowModal] = useState(false);
@@ -363,6 +365,20 @@ export function OrderDetailScreen() {
             returnKeyType="search"
             showSoftInputOnFocus={true}
           />
+          <TouchableOpacity
+            style={[styles.scanButton, { backgroundColor: Colors.secondaryContainer, marginRight: 4 }]}
+            onPress={() => setShowCameraScanner(true)}
+            activeOpacity={0.7}
+          >
+            <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.scanButton}
+            onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
+            activeOpacity={0.7}
+          >
+            <CustomIcon name="barcode-scan" size={22} color={Colors.onPrimary} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -520,6 +536,15 @@ export function OrderDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      <CameraScannerModal
+        visible={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={(scannedCode) => {
+          setBarcode(scannedCode);
+          handleScan(scannedCode);
+        }}
+      />
     </View>
   );
 }
@@ -580,6 +605,14 @@ const styles = StyleSheet.create({
     height: 38,
     fontSize: 13,
     color: Colors.onSurface,
+  },
+  scanButton: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listContent: {
     padding: 8,

@@ -10,12 +10,14 @@ import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { Config } from '../config';
 import { flexMatch, normalizeText } from '../utils/searchHelper';
+import { CameraScannerModal } from '../components/CameraScannerModal';
 
 export function ProductCheckScreen() {
   const navigation = useNavigation<any>();
   const [product, setProduct] = useState<Stock | null>(null);
   const [manualBarcode, setManualBarcode] = useState('');
   const [scanning, setScanning] = useState(true);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   const showToast = useUIStore((s) => s.showToast);
   const [baseUrl, setBaseUrl] = useState('');
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
@@ -171,6 +173,13 @@ export function ProductCheckScreen() {
             autoFocus={true}
             showSoftInputOnFocus={true}
           />
+          <TouchableOpacity
+            style={[styles.searchButton, { backgroundColor: Colors.secondaryContainer, marginRight: 4 }]}
+            onPress={() => setShowCameraScanner(true)}
+            activeOpacity={0.7}
+          >
+            <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.searchButton} onPress={handleManualSearch} activeOpacity={0.7}>
             <CustomIcon name="magnify" size={24} color={Colors.onPrimary} />
           </TouchableOpacity>
@@ -422,6 +431,15 @@ export function ProductCheckScreen() {
           />
         </View>
       </Modal>
+
+      <CameraScannerModal
+        visible={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={(scannedCode) => {
+          setManualBarcode(scannedCode);
+          handleScan(scannedCode);
+        }}
+      />
     </View>
   );
 }

@@ -23,7 +23,7 @@ export function LoginScreen() {
   const handleLogin = async () => {
     const val = username.trim();
     if (!val || !password.trim()) return;
-    
+
     const isEmail = val.includes('@');
     await login({
       email: isEmail ? val : undefined,
@@ -44,8 +44,8 @@ export function LoginScreen() {
         <View style={styles.logoContainer}>
           <CustomIcon name="warehouse" size={48} color={Colors.onPrimary} />
         </View>
-        <Text style={styles.appName}>GEMINI</Text>
-        <Text style={styles.appSubtitle}>BlueHub Depo Yönetim Sistemi</Text>
+        <Text style={styles.appName}>BlueHub</Text>
+        <Text style={styles.appSubtitle}>Depo Yönetim Sistemi</Text>
       </View>
 
       {/* Giriş formu */}

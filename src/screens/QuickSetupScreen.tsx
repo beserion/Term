@@ -41,6 +41,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { FeedbackService } from '../services/feedback';
 import { sendCpclToPrinter } from '../services/printHelper';
 import { flexMatch } from '../utils/searchHelper';
+import { CameraScannerModal } from '../components/CameraScannerModal';
 
 interface CountedItem {
   product: Stock;
@@ -170,6 +171,7 @@ export function QuickSetupScreen() {
   const barcodeInputRef = useRef<TextInput>(null);
   const searchInputRef = useRef<TextInput>(null);
   const qtyInputRef = useRef<TextInput>(null);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
 
   // Başlangıç verilerini yükle
   useEffect(() => {
@@ -641,6 +643,13 @@ export function QuickSetupScreen() {
               color={showSoftKeyboard ? Colors.primary : Colors.outline}
             />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.searchButton, { backgroundColor: Colors.secondaryContainer, marginRight: 4 }]}
+            onPress={() => setShowCameraScanner(true)}
+            activeOpacity={0.7}
+          >
+            <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.searchButton} onPress={handleManualSearch} activeOpacity={0.7}>
             <CustomIcon name="magnify" size={20} color={Colors.onPrimary} />
           </TouchableOpacity>
@@ -1049,6 +1058,15 @@ export function QuickSetupScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <CameraScannerModal
+        visible={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={(scannedCode) => {
+          setBarcodeInput(scannedCode);
+          handleBarcodeScan(scannedCode);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -1673,15 +1691,6 @@ const styles = StyleSheet.create({
     marginRight: Spacing.xs,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
-  },
-  emptyList: {
-    padding: Spacing.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyListText: {
-    color: Colors.outline,
-    ...Typography.bodyMd,
   },
   modalAddButton: {
     marginTop: 12,

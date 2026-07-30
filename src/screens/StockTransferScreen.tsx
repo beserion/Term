@@ -11,6 +11,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { FeedbackService } from '../services/feedback';
 import { ScalePressable } from '../components/ScalePressable';
 import { WarehouseSelectModal } from '../components/WarehouseSelectModal';
+import { CameraScannerModal } from '../components/CameraScannerModal';
 import { Numpad } from '../components/Numpad';
 import { flexMatch, normalizeText } from '../utils/searchHelper';
 
@@ -30,6 +31,7 @@ export function StockTransferScreen() {
   const [warehouseModalVisible, setWarehouseModalVisible] = useState(false);
   const [showSoftKeyboard, setShowSoftKeyboard] = useState(false);
   const [numpadVisible, setNumpadVisible] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   const barcodeInputRef = React.useRef<TextInput>(null);
   
   const { activeWarehouseId, activeWarehouseName } = useSettingsStore();
@@ -267,6 +269,13 @@ export function StockTransferScreen() {
               />
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            style={[styles.scanButton, { backgroundColor: Colors.secondaryContainer, marginRight: 4 }]}
+            onPress={() => setShowCameraScanner(true)}
+            activeOpacity={0.7}
+          >
+            <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
+          </TouchableOpacity>
           <TouchableOpacity 
             style={styles.scanButton}
             onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
@@ -473,6 +482,15 @@ export function StockTransferScreen() {
           />
         </View>
       </Modal>
+
+      <CameraScannerModal
+        visible={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={(scannedCode) => {
+          setBarcode(scannedCode);
+          handleScan(scannedCode);
+        }}
+      />
     </View>
   );
 }

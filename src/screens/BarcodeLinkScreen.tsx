@@ -27,6 +27,7 @@ import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
 import { sendCpclToPrinter } from '../services/printHelper';
 import { flexMatch } from '../utils/searchHelper';
+import { CameraScannerModal } from '../components/CameraScannerModal';
 
 export function BarcodeLinkScreen() {
   const navigation = useNavigation<any>();
@@ -43,6 +44,7 @@ export function BarcodeLinkScreen() {
   const [printAfterAssign, setPrintAfterAssign] = useState(false);
   const [photo, setPhoto] = useState<string | undefined>(undefined);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [baseUrl, setBaseUrl] = useState('');
 
   const { activePrinterId, activePrinterName } = useSettingsStore();
@@ -475,6 +477,13 @@ export function BarcodeLinkScreen() {
               autoFocus={true}
             />
             <TouchableOpacity
+              style={[styles.saveButton, { backgroundColor: Colors.secondaryContainer, paddingHorizontal: 12, marginRight: 4 }]}
+              onPress={() => setShowCameraScanner(true)}
+              activeOpacity={0.7}
+            >
+              <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.saveButton, (saving || uploadingPhoto) && styles.saveButtonDisabled]}
               onPress={() => handleSaveBarcode(barcodeInput)}
               disabled={saving || uploadingPhoto}
@@ -492,6 +501,15 @@ export function BarcodeLinkScreen() {
           </View>
         </View>
       )}
+
+      <CameraScannerModal
+        visible={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={(scannedCode) => {
+          setBarcodeInput(scannedCode);
+          handleSaveBarcode(scannedCode);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

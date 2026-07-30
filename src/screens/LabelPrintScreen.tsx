@@ -23,6 +23,7 @@ import { Modal } from 'react-native';
 import { FeedbackService } from '../services/feedback';
 import { sendCpclToPrinter } from '../services/printHelper';
 import { flexMatch, normalizeText } from '../utils/searchHelper';
+import { CameraScannerModal } from '../components/CameraScannerModal';
 
 
 
@@ -41,6 +42,7 @@ export function LabelPrintScreen() {
   const [showSoftKeyboard, setShowSoftKeyboard] = useState(false);
   const [numpadVisible, setNumpadVisible] = useState(false);
   const [showPrinterModal, setShowPrinterModal] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   const manualBarcodeRef = React.useRef<TextInput>(null);
   const [scanning, setScanning] = useState(true);
   const [printers, setPrinters] = useState<PrinterDto[]>([]);
@@ -293,6 +295,13 @@ export function LabelPrintScreen() {
               />
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            style={[styles.searchButton, { backgroundColor: Colors.secondaryContainer, marginRight: 4 }]}
+            onPress={() => setShowCameraScanner(true)}
+            activeOpacity={0.7}
+          >
+            <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.searchButton} onPress={handleManualSearch} activeOpacity={0.7}>
             <CustomIcon name="magnify" size={24} color={Colors.onPrimary} />
           </TouchableOpacity>
@@ -634,6 +643,15 @@ export function LabelPrintScreen() {
           />
         </View>
       </Modal>
+
+      <CameraScannerModal
+        visible={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={(scannedCode) => {
+          setManualBarcode(scannedCode);
+          handleScan(scannedCode);
+        }}
+      />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Platform } from 'react-native';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
@@ -15,6 +15,7 @@ export function SettingsScreen() {
   
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehousesLoading, setWarehousesLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { activeWarehouseId, setActiveWarehouse } = useSettingsStore();
 
   useEffect(() => {
@@ -45,14 +46,12 @@ export function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Çıkış Yap',
-      'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        { text: 'Çıkış Yap', style: 'destructive', onPress: logout },
-      ]
-    );
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await logout();
   };
 
   return (
@@ -75,8 +74,6 @@ export function SettingsScreen() {
             </View>
           </View>
         </View>
-
-
 
         {/* Terminal Depo Ayarı */}
         <View style={styles.section}>
@@ -145,6 +142,45 @@ export function SettingsScreen() {
           <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Özel Çıkış Onay Modalı */}
+      <Modal
+        visible={showLogoutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconContainer}>
+              <CustomIcon name="logout" size={28} color={Colors.error} />
+            </View>
+
+            <Text style={styles.modalTitle}>Çıkış Yap</Text>
+            <Text style={styles.modalMessage}>
+              Hesabınızdan çıkış yapmak istediğinize emin misiniz?
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowLogoutModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>İptal</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalConfirmButton}
+                onPress={confirmLogout}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalConfirmText}>Çıkış Yap</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -196,4 +232,73 @@ const styles = StyleSheet.create({
   },
   warehouseName: { ...Typography.bodyLg, color: Colors.onSurface },
   warehouseNameActive: { fontWeight: 'bold', color: Colors.onPrimaryContainer },
+
+  // Modal stilleri
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    ...Shadow.card,
+  },
+  modalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.errorContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    ...Typography.headlineSm,
+    color: Colors.onSurface,
+    marginBottom: Spacing.xs,
+  },
+  modalMessage: {
+    ...Typography.bodyMd,
+    color: Colors.onSurfaceVariant,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    width: '100%',
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    ...Typography.labelLg,
+    color: Colors.onSurface,
+  },
+  modalConfirmButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalConfirmText: {
+    ...Typography.labelLg,
+    color: Colors.onError || '#FFFFFF',
+    fontWeight: 'bold',
+  },
 });
