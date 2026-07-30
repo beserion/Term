@@ -323,7 +323,7 @@ export function LabelPrintScreen() {
                       <CustomIcon name="package-variant-closed" size={32} color={Colors.primary} />
                       <View style={{ flex: 1, marginLeft: Spacing.md }}>
                         <Text style={styles.productName}>{product.stockName}</Text>
-                        <Text style={styles.productCode}>{product.stockCode}</Text>
+                        <Text style={styles.productCode}>{product.stockCode || '-'}</Text>
                       </View>
                     </View>
 
@@ -615,7 +615,7 @@ export function LabelPrintScreen() {
                     <Text style={styles.modalItemNameTr}>{item.stockNameTr}</Text>
                   ) : null}
                   <Text style={styles.modalItemCode}>
-                    {item.stockCode} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
+                    {item.stockCode || 'KODSUZ'} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
                     {item.brand ? (
                       <> | <Text style={styles.modalItemBrand}>{item.brand}</Text></>
                     ) : null}
