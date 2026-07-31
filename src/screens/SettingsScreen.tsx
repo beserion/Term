@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Platform, TextInput } from 'react-native';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
@@ -8,6 +8,7 @@ import { useUIStore } from '../store/uiStore';
 import { Config } from '../config';
 import { useSettingsStore } from '../store/settingsStore';
 import { getWarehouses, Warehouse } from '../services/inventory';
+import { resetApiInstance } from '../services/api';
 
 export function SettingsScreen() {
   const { user, logout } = useAuthStore();
@@ -18,9 +19,33 @@ export function SettingsScreen() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { activeWarehouseId, setActiveWarehouse } = useSettingsStore();
 
+  // API Sunucu Adresi state'leri
+  const [currentApiUrl, setCurrentApiUrl] = useState('');
+  const [showApiUrlModal, setShowApiUrlModal] = useState(false);
+  const [newApiUrlInput, setNewApiUrlInput] = useState('');
+
   useEffect(() => {
     loadWarehouses();
+    loadApiUrl();
   }, []);
+
+  const loadApiUrl = async () => {
+    const url = await Config.getApiBaseUrl();
+    setCurrentApiUrl(url);
+  };
+
+  const handleSaveApiUrl = async () => {
+    const trimmed = newApiUrlInput.trim();
+    if (!trimmed) {
+      showToast({ message: 'Lütfen geçerli bir URL girin', type: 'error' });
+      return;
+    }
+    await Config.setApiBaseUrl(trimmed);
+    resetApiInstance();
+    setCurrentApiUrl(trimmed);
+    setShowApiUrlModal(false);
+    showToast({ message: 'API sunucu adresi güncellendi', type: 'success' });
+  };
 
   const loadWarehouses = async () => {
     try {
@@ -117,10 +142,31 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        {/* Uygulama Bilgileri */}
+        {/* Uygulama Bilgileri & Sunucu Yapılandırması */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Uygulama</Text>
+          <Text style={styles.sectionTitle}>Uygulama & Sunucu</Text>
           <View style={styles.card}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>API Sunucu Adresi</Text>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}
+                onPress={() => {
+                  setNewApiUrlInput(currentApiUrl);
+                  setShowApiUrlModal(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[styles.infoValue, { color: Colors.primary, maxWidth: 160 }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {currentApiUrl}
+                </Text>
+                <CustomIcon name="pencil" size={16} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Versiyon</Text>
               <Text style={styles.infoValue}>{Config.APP_VERSION}</Text>
@@ -142,6 +188,70 @@ export function SettingsScreen() {
           <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* API Sunucu Adresi Düzenleme Modalı */}
+      <Modal
+        visible={showApiUrlModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowApiUrlModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalIconContainer, { backgroundColor: Colors.primaryContainer }]}>
+              <CustomIcon name="server-network" size={28} color={Colors.onPrimary} />
+            </View>
+
+            <Text style={styles.modalTitle}>API Sunucu Adresi</Text>
+            <Text style={styles.modalMessage}>
+              Genişletilmiş isteklerin gönderileceği sunucu adresini düzenleyin:
+            </Text>
+
+            <View style={{
+              width: '100%',
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: Colors.surfaceContainerLow,
+              borderRadius: BorderRadius.md,
+              borderWidth: 1,
+              borderColor: Colors.outlineVariant,
+              paddingHorizontal: Spacing.md,
+              height: 48,
+              marginBottom: Spacing.xl,
+            }}>
+              <CustomIcon name="web" size={20} color={Colors.outline} style={{ marginRight: Spacing.sm }} />
+              <TextInput
+                style={{ flex: 1, ...Typography.bodyMd, color: Colors.onSurface, height: '100%' }}
+                placeholder="https://arkship.posnetx.com/api"
+                placeholderTextColor={Colors.outline}
+                value={newApiUrlInput}
+                onChangeText={setNewApiUrlInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowApiUrlModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>İptal</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalConfirmButton, { backgroundColor: Colors.primaryContainer }]}
+                onPress={handleSaveApiUrl}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.modalConfirmText, { color: Colors.onPrimary }]}>Kaydet</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Özel Çıkış Onay Modalı */}
       <Modal

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,53 @@ import {
   Platform,
   StatusBar,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { CustomIcon } from '../components/CustomIcon';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useAuthStore } from '../store/authStore';
+import { useUIStore } from '../store/uiStore';
+import { Config } from '../config';
+import { resetApiInstance } from '../services/api';
 
 export function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // API Base URL Modal state
+  const [showApiModal, setShowApiModal] = useState(false);
+  const [apiUrlInput, setApiUrlInput] = useState('');
+
   const { login, isLoading, error, clearError } = useAuthStore();
+  const showToast = useUIStore((s) => s.showToast);
+
+  useEffect(() => {
+    const checkServerConfig = async () => {
+      const isSet = await Config.isApiBaseUrlSet();
+      const currentUrl = await Config.getApiBaseUrl();
+      setApiUrlInput(currentUrl);
+
+      // Cihaz hafızasında henüz URL yoksa modalı otomatik aç
+      if (!isSet) {
+        setShowApiModal(true);
+      }
+    };
+    checkServerConfig();
+  }, []);
+
+  const handleSaveApiUrl = async () => {
+    const trimmed = apiUrlInput.trim();
+    if (!trimmed) {
+      showToast({ message: 'Lütfen geçerli bir URL girin', type: 'error' });
+      return;
+    }
+
+    await Config.setApiBaseUrl(trimmed);
+    resetApiInstance();
+    setShowApiModal(false);
+    showToast({ message: 'API sunucu adresi kaydedildi', type: 'success' });
+  };
 
   const handleLogin = async () => {
     const val = username.trim();
@@ -41,6 +78,19 @@ export function LoginScreen() {
 
       {/* Üst dekoratif alan */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={async () => {
+            const currentUrl = await Config.getApiBaseUrl();
+            setApiUrlInput(currentUrl);
+            setShowApiModal(true);
+          }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          activeOpacity={0.7}
+        >
+          <CustomIcon name="cog-outline" size={24} color={Colors.onPrimary} />
+        </TouchableOpacity>
+
         <View style={styles.logoContainer}>
           <CustomIcon name="warehouse" size={48} color={Colors.onPrimary} />
         </View>
@@ -120,6 +170,59 @@ export function LoginScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Sunucu Adresi Yapılandırma Modalı */}
+      <Modal
+        visible={showApiModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowApiModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <CustomIcon name="server-network" size={28} color={Colors.primaryContainer} />
+              <Text style={styles.modalTitle}>Sunucu Adresi</Text>
+            </View>
+
+            <Text style={styles.modalDescription}>
+              Lütfen bağlanılacak API sunucu adresini girin. Bu adres cihazınıza bir defaya mahsus kaydedilecektir.
+            </Text>
+
+            <View style={styles.modalInputContainer}>
+              <CustomIcon name="web" size={20} color={Colors.outline} style={{ marginRight: Spacing.sm }} />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="https://arkship.posnetx.com/api"
+                placeholderTextColor={Colors.outline}
+                value={apiUrlInput}
+                onChangeText={setApiUrlInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowApiModal(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>Vazgeç</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalSaveButton}
+                onPress={handleSaveApiUrl}
+                activeOpacity={0.8}
+              >
+                <CustomIcon name="check" size={18} color={Colors.onPrimary} />
+                <Text style={styles.modalSaveButtonText}>Kaydet</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -134,6 +237,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 40,
+    position: 'relative',
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    padding: Spacing.xs,
+    zIndex: 10,
   },
   logoContainer: {
     width: 80,
@@ -218,4 +329,81 @@ const styles = StyleSheet.create({
     color: Colors.onPrimary,
     fontSize: 16,
   },
+  // Modal Stilleri
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  modalContent: {
+    width: '100%',
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    ...Shadow.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  modalTitle: {
+    ...Typography.headlineSm,
+    color: Colors.onSurface,
+  },
+  modalDescription: {
+    ...Typography.bodyMd,
+    color: Colors.onSurfaceVariant,
+    marginBottom: Spacing.lg,
+  },
+  modalInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    paddingHorizontal: Spacing.md,
+    height: 50,
+    marginBottom: Spacing.xl,
+  },
+  modalInput: {
+    flex: 1,
+    ...Typography.bodyMd,
+    color: Colors.onSurface,
+    height: '100%',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.md,
+  },
+  modalCancelButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    ...Typography.labelLg,
+    color: Colors.onSurfaceVariant,
+  },
+  modalSaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.primaryContainer,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  modalSaveButtonText: {
+    ...Typography.labelLg,
+    color: Colors.onPrimary,
+  },
 });
+
