@@ -114,14 +114,21 @@ export async function getStocks(): Promise<Stock[]> {
   const api = await getApi();
   const response = await api.get('/terminal/Inventory/Stocks');
   const data = response.data;
+  let rawList: any[] = [];
   if (Array.isArray(data)) {
-    return data;
+    rawList = data;
+  } else if (data && typeof data === 'object') {
+    if (Array.isArray(data.data)) rawList = data.data;
+    else if (Array.isArray(data.items)) rawList = data.items;
   }
-  if (data && typeof data === 'object') {
-    if (Array.isArray(data.data)) return data.data;
-    if (Array.isArray(data.items)) return data.items;
-  }
-  return [];
+  return rawList.map((item) => {
+    const photoVal = item.photo || item.imageUrl || item.image || item.photoUrl || item.picture || item.filePath || item.fileName || item.pictureUrl || item.imagePath;
+    return {
+      ...item,
+      photo: photoVal,
+      imageUrl: photoVal,
+    };
+  });
 }
 
 /** Barkod/QR ile tekil stok kartını getirir */
@@ -132,11 +139,17 @@ export async function getStockByBarcode(barcode: string): Promise<Stock> {
     headers: { 'Content-Type': 'application/json' }
   });
   
-  if (response.data && response.data.data) {
-    return response.data.data;
+  const raw = (response.data && response.data.data) ? response.data.data : response.data;
+  if (raw && typeof raw === 'object') {
+    const photoVal = raw.photo || raw.imageUrl || raw.image || raw.photoUrl || raw.picture || raw.filePath || raw.fileName || raw.pictureUrl || raw.imagePath;
+    return {
+      ...raw,
+      photo: photoVal,
+      imageUrl: photoVal,
+    };
   }
   
-  return response.data;
+  return raw;
 }
 
 /** Belirli bir depodaki tüm mevcut stok miktarlarını getirir */
@@ -357,26 +370,45 @@ export async function updateStockShelfAddress(stockId: number, shelfAddress: str
   }
 }
 
-/** Resmi sunucuya yükler ve kaydedilen dosya yolunu/URL'ini döner */
-export async function uploadImage(imageUri: string): Promise<string> {
-  const api = await getApi();
-  const formData = new FormData();
-  
-  const filename = imageUri.split('/').pop() || 'photo.jpg';
-  const match = /\.(\w+)$/.exec(filename);
-  const type = match ? `image/${match[1]}` : `image/jpeg`;
-  
-  formData.append('file', {
-    uri: Platform.OS === 'ios' ? imageUri.replace('file://', '') : imageUri,
-    name: filename,
-    type,
-  } as any);
-
-  const response = await api.post('/files/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+async function uriToBase64(uri: string): Promise<string> {
+  if (uri.startsWith('data:')) {
+    const parts = uri.split(',');
+    return parts[1] || uri;
+  }
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      const base64 = result ? (result.split(',')[1] || result) : '';
+      resolve(base64);
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(blob);
   });
+}
+
+/** Resmi sunucuya yükler ve kaydedilen dosya yolunu/URL'ini döner */
+export async function uploadImage(imageUri: string, stockId: number = 0): Promise<string> {
+  const api = await getApi();
+  
+  const filename = imageUri.split('/').pop()?.split('?')[0] || 'photo.jpg';
+  const base64Data = await uriToBase64(imageUri);
+  console.log('[uploadImage] Base64 karakter uzunluğu:', base64Data.length);
+
+  const payload = {
+    stockId: Number(stockId || 0),
+    base64: base64Data,
+    imageBase64: base64Data,
+    fileBase64: base64Data,
+    image: base64Data,
+    photo: base64Data,
+    file: base64Data,
+    fileName: filename,
+  };
+
+  const response = await api.post('/terminal/Inventory/Stock/UploadImageBase64', payload);
 
   const data = response.data;
   console.log('Upload image response data:', data);

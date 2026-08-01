@@ -49,20 +49,43 @@ export function BarcodeLinkScreen() {
 
   const { activePrinterId, activePrinterName } = useSettingsStore();
 
+  const [fullApiUrl, setFullApiUrl] = useState('');
+
   useEffect(() => {
     Config.getApiBaseUrl().then((url) => {
-      const origin = url.replace(/\/api$/, '');
+      const cleanUrl = url.replace(/\/+$/, '');
+      setFullApiUrl(cleanUrl);
+      const origin = cleanUrl.replace(/\/api$/, '');
       setBaseUrl(origin);
     });
   }, []);
 
   const resolveImageUri = (uri?: string) => {
     if (!uri) return undefined;
-    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:')) {
+    if (
+      uri.startsWith('http://') ||
+      uri.startsWith('https://') ||
+      uri.startsWith('data:') ||
+      uri.startsWith('blob:') ||
+      uri.startsWith('file:')
+    ) {
       return uri;
     }
-    const path = uri.startsWith('/') ? uri : `/${uri}`;
-    return `${baseUrl}${path}`;
+    const cleanPath = uri.startsWith('/') ? uri.substring(1) : uri;
+    let appRoot = fullApiUrl ? fullApiUrl.replace(/\/api\/?$/, '') : baseUrl;
+    if (!appRoot.includes('/AppApi') && appRoot.includes('posnetx.com')) {
+      appRoot = `${appRoot}/AppApi`;
+    }
+    if (cleanPath.startsWith('AppApi/')) {
+      return `${baseUrl}/${cleanPath}`;
+    }
+    if (cleanPath.startsWith('images/stocks/')) {
+      return `${appRoot}/${cleanPath}`;
+    }
+    if (cleanPath.startsWith('stkimg_') || cleanPath.startsWith('stk') || !cleanPath.includes('/')) {
+      return `${appRoot}/images/stocks/${cleanPath}`;
+    }
+    return `${appRoot}/${cleanPath}`;
   };
 
   useEffect(() => {

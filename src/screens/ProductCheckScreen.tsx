@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Animated, Image, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Animated, Image, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { getStockByBarcode, getStocks, Stock } from '../services/inventory';
+import { getStockByBarcode, getStocks, Stock, uploadImage, updateStockBarcode } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { Config } from '../config';
@@ -27,9 +29,16 @@ export function ProductCheckScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = React.useRef<TextInput>(null);
 
+  const [fullApiUrl, setFullApiUrl] = useState('');
+  const [authToken, setAuthToken] = useState<string | null>(null);
+
   useEffect(() => {
+    AsyncStorage.getItem(Config.STORAGE_KEYS.AUTH_TOKEN).then((token) => setAuthToken(token));
+
     Config.getApiBaseUrl().then((url) => {
-      const origin = url.replace(/\/api$/, '');
+      const cleanUrl = url.replace(/\/+$/, '');
+      setFullApiUrl(cleanUrl);
+      const origin = cleanUrl.replace(/\/api$/, '');
       setBaseUrl(origin);
     });
 
@@ -44,13 +53,78 @@ export function ProductCheckScreen() {
     loadStocks();
   }, []);
 
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const resolveImageUri = (uri?: string) => {
     if (!uri) return undefined;
-    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:')) {
+    if (
+      uri.startsWith('http://') ||
+      uri.startsWith('https://') ||
+      uri.startsWith('data:') ||
+      uri.startsWith('blob:') ||
+      uri.startsWith('file:')
+    ) {
       return uri;
     }
-    const path = uri.startsWith('/') ? uri : `/${uri}`;
-    return `${baseUrl}${path}`;
+    const cleanPath = uri.startsWith('/') ? uri.substring(1) : uri;
+    let appRoot = fullApiUrl ? fullApiUrl.replace(/\/api\/?$/, '') : baseUrl;
+    if (!appRoot.includes('/AppApi') && appRoot.includes('posnetx.com')) {
+      appRoot = `${appRoot}/AppApi`;
+    }
+    if (cleanPath.startsWith('AppApi/')) {
+      return `${baseUrl}/${cleanPath}`;
+    }
+    if (cleanPath.startsWith('images/stocks/')) {
+      return `${appRoot}/${cleanPath}`;
+    }
+    if (cleanPath.startsWith('stkimg_') || cleanPath.startsWith('stk') || !cleanPath.includes('/')) {
+      return `${appRoot}/images/stocks/${cleanPath}`;
+    }
+    return `${appRoot}/${cleanPath}`;
+  };
+
+  const handleTakePhoto = async () => {
+    if (!product) return;
+
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      showToast({ message: 'Kamera izni reddedildi!', type: 'error' });
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photoAsset = result.assets[0];
+        setUploadingPhoto(true);
+        try {
+          const uploadedUrl = await uploadImage(photoAsset.uri, product.id);
+          const photoToSet = uploadedUrl || photoAsset.uri;
+          await updateStockBarcode(product.id, product.barCode || '', photoToSet);
+          setProduct((prev) => (prev ? { ...prev, photo: photoAsset.uri, imageUrl: photoToSet } : null));
+          setStocks((prev) =>
+            prev.map((s) => (s.id === product.id ? { ...s, photo: photoAsset.uri, imageUrl: photoToSet } : s))
+          );
+          showToast({ message: 'Ürün fotoğrafı yüklendi ve güncellendi', type: 'success' });
+          FeedbackService.playSuccess();
+        } catch (uploadErr: any) {
+          console.error(uploadErr);
+          showToast({ message: 'Fotoğraf yüklenirken hata oluştu: ' + (uploadErr.message || ''), type: 'error' });
+        } finally {
+          setUploadingPhoto(false);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      showToast({ message: 'Fotoğraf çekilirken hata oluştu.', type: 'error' });
+    }
   };
 
   const handleScan = async (scannedBarcode: string) => {
@@ -69,6 +143,11 @@ export function ProductCheckScreen() {
       setProduct(matchedLocal);
       setNotFoundBarcode(null);
       FeedbackService.playLightImpact();
+      getStockByBarcode(scannedBarcode).then((freshData) => {
+        if (freshData && freshData.id) {
+          setProduct(freshData);
+        }
+      }).catch(() => {});
       return;
     }
 
@@ -191,17 +270,35 @@ export function ProductCheckScreen() {
             <View style={styles.resultHeader}>
               {/* Ürün Görseli */}
               <View style={styles.imageContainer}>
-                {product.photo || product.imageUrl ? (
-                  <Image
-                    source={{ uri: resolveImageUri(product.photo || product.imageUrl) }}
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.imagePlaceholder}>
-                    <CustomIcon name="package-variant" size={28} color={Colors.outline} />
+                <TouchableOpacity
+                  onPress={handleTakePhoto}
+                  disabled={uploadingPhoto}
+                  activeOpacity={0.8}
+                  style={styles.imageTouchable}
+                >
+                  {uploadingPhoto ? (
+                    <View style={styles.imagePlaceholder}>
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    </View>
+                  ) : product.photo || product.imageUrl ? (
+                    <Image
+                      source={{
+                        uri: resolveImageUri(product.photo || product.imageUrl),
+                        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+                      }}
+                      style={styles.productImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <CustomIcon name="camera-plus" size={24} color={Colors.primary} />
+                      <Text style={{ fontSize: 9, color: Colors.primary, marginTop: 2, fontWeight: 'bold' }}>Foto Ekle</Text>
+                    </View>
+                  )}
+                  <View style={styles.photoOverlayBadge}>
+                    <CustomIcon name="camera" size={12} color="#FFF" />
                   </View>
-                )}
+                </TouchableOpacity>
               </View>
 
               <View style={{ flex: 1, justifyContent: 'center' }}>
@@ -495,6 +592,23 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     marginRight: 10,
+    position: 'relative',
+  },
+  imageTouchable: {
+    position: 'relative',
+  },
+  photoOverlayBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceContainerLowest,
   },
   productImage: {
     width: 60,
