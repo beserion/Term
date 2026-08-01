@@ -140,8 +140,11 @@ export async function getStockByBarcode(barcode: string): Promise<Stock> {
   });
   
   const raw = (response.data && response.data.data) ? response.data.data : response.data;
+  const images = response.data && response.data.images;
+  const firstImage = (Array.isArray(images) && images.length > 0) ? images[0] : undefined;
+
   if (raw && typeof raw === 'object') {
-    const photoVal = raw.photo || raw.imageUrl || raw.image || raw.photoUrl || raw.picture || raw.filePath || raw.fileName || raw.pictureUrl || raw.imagePath;
+    const photoVal = raw.photo || raw.imageUrl || raw.image || raw.photoUrl || raw.picture || raw.filePath || raw.fileName || raw.pictureUrl || raw.imagePath || firstImage;
     return {
       ...raw,
       photo: photoVal,

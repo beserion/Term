@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
 import { CustomIcon } from './CustomIcon';
 import { Colors, Typography, Spacing, Shadow } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface TopAppBarProps {
   title: string;
@@ -18,10 +19,11 @@ export function TopAppBar({
   actionIcon = 'account',
   showBack = true,
 }: TopAppBarProps) {
+  const insets = useSafeAreaInsets();
   return (
     <>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top, height: 56 + insets.top }]}>
         {showBack && onBack ? (
           <TouchableOpacity
             onPress={onBack}

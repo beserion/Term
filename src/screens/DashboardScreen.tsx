@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity } from 'react-native';
 import { CustomIcon } from '../components/CustomIcon';
 import { useNavigation } from '@react-navigation/native';
-import { DashboardCard } from '../components/DashboardCard';
 import { Colors, Typography, Spacing, Shadow, BorderRadius } from '../theme';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { StartupConfigModal } from '../components/StartupConfigModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function DashboardScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const { activeWarehouseId, activeWarehouseName, activePrinterId, activePrinterName } = useSettingsStore();
   const [startupModalVisible, setStartupModalVisible] = useState(false);
@@ -23,98 +24,71 @@ export function DashboardScreen() {
 
   const modules = [
     {
-      title: 'Siparişler',
-      icon: 'eye' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(30, 58, 138, 0.1)',
-      onPress: () => navigation.navigate('ReceivingStack'),
+      title: 'Mal Kabul',
+      icon: 'package-variant' as const,
+      onPress: () => navigation.navigate('StockIncrease'),
     },
-    {
-      title: 'Ürün Kontrol',
-      icon: 'barcode-scan' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(30, 58, 138, 0.1)',
-      onPress: () => navigation.navigate('ProductCheck'),
-    },
-
     {
       title: 'Mal Çıkış',
-      icon: 'minus-circle-outline' as const,
-      iconColor: Colors.error,
-      iconBgColor: 'rgba(186, 26, 26, 0.08)',
+      icon: 'package-down' as const,
       onPress: () => navigation.navigate('StockDecrease'),
     },
     {
-      title: 'Mal Giriş',
-      icon: 'plus-circle-outline' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(208, 225, 251, 0.5)',
-      onPress: () => navigation.navigate('StockIncrease'),
+      title: 'Ürün Detay',
+      icon: 'magnify' as const,
+      onPress: () => navigation.navigate('ProductCheck'),
+    },
+    {
+      title: 'Sayım',
+      icon: 'package-variant-closed' as const,
+      onPress: () => navigation.navigate('CycleCount'),
+    },
+    {
+      title: 'Barkod Basım',
+      icon: 'barcode-scan' as const,
+      onPress: () => navigation.navigate('LabelPrint'),
+    },
+    {
+      title: 'Transfer',
+      icon: 'truck-delivery-outline' as const,
+      onPress: () => navigation.navigate('StockTransfer'),
+    },
+    {
+      title: 'Siparişler',
+      icon: 'clipboard-list-outline' as const,
+      onPress: () => navigation.navigate('ReceivingStack'),
     },
     {
       title: 'Barkod Eşleme',
       icon: 'link-variant' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(30, 58, 138, 0.1)',
       onPress: () => navigation.navigate('BarcodeLink'),
-    },
-    {
-      title: 'Depo Sayım',
-      icon: 'clipboard-check-outline' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(30, 58, 138, 0.1)',
-      onPress: () => navigation.navigate('CycleCount'),
-    },
-    {
-      title: 'Depo Transferi',
-      icon: 'swap-horizontal' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(208, 225, 251, 0.5)',
-      onPress: () => navigation.navigate('StockTransfer'),
-    },
-    {
-      title: 'Etiket Yazdırma',
-      icon: 'printer' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(30, 58, 138, 0.1)',
-      onPress: () => navigation.navigate('LabelPrint'),
     },
     {
       title: 'İrsaliye',
       icon: 'truck-delivery' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(30, 58, 138, 0.1)',
       onPress: () => navigation.navigate('ShippingStack'),
     },
     {
       title: 'Hızlı Kurulum',
       icon: 'cog-outline' as const,
-      iconColor: Colors.primary,
-      iconBgColor: 'rgba(208, 225, 251, 0.5)',
       onPress: () => navigation.navigate('QuickSetup'),
     }
   ];
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-            <CustomIcon name="menu" size={24} color={Colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.welcomeText}>
-            Hoş geldin, {user?.name || 'Kullanıcı'}
-          </Text>
-        </View>
+      <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
+        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>BlueHub Depo</Text>
         <TouchableOpacity
-          style={styles.avatarButton}
+          style={styles.settingsButton}
           activeOpacity={0.7}
           onPress={() => navigation.navigate('Settings')}
         >
-          <CustomIcon name="account" size={24} color={Colors.primary} />
+          <CustomIcon name="cog" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
@@ -142,24 +116,15 @@ export function DashboardScreen() {
       >
         <View style={styles.grid}>
           {modules.map((module, index) => (
-            <View
+            <TouchableOpacity
               key={index}
-              style={[
-                styles.gridItem,
-                // Son tek kart ise tam genişlik
-                index === modules.length - 1 && modules.length % 2 !== 0
-                  ? styles.gridItemFull
-                  : null,
-              ]}
+              style={styles.card}
+              onPress={module.onPress}
+              activeOpacity={0.8}
             >
-              <DashboardCard
-                title={module.title}
-                icon={module.icon}
-                iconColor={module.iconColor}
-                iconBgColor={module.iconBgColor}
-                onPress={module.onPress}
-              />
-            </View>
+              <CustomIcon name={module.icon} size={36} color="#ffffff" />
+              <Text style={styles.cardTitle}>{module.title}</Text>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
@@ -175,7 +140,7 @@ export function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#f4f6fa',
   },
   header: {
     flexDirection: 'row',
@@ -183,8 +148,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.marginMobile,
     height: 56,
-    backgroundColor: Colors.surface,
-    ...Shadow.sm,
+    backgroundColor: Colors.primary,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+    flex: 1,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   warehouseBar: {
     flexDirection: 'row',
@@ -192,7 +174,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.marginMobile,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primaryFixed,
+    backgroundColor: Colors.secondaryContainer,
     borderBottomWidth: 1,
     borderBottomColor: Colors.outlineVariant,
   },
@@ -204,51 +186,44 @@ const styles = StyleSheet.create({
   },
   warehouseBarText: {
     ...Typography.bodyMd,
-    color: Colors.onPrimaryFixedVariant,
+    color: Colors.onSecondaryContainer,
   },
   warehouseBarName: {
     fontWeight: 'bold',
-    color: Colors.onPrimaryFixed,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.lg,
-    flex: 1,
-  },
-  menuButton: {
-    width: Spacing.touchTargetMin,
-    height: Spacing.touchTargetMin,
-    borderRadius: Spacing.touchTargetMin / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  welcomeText: {
-    ...Typography.headlineSm,
     color: Colors.primary,
-    flex: 1,
-  },
-  avatarButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surfaceContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   gridContainer: {
-    padding: Spacing.marginMobile,
-    paddingTop: Spacing.xl,
+    padding: Spacing.lg,
+    paddingTop: Spacing.lg,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.lg,
+    justifyContent: 'space-between',
+    rowGap: Spacing.lg,
   },
-  gridItem: {
+  card: {
     width: '47.5%',
+    aspectRatio: 1.28,
+    backgroundColor: Colors.primary,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    borderBottomRightRadius: 40,
+    borderBottomLeftRadius: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
-  gridItemFull: {
-    width: '100%',
+  cardTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: Spacing.md,
+    textAlign: 'center',
   },
 });

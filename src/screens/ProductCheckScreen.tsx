@@ -13,6 +13,7 @@ import { FeedbackService } from '../services/feedback';
 import { Config } from '../config';
 import { flexMatch, normalizeText } from '../utils/searchHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
+import { resolveImageUri as resolveImageUriUtil } from '../utils/imageHelper';
 
 export function ProductCheckScreen() {
   const navigation = useNavigation<any>();
@@ -56,20 +57,7 @@ export function ProductCheckScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const resolveImageUri = (uri?: string) => {
-    if (!uri) return undefined;
-    if (
-      uri.startsWith('http://') ||
-      uri.startsWith('https://') ||
-      uri.startsWith('data:') ||
-      uri.startsWith('blob:') ||
-      uri.startsWith('file:')
-    ) {
-      return uri;
-    }
-    const cleanPath = uri.startsWith('/') ? uri.substring(1) : uri;
-    const filename = (cleanPath.endsWith('.jpg') || cleanPath.endsWith('.png') || cleanPath.endsWith('.jpeg')) ? cleanPath : `${cleanPath}.jpg`;
-    const apiPrefix = fullApiUrl || `${baseUrl}/api`;
-    return `${apiPrefix}/terminal/ViewImage?fileName=${encodeURIComponent(filename)}`;
+    return resolveImageUriUtil(uri, baseUrl, fullApiUrl);
   };
 
   const handleTakePhoto = async () => {

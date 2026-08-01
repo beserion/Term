@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
+import { resolveImageUri as resolveImageUriUtil } from '../utils/imageHelper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
@@ -120,20 +121,7 @@ export function QuickSetupScreen() {
   }, []);
 
   const resolveImageUri = (uri?: string) => {
-    if (!uri) return undefined;
-    if (
-      uri.startsWith('http://') ||
-      uri.startsWith('https://') ||
-      uri.startsWith('data:') ||
-      uri.startsWith('blob:') ||
-      uri.startsWith('file:')
-    ) {
-      return uri;
-    }
-    const cleanPath = uri.startsWith('/') ? uri.substring(1) : uri;
-    const filename = (cleanPath.endsWith('.jpg') || cleanPath.endsWith('.png') || cleanPath.endsWith('.jpeg')) ? cleanPath : `${cleanPath}.jpg`;
-    const apiPrefix = fullApiUrl || `${baseUrl}/api`;
-    return `${apiPrefix}/terminal/ViewImage?fileName=${encodeURIComponent(filename)}`;
+    return resolveImageUriUtil(uri, baseUrl, fullApiUrl);
   };
 
   useEffect(() => {
