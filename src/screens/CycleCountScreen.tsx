@@ -66,20 +66,9 @@ export function CycleCountScreen() {
       return uri;
     }
     const cleanPath = uri.startsWith('/') ? uri.substring(1) : uri;
-    let appRoot = fullApiUrl ? fullApiUrl.replace(/\/api\/?$/, '') : baseUrl;
-    if (!appRoot.includes('/AppApi') && appRoot.includes('posnetx.com')) {
-      appRoot = `${appRoot}/AppApi`;
-    }
-    if (cleanPath.startsWith('AppApi/')) {
-      return `${baseUrl}/${cleanPath}`;
-    }
-    if (cleanPath.startsWith('images/stocks/')) {
-      return `${appRoot}/${cleanPath}`;
-    }
-    if (cleanPath.startsWith('stkimg_') || cleanPath.startsWith('stk') || !cleanPath.includes('/')) {
-      return `${appRoot}/images/stocks/${cleanPath}`;
-    }
-    return `${appRoot}/${cleanPath}`;
+    const filename = (cleanPath.endsWith('.jpg') || cleanPath.endsWith('.png') || cleanPath.endsWith('.jpeg')) ? cleanPath : `${cleanPath}.jpg`;
+    const apiPrefix = fullApiUrl || `${baseUrl}/api`;
+    return `${apiPrefix}/terminal/ViewImage?fileName=${encodeURIComponent(filename)}`;
   };
 
   const formatDate = (dateStr?: string) => {

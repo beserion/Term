@@ -394,18 +394,15 @@ export async function uploadImage(imageUri: string, stockId: number = 0): Promis
   const api = await getApi();
   
   const filename = imageUri.split('/').pop()?.split('?')[0] || 'photo.jpg';
+  const match = /\.(\w+)$/.exec(filename);
+  const ext = match ? `.${match[1]}` : '.jpg';
   const base64Data = await uriToBase64(imageUri);
   console.log('[uploadImage] Base64 karakter uzunluğu:', base64Data.length);
 
   const payload = {
     stockId: Number(stockId || 0),
-    base64: base64Data,
     imageBase64: base64Data,
-    fileBase64: base64Data,
-    image: base64Data,
-    photo: base64Data,
-    file: base64Data,
-    fileName: filename,
+    fileExtension: ext,
   };
 
   const response = await api.post('/terminal/Inventory/Stock/UploadImageBase64', payload);
