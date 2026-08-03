@@ -7,7 +7,9 @@ import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { getStockByBarcode, getStocks, Stock, uploadImage, updateStockBarcode } from '../services/inventory';
+import { getStockByBarcode, getStocks, Stock, uploadImage, updateStockBarcode, printLabel, getPrinters, PrinterDto } from '../services/inventory';
+import { sendCpclToPrinter } from '../services/printHelper';
+import { useSettingsStore } from '../store/settingsStore';
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { Config } from '../config';
@@ -32,6 +34,74 @@ export function ProductCheckScreen() {
 
   const [fullApiUrl, setFullApiUrl] = useState('');
   const [authToken, setAuthToken] = useState<string | null>(null);
+
+  const { activePrinterId, activePrinterName, setActivePrinter } = useSettingsStore();
+  const [printing, setPrinting] = useState(false);
+  const [showPrinterModal, setShowPrinterModal] = useState(false);
+  const [printers, setPrinters] = useState<PrinterDto[]>([]);
+  const [loadingPrinters, setLoadingPrinters] = useState(false);
+
+  const fetchPrinters = async () => {
+    setLoadingPrinters(true);
+    try {
+      const list = await getPrinters();
+      setPrinters(list);
+      if (list.length > 0 && activePrinterId === null) {
+        setActivePrinter(list[0].id, list[0].name);
+      }
+    } catch (err) {
+      console.error("Yazıcılar yüklenemedi:", err);
+      showToast({ message: 'Yazıcı listesi yüklenemedi.', type: 'error' });
+    } finally {
+      setLoadingPrinters(false);
+    }
+  };
+
+  const handleOpenPrinterModal = () => {
+    fetchPrinters();
+    setShowPrinterModal(true);
+  };
+
+  const handlePrint = async (targetProduct?: Stock | null) => {
+    const prod = targetProduct || product;
+    if (!prod) return;
+
+    if (activePrinterId === null) {
+      showToast({ message: 'Lütfen önce bir yazıcı seçin.', type: 'info' });
+      handleOpenPrinterModal();
+      return;
+    }
+
+    const codeToPrint = prod.barCode || prod.stockCode || String(prod.id);
+    if (!codeToPrint) {
+      showToast({ message: 'Yazdırılacak barkod bulunamadı.', type: 'error' });
+      return;
+    }
+
+    setPrinting(true);
+    try {
+      const result = await printLabel({
+        printerId: activePrinterId,
+        barcode: codeToPrint,
+        qrCode: codeToPrint,
+        quantity: 1,
+      });
+
+      if (!result.cpclData || !result.printerIp) {
+        throw new Error('API\'den CPCL veri veya IP adresi dönmedi.');
+      }
+
+      await sendCpclToPrinter(result.printerIp, result.printerPort || 6101, result.cpclData);
+      showToast({ message: 'Etiket yazıcıya başarıyla gönderildi.', type: 'success' });
+      FeedbackService.playSuccess();
+    } catch (err: any) {
+      console.error("Yazdırma hatası:", err);
+      showToast({ message: 'Etiket yazdırılamadı: ' + (err.message || 'Bilinmeyen hata'), type: 'error' });
+      FeedbackService.playError();
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   useEffect(() => {
     AsyncStorage.getItem(Config.STORAGE_KEYS.AUTH_TOKEN).then((token) => setAuthToken(token));
@@ -323,7 +393,7 @@ export function ProductCheckScreen() {
               </View>
             </View>
 
-            {/* Aksiyon Butonları */}
+            {/* Aksiyon Butonları (Stok Güncelle & Kartı Düzenle) */}
             <View style={styles.actionButtonsRow}>
               {/* Stok Güncelle Butonu (Miktar Ekleme) */}
               <TouchableOpacity
@@ -353,6 +423,36 @@ export function ProductCheckScreen() {
                 <Text style={styles.updateButtonText}>Kartı Düzenle</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Büyük ETİKET YAZDIR Butonu */}
+            <TouchableOpacity
+              style={styles.fullWidthPrintButton}
+              activeOpacity={0.8}
+              disabled={printing}
+              onPress={() => handlePrint()}
+            >
+              {printing ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <View style={styles.fullWidthPrintButtonContent}>
+                  <CustomIcon name="printer" size={22} color="#FFF" />
+                  <Text style={styles.fullWidthPrintButtonText}>ETİKET YAZDIR</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Aktif Yazıcı Göstergesi */}
+            <TouchableOpacity
+              style={styles.printerBadgeRow}
+              onPress={handleOpenPrinterModal}
+              activeOpacity={0.7}
+            >
+              <CustomIcon name="printer-pos" size={14} color={Colors.onSurfaceVariant} />
+              <Text style={styles.printerBadgeText} numberOfLines={1}>
+                {activePrinterName ? `Aktif Yazıcı: ${activePrinterName}` : 'Yazıcı Seçilmedi (Yazıcı Seç)'}
+              </Text>
+              <CustomIcon name="cog-outline" size={14} color={Colors.outline} />
+            </TouchableOpacity>
           </View>
         )}
 
@@ -503,6 +603,58 @@ export function ProductCheckScreen() {
               </View>
             }
           />
+        </View>
+      </Modal>
+
+      {/* Yazıcı Seçim Modalı */}
+      <Modal 
+        visible={showPrinterModal} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => setShowPrinterModal(false)}
+      >
+        <View style={styles.pickerOverlay}>
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>Yazıcı Seçin</Text>
+              <TouchableOpacity onPress={() => setShowPrinterModal(false)} style={styles.pickerCloseBtn}>
+                <CustomIcon name="close" size={24} color={Colors.onSurface} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.pickerList} contentContainerStyle={styles.pickerListContent}>
+              {loadingPrinters ? (
+                <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: Spacing.xl }} />
+              ) : printers.length === 0 ? (
+                <Text style={{ textAlign: 'center', color: Colors.outline, marginTop: Spacing.xl }}>Yazıcı bulunamadı</Text>
+              ) : (
+                printers.map((p) => {
+                  const isSelected = activePrinterId === p.id;
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
+                      onPress={() => {
+                        setActivePrinter(p.id, p.name);
+                        setShowPrinterModal(false);
+                        showToast({ message: 'Aktif yazıcı: ' + p.name, type: 'success' });
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <CustomIcon
+                        name={isSelected ? 'radiobox-marked' : 'radiobox-blank'}
+                        size={24}
+                        color={isSelected ? Colors.primary : Colors.outline}
+                      />
+                      <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
         </View>
       </Modal>
 
@@ -703,6 +855,30 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
+  fullWidthPrintButton: {
+    backgroundColor: '#2e7d32',
+    borderRadius: BorderRadius.sm,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+  },
+  fullWidthPrintButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  fullWidthPrintButtonText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
   notFoundCard: {
     backgroundColor: Colors.surfaceContainerLowest,
     borderRadius: BorderRadius.xs,
@@ -799,6 +975,90 @@ const styles = StyleSheet.create({
     ...Typography.bodySm,
     color: Colors.onSurfaceVariant,
     marginTop: 2,
+  },
+  printerBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surfaceContainerLow,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.xs,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.surfaceContainer,
+  },
+  printerBadgeText: {
+    flex: 1,
+    fontSize: 11,
+    color: Colors.onSurfaceVariant,
+    marginHorizontal: 6,
+    fontWeight: '500',
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  pickerContainer: {
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: BorderRadius.md,
+    borderTopRightRadius: BorderRadius.md,
+    maxHeight: '60%',
+    minHeight: '40%',
+    paddingBottom: Spacing.xl,
+    ...Shadow.card,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.outlineVariant,
+  },
+  pickerTitle: {
+    ...Typography.titleMedium,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+  },
+  pickerCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerList: {
+    flex: 1,
+  },
+  pickerListContent: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    borderColor: Colors.surfaceContainer,
+  },
+  pickerItemActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryFixed,
+  },
+  pickerItemText: {
+    ...Typography.bodyMd,
+    color: Colors.onSurface,
+    fontWeight: '500',
+  },
+  pickerItemTextActive: {
+    fontWeight: 'bold',
+    color: Colors.onPrimaryFixed,
   },
   modalCloseBtn: {
     width: 36,
