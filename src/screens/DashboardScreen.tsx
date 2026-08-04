@@ -34,9 +34,14 @@ export function DashboardScreen() {
       onPress: () => navigation.navigate('StockDecrease'),
     },
     {
-      title: 'Ürün Detay',
+      title: 'Ürün Kontrol',
       icon: 'magnify' as const,
       onPress: () => navigation.navigate('ProductCheck'),
+    },
+    {
+      title: 'Barkod Basım',
+      icon: 'barcode-scan' as const,
+      onPress: () => navigation.navigate('LabelPrint'),
     },
     {
       title: 'Sayım',
@@ -44,9 +49,9 @@ export function DashboardScreen() {
       onPress: () => navigation.navigate('CycleCount'),
     },
     {
-      title: 'Barkod Basım',
-      icon: 'barcode-scan' as const,
-      onPress: () => navigation.navigate('LabelPrint'),
+      title: 'Barkod Eşleme',
+      icon: 'link-variant' as const,
+      onPress: () => navigation.navigate('BarcodeLink'),
     },
     {
       title: 'Transfer',
@@ -57,11 +62,6 @@ export function DashboardScreen() {
       title: 'Siparişler',
       icon: 'clipboard-list-outline' as const,
       onPress: () => navigation.navigate('ReceivingStack'),
-    },
-    {
-      title: 'Barkod Eşleme',
-      icon: 'link-variant' as const,
-      onPress: () => navigation.navigate('BarcodeLink'),
     },
     {
       title: 'İrsaliye',

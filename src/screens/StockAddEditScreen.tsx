@@ -9,20 +9,24 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Image
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
-import { addStock, updateStock, printLabel, getStocks, Stock } from '../services/inventory';
+import { addStock, updateStock, printLabel, getStocks, Stock, uploadImage } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
 import { sendCpclToPrinter } from '../services/printHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
+import { resolveImageUri as resolveImageUriUtil } from '../utils/imageHelper';
+import { Config } from '../config';
 
 export function StockAddEditScreen() {
   const navigation = useNavigation<any>();
@@ -46,8 +50,22 @@ export function StockAddEditScreen() {
   const [shelfAddress, setShelfAddress] = useState(existingProduct?.shelfAddress || '');
   const [qty, setQty] = useState(existingProduct?.qty !== undefined ? String(existingProduct.qty) : '0');
   const [impaCode, setImpaCode] = useState(existingProduct?.impaCode || '');
+  const [photoUri, setPhotoUri] = useState(existingProduct?.photo || existingProduct?.imageUrl || '');
 
   const [saving, setSaving] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
+  const [fullApiUrl, setFullApiUrl] = useState('');
+
+  useEffect(() => {
+    Config.getApiBaseUrl().then((url) => {
+      const cleanUrl = url.replace(/\/+$/, '');
+      setFullApiUrl(cleanUrl);
+      const origin = cleanUrl.replace(/\/api$/, '');
+      setBaseUrl(origin);
+    });
+  }, []);
+
+  const resolvedPhoto = photoUri ? resolveImageUriUtil(photoUri, baseUrl, fullApiUrl) : undefined;
 
   // Zebra DataWedge okuyucu entegrasyonu
   useBarcode((scannedBarcode) => {
@@ -55,6 +73,50 @@ export function StockAddEditScreen() {
     FeedbackService.playLightImpact();
     showToast({ message: 'Barkod okundu: ' + scannedBarcode, type: 'success' });
   }, true);
+
+  const handleTakePhoto = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionResult.granted) {
+      showToast({ message: 'Kamera izni reddedildi!', type: 'error' });
+      return;
+    }
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setPhotoUri(result.assets[0].uri);
+      }
+    } catch (err: any) {
+      console.error('Kamera hatası:', err);
+      showToast({ message: 'Fotoğraf çekilirken hata oluştu.', type: 'error' });
+    }
+  };
+
+  const handlePickGallery = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      showToast({ message: 'Galeri izni reddedildi!', type: 'error' });
+      return;
+    }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setPhotoUri(result.assets[0].uri);
+      }
+    } catch (err: any) {
+      console.error('Galeri hatası:', err);
+      showToast({ message: 'Galeriden resim seçilirken hata oluştu.', type: 'error' });
+    }
+  };
 
   const handleSave = async () => {
     if (!stockName.trim()) {
@@ -93,6 +155,19 @@ export function StockAddEditScreen() {
 
     setSaving(true);
     try {
+      let finalPhotoPath = photoUri.trim();
+      if (finalPhotoPath && (finalPhotoPath.startsWith('file:') || finalPhotoPath.startsWith('content:') || finalPhotoPath.startsWith('data:'))) {
+        try {
+          const uploadedUrl = await uploadImage(finalPhotoPath, isEditMode ? existingProduct.id : 0);
+          if (uploadedUrl) {
+            finalPhotoPath = uploadedUrl;
+          }
+        } catch (upErr: any) {
+          console.error('Fotoğraf yüklenirken hata:', upErr);
+          showToast({ message: 'Fotoğraf yüklenemedi ancak kayıt işlemine devam ediliyor.', type: 'info' });
+        }
+      }
+
       const payload: any = {
         id: isEditMode ? existingProduct.id : 0,
         companyId: existingProduct?.companyId || route.params?.companyId || null,
@@ -106,6 +181,8 @@ export function StockAddEditScreen() {
         qty: parseFloat(qty) || 0,
         shelfAddress: shelfAddress.trim() || null,
         impaCode: impaCode.trim() || null,
+        photo: finalPhotoPath || null,
+        imageUrl: finalPhotoPath || null,
       };
 
       let result;
@@ -194,6 +271,50 @@ export function StockAddEditScreen() {
           )}
 
           <View style={styles.card}>
+            {/* Ürün Fotoğrafı */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>ÜRÜN FOTOĞRAFI (OPSİYONEL)</Text>
+              <View style={styles.photoContainer}>
+                {resolvedPhoto ? (
+                  <View style={styles.photoPreviewWrapper}>
+                    <Image source={{ uri: resolvedPhoto }} style={styles.photoPreview} resizeMode="cover" />
+                    <TouchableOpacity
+                      style={styles.removePhotoButton}
+                      onPress={() => setPhotoUri('')}
+                      activeOpacity={0.7}
+                    >
+                      <CustomIcon name="close" size={12} color="#FFF" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.photoPlaceholder}>
+                    <CustomIcon name="image-outline" size={24} color={Colors.outline} />
+                    <Text style={styles.photoPlaceholderText}>Fotoğraf Yok</Text>
+                  </View>
+                )}
+
+                <View style={styles.photoActionsRow}>
+                  <TouchableOpacity
+                    style={styles.photoActionButton}
+                    onPress={handleTakePhoto}
+                    activeOpacity={0.7}
+                  >
+                    <CustomIcon name="camera" size={16} color={Colors.primary} />
+                    <Text style={styles.photoActionText}>Fotoğraf Çek</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.photoActionButton}
+                    onPress={handlePickGallery}
+                    activeOpacity={0.7}
+                  >
+                    <CustomIcon name="image" size={16} color={Colors.primary} />
+                    <Text style={styles.photoActionText}>Galeriden Seç</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
             {/* Barkod */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>BARKOD (OPSİYONEL)</Text>
@@ -390,6 +511,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.onSurface,
   },
+  photoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: BorderRadius.xs,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+  },
+  photoPreviewWrapper: {
+    position: 'relative',
+    width: 68,
+    height: 68,
+    borderRadius: BorderRadius.xs,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+  },
+  photoPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoPlaceholder: {
+    width: 68,
+    height: 68,
+    borderRadius: BorderRadius.xs,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: Colors.outline,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surfaceContainerLowest,
+    gap: 2,
+  },
+  photoPlaceholderText: {
+    fontSize: 9,
+    color: Colors.outline,
+    fontWeight: '500',
+  },
+  photoActionsRow: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: 6,
+  },
+  photoActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 30,
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: BorderRadius.xs,
+  },
+  photoActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
   barcodeInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -448,3 +639,4 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 });
+
