@@ -10,6 +10,8 @@ import {
   StatusBar,
   ActivityIndicator,
   Modal,
+  ImageBackground,
+  ScrollView,
 } from 'react-native';
 import { CustomIcon } from '../components/CustomIcon';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
@@ -64,242 +66,307 @@ export function LoginScreen() {
     const isEmail = val.includes('@');
     await login({
       email: isEmail ? val : undefined,
-      userName: val, // Backend validation'da zorunlu alan olduğu için hep gönderiyoruz
+      userName: val,
       password
     });
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <ImageBackground
+      source={require('../../assets/wms_login_bg.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
     >
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primaryContainer} />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
 
-      {/* Üst dekoratif alan */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={async () => {
-            const currentUrl = await Config.getApiBaseUrl();
-            setApiUrlInput(currentUrl);
-            setShowApiModal(true);
-          }}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          activeOpacity={0.7}
+      {/* Dark Overlay Layer */}
+      <View style={styles.overlay} />
+
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <CustomIcon name="cog-outline" size={24} color={Colors.onPrimary} />
-        </TouchableOpacity>
-
-        <View style={styles.logoContainer}>
-          <CustomIcon name="warehouse" size={48} color={Colors.onPrimary} />
-        </View>
-        <Text style={styles.appName}>BlueHub</Text>
-        <Text style={styles.appSubtitle}>Depo Yönetim Sistemi</Text>
-      </View>
-
-      {/* Giriş formu */}
-      <View style={styles.formContainer}>
-        <Text style={styles.formTitle}>Giriş Yap</Text>
-
-        {/* Hata mesajı */}
-        {error && (
-          <View style={styles.errorBanner}>
-            <CustomIcon name="alert-circle" size={20} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={clearError} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <CustomIcon name="close" size={18} color={Colors.error} />
+          {/* Header Bar Settings */}
+          <View style={styles.topHeaderBar}>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={async () => {
+                const currentUrl = await Config.getApiBaseUrl();
+                setApiUrlInput(currentUrl);
+                setShowApiModal(true);
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              activeOpacity={0.7}
+            >
+              <CustomIcon name="cog-outline" size={22} color="#ffffff" />
+              <Text style={styles.settingsText}>Sunucu Ayarları</Text>
             </TouchableOpacity>
           </View>
-        )}
 
-        {/* Kullanıcı Adı */}
-        <View style={styles.inputContainer}>
-          <CustomIcon name="account-outline" size={22} color={Colors.outline} style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Kullanıcı Adı"
-            placeholderTextColor={Colors.outline}
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="next"
-          />
-        </View>
-
-        {/* Şifre */}
-        <View style={styles.inputContainer}>
-          <CustomIcon name="lock-outline" size={22} color={Colors.outline} style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Şifre"
-            placeholderTextColor={Colors.outline}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
-          />
-          <TouchableOpacity
-            onPress={() => setShowPassword(!showPassword)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <CustomIcon
-              name={showPassword ? 'eye-off' : 'eye'}
-              size={22}
-              color={Colors.outline}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Giriş Butonu */}
-        <TouchableOpacity
-          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-          onPress={handleLogin}
-          activeOpacity={0.8}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color={Colors.onPrimary} size="small" />
-          ) : (
-            <>
-              <CustomIcon name="login" size={20} color={Colors.onPrimary} />
-              <Text style={styles.loginButtonText}>Giriş Yap</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Sunucu Adresi Yapılandırma Modalı */}
-      <Modal
-        visible={showApiModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowApiModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <CustomIcon name="server-network" size={28} color={Colors.primaryContainer} />
-              <Text style={styles.modalTitle}>Sunucu Adresi</Text>
+          {/* Branding Hero */}
+          <View style={styles.heroSection}>
+            <View style={styles.logoBadge}>
+              <CustomIcon name="warehouse" size={44} color="#38bdf8" />
             </View>
+            <Text style={styles.brandTitle}>BLUEHUB WMS</Text>
+            <Text style={styles.brandSubtitle}>Akıllı El Terminali & Stok Yönetimi</Text>
+          </View>
 
-            <Text style={styles.modalDescription}>
-              Lütfen bağlanılacak API sunucu adresini girin. Bu adres cihazınıza bir defaya mahsus kaydedilecektir.
-            </Text>
+          {/* Glassmorphism Login Card */}
+          <View style={styles.glassCard}>
+            <Text style={styles.cardHeaderTitle}>Terminal Girişi</Text>
+            <Text style={styles.cardHeaderSubtitle}>Devam etmek için hesabınızla oturum açın</Text>
 
-            <View style={styles.modalInputContainer}>
-              <CustomIcon name="web" size={20} color={Colors.outline} style={{ marginRight: Spacing.sm }} />
+            {/* Hata mesajı */}
+            {error && (
+              <View style={styles.errorBanner}>
+                <CustomIcon name="alert-circle" size={18} color="#ef4444" />
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity onPress={clearError} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <CustomIcon name="close" size={16} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Kullanıcı Adı */}
+            <View style={styles.inputContainer}>
+              <CustomIcon name="account-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
               <TextInput
-                style={styles.modalInput}
-                placeholder="https://arkship.posnetx.com/api"
-                placeholderTextColor={Colors.outline}
-                value={apiUrlInput}
-                onChangeText={setApiUrlInput}
+                style={styles.input}
+                placeholder="Kullanıcı Adı"
+                placeholderTextColor="#64748b"
+                value={username}
+                onChangeText={setUsername}
                 autoCapitalize="none"
                 autoCorrect={false}
-                keyboardType="url"
+                returnKeyType="next"
               />
             </View>
 
-            <View style={styles.modalButtons}>
+            {/* Şifre */}
+            <View style={styles.inputContainer}>
+              <CustomIcon name="lock-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Şifre"
+                placeholderTextColor="#64748b"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+              />
               <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => setShowApiModal(false)}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.modalCancelButtonText}>Vazgeç</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalSaveButton}
-                onPress={handleSaveApiUrl}
-                activeOpacity={0.8}
-              >
-                <CustomIcon name="check" size={18} color={Colors.onPrimary} />
-                <Text style={styles.modalSaveButtonText}>Kaydet</Text>
+                <CustomIcon
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color="#94a3b8"
+                />
               </TouchableOpacity>
             </View>
+
+            {/* Giriş Butonu */}
+            <TouchableOpacity
+              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+              onPress={handleLogin}
+              activeOpacity={0.85}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <>
+                  <CustomIcon name="login" size={20} color="#ffffff" />
+                  <Text style={styles.loginButtonText}>GİRİŞ YAP</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.footerNoteContainer}>
+              <CustomIcon name="shield-check" size={14} color="#38bdf8" />
+              <Text style={styles.footerNoteText}>BlueHub WMS v2.5 Secure Session</Text>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+        </ScrollView>
+
+        {/* Sunucu Adresi Yapılandırma Modalı */}
+        <Modal
+          visible={showApiModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowApiModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <CustomIcon name="cog-outline" size={26} color={Colors.primary} />
+                <Text style={styles.modalTitle}>Sunucu Adresi Ayarları</Text>
+              </View>
+
+              <Text style={styles.modalDescription}>
+                Lütfen bağlanılacak BlueHub ERP API sunucu adresini girin.
+              </Text>
+
+              <View style={styles.modalInputContainer}>
+                <CustomIcon name="link-variant" size={20} color={Colors.outline} style={{ marginRight: Spacing.sm }} />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="https://arkship.posnetx.com/api"
+                  placeholderTextColor={Colors.outline}
+                  value={apiUrlInput}
+                  onChangeText={setApiUrlInput}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                />
+              </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowApiModal(false)}
+                >
+                  <Text style={styles.modalCancelButtonText}>Vazgeç</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSaveButton}
+                  onPress={handleSaveApiUrl}
+                  activeOpacity={0.8}
+                >
+                  <CustomIcon name="content-save" size={18} color="#ffffff" />
+                  <Text style={styles.modalSaveButtonText}>Kaydet</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(7, 12, 27, 0.72)',
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.primaryContainer,
   },
-  header: {
-    flex: 0.35,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 40,
-    position: 'relative',
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Platform.OS === 'android' ? 44 : 54,
+    paddingBottom: Spacing.xxl,
+    justifyContent: 'space-between',
+  },
+  topHeaderBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: Spacing.sm,
   },
   settingsButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    padding: Spacing.xs,
-    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  logoContainer: {
+  settingsText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  heroSection: {
+    alignItems: 'center',
+    marginVertical: Spacing.lg,
+  },
+  logoBadge: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.lg,
+    borderWidth: 1.5,
+    borderColor: 'rgba(56, 189, 248, 0.5)',
+    marginBottom: Spacing.md,
+    ...Shadow.md,
   },
-  appName: {
-    ...Typography.headlineLg,
-    color: Colors.onPrimary,
+  brandTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 2,
+  },
+  brandSubtitle: {
+    fontSize: 13,
+    color: '#94a3b8',
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  glassCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    ...Shadow.lg,
+  },
+  cardHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
     marginBottom: 4,
   },
-  appSubtitle: {
-    ...Typography.bodyMd,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  formContainer: {
-    flex: 0.65,
-    backgroundColor: Colors.surfaceContainerLowest,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: 32,
-  },
-  formTitle: {
-    ...Typography.headlineMd,
-    color: Colors.onSurface,
-    marginBottom: Spacing.xl,
+  cardHeaderSubtitle: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: Spacing.lg,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.errorContainer,
-    borderRadius: BorderRadius.sm,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: BorderRadius.xs,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
   },
   errorText: {
-    ...Typography.bodyMd,
-    color: Colors.error,
+    fontSize: 13,
+    color: '#fca5a5',
     flex: 1,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceContainerLow,
+    backgroundColor: 'rgba(30, 41, 59, 0.9)',
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.outlineVariant,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     paddingHorizontal: Spacing.lg,
-    height: 56,
+    height: 52,
     marginBottom: Spacing.lg,
   },
   inputIcon: {
@@ -307,8 +374,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    ...Typography.bodyLg,
-    color: Colors.onSurface,
+    fontSize: 15,
+    color: '#ffffff',
     height: '100%',
   },
   loginButton: {
@@ -316,30 +383,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: '#0284c7',
     borderRadius: BorderRadius.md,
-    height: 56,
-    marginTop: Spacing.sm,
+    height: 52,
+    marginTop: Spacing.xs,
+    ...Shadow.md,
   },
   loginButtonDisabled: {
     opacity: 0.6,
   },
   loginButtonText: {
-    ...Typography.labelLg,
-    color: Colors.onPrimary,
-    fontSize: 16,
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
-  // Modal Stilleri
+  footerNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: Spacing.lg,
+  },
+  footerNoteText: {
+    fontSize: 11,
+    color: '#64748b',
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.surfaceContainerLowest,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
     ...Shadow.lg,
@@ -351,11 +430,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   modalTitle: {
-    ...Typography.headlineSm,
+    fontSize: 18,
+    fontWeight: 'bold',
     color: Colors.onSurface,
   },
   modalDescription: {
-    ...Typography.bodyMd,
+    fontSize: 13,
     color: Colors.onSurfaceVariant,
     marginBottom: Spacing.lg,
   },
@@ -367,12 +447,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
     paddingHorizontal: Spacing.md,
-    height: 50,
+    height: 48,
     marginBottom: Spacing.xl,
   },
   modalInput: {
     flex: 1,
-    ...Typography.bodyMd,
+    fontSize: 14,
     color: Colors.onSurface,
     height: '100%',
   },
@@ -389,21 +469,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalCancelButtonText: {
-    ...Typography.labelLg,
+    fontSize: 14,
     color: Colors.onSurfaceVariant,
   },
   modalSaveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
   },
   modalSaveButtonText: {
-    ...Typography.labelLg,
-    color: Colors.onPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#ffffff',
   },
 });
-

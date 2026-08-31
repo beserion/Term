@@ -18,15 +18,6 @@ export function AppNavigator() {
     clearActivePrinter();
   }, []);
 
-  // Başlangıç yüklemesi
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
-
   return (
     <NavigationContainer>
       {isAuthenticated ? <InventoryStack /> : <AuthStack />}

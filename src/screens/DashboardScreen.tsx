@@ -24,17 +24,37 @@ export function DashboardScreen() {
 
   const modules = [
     {
-      title: 'Mal Kabul',
+      title: 'Raf Sorgulama',
+      icon: 'barcode-scan' as const,
+      onPress: () => navigation.navigate('BinQuery'),
+    },
+    {
+      title: 'Raf Transferi',
+      icon: 'swap-horizontal' as const,
+      onPress: () => navigation.navigate('BinTransfer'),
+    },
+    {
+      title: 'Mobil Raflama',
       icon: 'package-variant' as const,
+      onPress: () => navigation.navigate('Putaway'),
+    },
+    {
+      title: 'Sipariş Toplama',
+      icon: 'package-down' as const,
+      onPress: () => navigation.navigate('Picking'),
+    },
+    {
+      title: 'Mal Kabul',
+      icon: 'plus-circle' as const,
       onPress: () => navigation.navigate('StockIncrease'),
     },
     {
       title: 'Mal Çıkış',
-      icon: 'package-down' as const,
+      icon: 'minus-circle' as const,
       onPress: () => navigation.navigate('StockDecrease'),
     },
     {
-      title: 'Ürün Detay',
+      title: 'Ürün Kontrol',
       icon: 'magnify' as const,
       onPress: () => navigation.navigate('ProductCheck'),
     },
@@ -45,11 +65,11 @@ export function DashboardScreen() {
     },
     {
       title: 'Barkod Basım',
-      icon: 'barcode-scan' as const,
+      icon: 'printer' as const,
       onPress: () => navigation.navigate('LabelPrint'),
     },
     {
-      title: 'Transfer',
+      title: 'Depo Transferi',
       icon: 'truck-delivery-outline' as const,
       onPress: () => navigation.navigate('StockTransfer'),
     },
@@ -69,9 +89,19 @@ export function DashboardScreen() {
       onPress: () => navigation.navigate('ShippingStack'),
     },
     {
+      title: 'Koli & Palet',
+      icon: 'warehouse' as const,
+      onPress: () => navigation.navigate('PackingList'),
+    },
+    {
       title: 'Hızlı Kurulum',
       icon: 'cog-outline' as const,
       onPress: () => navigation.navigate('QuickSetup'),
+    },
+    {
+      title: 'Raf QR Basım',
+      icon: 'qrcode-edit' as const,
+      onPress: () => navigation.navigate('BinQrCode'),
     }
   ];
 

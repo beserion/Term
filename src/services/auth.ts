@@ -78,3 +78,15 @@ export async function hasValidToken(): Promise<boolean> {
     return false;
   }
 }
+
+/** Kayıtlı oturum verilerini temizle */
+export async function clearStoredAuth(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(Config.STORAGE_KEYS.AUTH_TOKEN);
+    await AsyncStorage.removeItem(Config.STORAGE_KEYS.REFRESH_TOKEN);
+    await AsyncStorage.removeItem(Config.STORAGE_KEYS.USER_DATA);
+  } catch {
+    // Silme hatalarını yut
+  }
+}
+

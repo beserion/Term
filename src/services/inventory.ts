@@ -446,5 +446,202 @@ export async function updateStock(payload: Stock): Promise<any> {
   return response.data?.data || response.data;
 }
 
+// ==========================================
+// FAZ 2 MOBİL WMS LOKASYON & RAF YÖNETİMİ
+// ==========================================
+
+export interface LocationStockItem {
+  stockId: number;
+  stockCode?: string;
+  stockName?: string;
+  barCode?: string;
+  quantity: number;
+  unit?: string;
+}
+
+export interface LocationScanResult {
+  locationCode: string;
+  warehouseId?: number;
+  warehouseName?: string;
+  items: LocationStockItem[];
+}
+
+export interface StockLocationDetail {
+  locationCode: string;
+  warehouseId?: number;
+  warehouseName?: string;
+  quantity: number;
+}
+
+export interface LocationTransferPayload {
+  stockId: number;
+  stockCode?: string;
+  fromLocationCode: string;
+  toLocationCode: string;
+  transferQty?: number;
+  quantity?: number;
+  warehouseId?: number;
+  remarks?: string;
+}
+
+export interface LocationPutawayPayload {
+  stockId: number;
+  stockCode?: string;
+  locationCode: string;
+  qty?: number;
+  quantity?: number;
+  warehouseId?: number;
+}
+
+export interface LocationPickPayload {
+  stockId: number;
+  stockCode?: string;
+  fromLocationCode?: string;
+  locationCode?: string;
+  transferQty?: number;
+  quantity?: number;
+  orderId?: number;
+  warehouseId?: number;
+}
+
+export interface PickingSuggestionResult {
+  suggestedLocationCode: string;
+  stockId: number;
+  availableQuantity: number;
+  warehouseId?: number;
+}
+
+/** 1. Raf/Lokasyon barkodunu okutarak raf detayını ve ürün listesini getirir */
+export async function scanLocation(code: string): Promise<LocationScanResult> {
+  const api = await getApi();
+  const response = await api.get(`/terminal/Location/Scan/${encodeURIComponent(code)}`);
+  const resData = response.data;
+  
+  if (resData && resData.success === false) {
+    throw new Error(resData.message || 'Raf sorgulanamadı.');
+  }
+
+  const loc = resData?.location || resData?.data?.location || {};
+  const rawItems = resData?.items || resData?.data?.items || (Array.isArray(resData) ? resData : []);
+
+  const items: LocationStockItem[] = rawItems.map((item: any) => ({
+    stockId: item.stockId || item.id,
+    stockCode: item.stockCode || '',
+    stockName: item.stockName || item.name || '',
+    barCode: item.barCode || item.barcode || '',
+    quantity: Number(item.qty ?? item.quantity ?? 0),
+    unit: item.unit || 'Adet',
+  }));
+
+  return {
+    locationCode: loc.locationCode || resData?.locationCode || code,
+    warehouseId: loc.warehouseId,
+    warehouseName: loc.locationName || loc.warehouseName,
+    items,
+  };
+}
+
+/** 2. Ürünün depodaki hangi raflarda ne kadar olduğunu getirir */
+export async function getStockLocations(stockId: number): Promise<StockLocationDetail[]> {
+  const api = await getApi();
+  const response = await api.get(`/terminal/Location/StockLocations/${stockId}`);
+  const resData = response.data;
+  const rawList = Array.isArray(resData) ? resData : (Array.isArray(resData?.data) ? resData.data : []);
+  
+  return rawList.map((item: any) => ({
+    locationCode: item.locationCode || item.shelfAddress || '',
+    warehouseId: item.warehouseId,
+    warehouseName: item.warehouseName || item.warehouseCode,
+    quantity: Number(item.qty ?? item.quantity ?? 0)
+  }));
+}
+
+/** 3. Raf-Raf Transferi (Bin Relocation) */
+export async function transferLocation(payload: LocationTransferPayload): Promise<any> {
+  const api = await getApi();
+  const transferQty = payload.transferQty ?? payload.quantity ?? 0;
+  
+  const body = {
+    stockId: payload.stockId,
+    stockCode: payload.stockCode || '',
+    fromLocationCode: (payload.fromLocationCode || '').trim().toUpperCase(),
+    toLocationCode: (payload.toLocationCode || '').trim().toUpperCase(),
+    transferQty: transferQty,
+    warehouseId: payload.warehouseId || 1,
+    remarks: payload.remarks || ''
+  };
+
+  const response = await api.post('/terminal/Location/Transfer', body);
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Raf transferi gerçekleştirilemedi.');
+    err.response = response;
+    throw err;
+  }
+  return response.data;
+}
+
+/** 4. Mobil Raflama (Putaway) */
+export async function putawayLocation(payload: LocationPutawayPayload): Promise<any> {
+  const api = await getApi();
+  const qty = payload.qty ?? payload.quantity ?? 0;
+
+  const body = {
+    stockId: payload.stockId,
+    stockCode: payload.stockCode || '',
+    locationCode: (payload.locationCode || '').trim().toUpperCase(),
+    qty: qty,
+    warehouseId: payload.warehouseId || 1,
+  };
+
+  const response = await api.post('/terminal/Location/Putaway', body);
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Mobil raflama işlemi başarısız oldu.');
+    err.response = response;
+    throw err;
+  }
+  return response.data;
+}
+
+/** 5. Sipariş Toplama (Picking) */
+export async function pickLocation(payload: LocationPickPayload): Promise<any> {
+  const api = await getApi();
+  const fromLocationCode = (payload.fromLocationCode || payload.locationCode || '').trim().toUpperCase();
+  const transferQty = payload.transferQty ?? payload.quantity ?? 0;
+
+  const body = {
+    stockId: payload.stockId,
+    stockCode: payload.stockCode || '',
+    fromLocationCode: fromLocationCode,
+    transferQty: transferQty,
+    warehouseId: payload.warehouseId || 1,
+  };
+
+  const response = await api.post('/terminal/Location/Pick', body);
+  if (response.data && response.data.success === false) {
+    const err: any = new Error(response.data.message || 'Sipariş toplama işlemi başarısız oldu.');
+    err.response = response;
+    throw err;
+  }
+  return response.data;
+}
+
+/** 6. Akıllı Toplama Önerisi (Picking Suggestion) */
+export async function getPickingSuggestion(stockId: number): Promise<PickingSuggestionResult> {
+  const api = await getApi();
+  const response = await api.get(`/terminal/Location/PickingSuggestion/${stockId}`);
+  const resData = response.data;
+  const suggestions = resData?.suggestions || resData?.data?.suggestions || [];
+  const top = suggestions.length > 0 ? suggestions[0] : null;
+
+  return {
+    suggestedLocationCode: top ? top.locationCode : (resData?.suggestedLocationCode || ''),
+    stockId: resData?.stockId || stockId,
+    availableQuantity: top ? Number(top.availableQty ?? 0) : Number(resData?.availableQuantity ?? 0),
+    warehouseId: resData?.warehouseId
+  };
+}
+
+
+
 
 
