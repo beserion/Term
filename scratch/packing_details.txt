@@ -1,0 +1,494 @@
+﻿========================================
+1. PACKING ENDPOINTS
+========================================
+Endpoint: /api/terminal/Packing/ActiveOrders
+  Method: GET
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/BoardData/{id}
+  Method: GET
+  Parameters:
+    - id (in: path, type: integer)
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/CreateBox
+  Method: POST
+  RequestBody: #/components/schemas/EDModels.TerminalCreateBoxDto
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/CreatePallet
+  Method: POST
+  RequestBody: #/components/schemas/EDModels.TerminalCreatePalletDto
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/AssignItem
+  Method: POST
+  RequestBody: #/components/schemas/EDModels.TerminalAssignItemDto
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/AssignBoxToPallet
+  Method: POST
+  RequestBody: #/components/schemas/EDModels.TerminalAssignBoxToPalletDto
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/RemoveItem/{id}
+  Method: POST
+  Parameters:
+    - id (in: path, type: integer)
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/DeleteBox/{id}
+  Method: POST
+  Parameters:
+    - id (in: path, type: integer)
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/DeletePallet/{id}
+  Method: POST
+  Parameters:
+    - id (in: path, type: integer)
+  Response 200: 
+
+Endpoint: /api/terminal/Packing/ProcessBarcode
+  Method: POST
+  RequestBody: #/components/schemas/EDModels.TerminalProcessBarcodeDto
+  Response 200: 
+
+========================================
+2. PACKING SCHEMAS & MODELS
+========================================
+Schema: EDModels.TerminalAssignBoxToPalletDto
+{
+    "type":  "object",
+    "properties":  {
+                       "boxId":  {
+                                     "type":  "integer",
+                                     "format":  "int32"
+                                 },
+                       "palletId":  {
+                                        "type":  "integer",
+                                        "format":  "int32"
+                                    }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalAssignItemDto
+{
+    "type":  "object",
+    "properties":  {
+                       "orderDetailId":  {
+                                             "type":  "integer",
+                                             "format":  "int32"
+                                         },
+                       "palletId":  {
+                                        "type":  "integer",
+                                        "format":  "int32",
+                                        "nullable":  true
+                                    },
+                       "boxId":  {
+                                     "type":  "integer",
+                                     "format":  "int32",
+                                     "nullable":  true
+                                 },
+                       "qty":  {
+                                   "type":  "number",
+                                   "format":  "double"
+                               },
+                       "stockCode":  {
+                                         "type":  "string",
+                                         "nullable":  true
+                                     },
+                       "stockName":  {
+                                         "type":  "string",
+                                         "nullable":  true
+                                     },
+                       "unit":  {
+                                    "type":  "string",
+                                    "nullable":  true
+                                }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalCreateBoxDto
+{
+    "type":  "object",
+    "properties":  {
+                       "requestId":  {
+                                         "type":  "integer",
+                                         "format":  "int32"
+                                     },
+                       "boxName":  {
+                                       "type":  "string",
+                                       "nullable":  true
+                                   },
+                       "dimensions":  {
+                                          "type":  "string",
+                                          "nullable":  true
+                                      },
+                       "grossWeight":  {
+                                           "type":  "number",
+                                           "format":  "double"
+                                       }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalCreatePalletDto
+{
+    "type":  "object",
+    "properties":  {
+                       "requestId":  {
+                                         "type":  "integer",
+                                         "format":  "int32"
+                                     },
+                       "vesselName":  {
+                                          "type":  "string",
+                                          "nullable":  true
+                                      },
+                       "dimensions":  {
+                                          "type":  "string",
+                                          "nullable":  true
+                                      },
+                       "grossWeight":  {
+                                           "type":  "number",
+                                           "format":  "double"
+                                       }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalCycleCountItemDto
+{
+    "type":  "object",
+    "properties":  {
+                       "cycleCountId":  {
+                                            "type":  "integer",
+                                            "format":  "int32"
+                                        },
+                       "stockId":  {
+                                       "type":  "integer",
+                                       "format":  "int32"
+                                   },
+                       "countedQty":  {
+                                          "type":  "number",
+                                          "format":  "double"
+                                      },
+                       "shelfAddress":  {
+                                            "type":  "string",
+                                            "nullable":  true
+                                        },
+                       "photo":  {
+                                     "type":  "string",
+                                     "nullable":  true
+                                 }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalCycleCountStartDto
+{
+    "type":  "object",
+    "properties":  {
+                       "warehouseId":  {
+                                           "type":  "integer",
+                                           "format":  "int32"
+                                       },
+                       "documentNo":  {
+                                          "type":  "string",
+                                          "nullable":  true
+                                      },
+                       "countDate":  {
+                                         "type":  "string",
+                                         "format":  "date-time",
+                                         "nullable":  true
+                                     }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalGoodsLineDto
+{
+    "type":  "object",
+    "properties":  {
+                       "stockId":  {
+                                       "type":  "integer",
+                                       "format":  "int32"
+                                   },
+                       "receivedQty":  {
+                                           "type":  "number",
+                                           "format":  "double",
+                                           "nullable":  true
+                                       },
+                       "issuedQty":  {
+                                         "type":  "number",
+                                         "format":  "double",
+                                         "nullable":  true
+                                     },
+                       "transferQty":  {
+                                           "type":  "number",
+                                           "format":  "double",
+                                           "nullable":  true
+                                       }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalGoodsTransactionDto
+{
+    "type":  "object",
+    "properties":  {
+                       "documentDate":  {
+                                            "type":  "string",
+                                            "format":  "date-time",
+                                            "nullable":  true
+                                        },
+                       "documentNo":  {
+                                          "type":  "string",
+                                          "nullable":  true
+                                      },
+                       "warehouseId":  {
+                                           "type":  "integer",
+                                           "format":  "int32",
+                                           "nullable":  true
+                                       },
+                       "fromWarehouseId":  {
+                                               "type":  "integer",
+                                               "format":  "int32",
+                                               "nullable":  true
+                                           },
+                       "toWarehouseId":  {
+                                             "type":  "integer",
+                                             "format":  "int32",
+                                             "nullable":  true
+                                         },
+                       "lines":  {
+                                     "type":  "array",
+                                     "items":  {
+                                                   "$ref":  "#/components/schemas/EDModels.TerminalGoodsLineDto"
+                                               },
+                                     "nullable":  true
+                                 }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalOrderReceiptDto
+{
+    "type":  "object",
+    "properties":  {
+                       "orderId":  {
+                                       "type":  "integer",
+                                       "format":  "int32"
+                                   },
+                       "supplierId":  {
+                                          "type":  "integer",
+                                          "format":  "int32"
+                                      },
+                       "warehouseId":  {
+                                           "type":  "integer",
+                                           "format":  "int32"
+                                       },
+                       "documentNo":  {
+                                          "type":  "string",
+                                          "nullable":  true
+                                      },
+                       "remarks":  {
+                                       "type":  "string",
+                                       "nullable":  true
+                                   },
+                       "lines":  {
+                                     "type":  "array",
+                                     "items":  {
+                                                   "$ref":  "#/components/schemas/EDModels.TerminalOrderReceiptLineDto"
+                                               },
+                                     "nullable":  true
+                                 }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalOrderReceiptLineDto
+{
+    "type":  "object",
+    "properties":  {
+                       "orderDetailId":  {
+                                             "type":  "integer",
+                                             "format":  "int32"
+                                         },
+                       "receivedQty":  {
+                                           "type":  "number",
+                                           "format":  "double"
+                                       }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalPrintLabelDto
+{
+    "type":  "object",
+    "properties":  {
+                       "printerId":  {
+                                         "type":  "integer",
+                                         "format":  "int32"
+                                     },
+                       "barcode":  {
+                                       "type":  "string",
+                                       "nullable":  true
+                                   },
+                       "qrCode":  {
+                                      "type":  "string",
+                                      "nullable":  true
+                                  },
+                       "quantity":  {
+                                        "type":  "integer",
+                                        "format":  "int32"
+                                    }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalProcessBarcodeDto
+{
+    "type":  "object",
+    "properties":  {
+                       "barcode":  {
+                                       "type":  "string",
+                                       "nullable":  true
+                                   }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalStockDto
+{
+    "type":  "object",
+    "properties":  {
+                       "id":  {
+                                  "type":  "integer",
+                                  "format":  "int32"
+                              },
+                       "companyId":  {
+                                         "type":  "integer",
+                                         "format":  "int32",
+                                         "nullable":  true
+                                     },
+                       "barCode":  {
+                                       "type":  "string",
+                                       "nullable":  true
+                                   },
+                       "impaCode":  {
+                                        "type":  "string",
+                                        "nullable":  true
+                                    },
+                       "stockCode":  {
+                                         "type":  "string",
+                                         "nullable":  true
+                                     },
+                       "stockName":  {
+                                         "type":  "string",
+                                         "nullable":  true
+                                     },
+                       "stockNameTr":  {
+                                           "type":  "string",
+                                           "nullable":  true
+                                       },
+                       "brand":  {
+                                     "type":  "string",
+                                     "nullable":  true
+                                 },
+                       "model":  {
+                                     "type":  "string",
+                                     "nullable":  true
+                                 },
+                       "unit":  {
+                                    "type":  "string",
+                                    "nullable":  true
+                                },
+                       "qty":  {
+                                   "type":  "number",
+                                   "format":  "double",
+                                   "nullable":  true
+                               },
+                       "shelfAddress":  {
+                                            "type":  "string",
+                                            "nullable":  true
+                                        },
+                       "photoUrl":  {
+                                        "type":  "string",
+                                        "nullable":  true
+                                    }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalStockImageBase64Dto
+{
+    "type":  "object",
+    "properties":  {
+                       "stockId":  {
+                                       "type":  "integer",
+                                       "format":  "int32"
+                                   },
+                       "imageBase64":  {
+                                           "type":  "string",
+                                           "nullable":  true
+                                       },
+                       "fileExtension":  {
+                                             "type":  "string",
+                                             "nullable":  true
+                                         }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalTaskUpdateDto
+{
+    "type":  "object",
+    "properties":  {
+                       "taskId":  {
+                                      "type":  "string",
+                                      "nullable":  true
+                                  },
+                       "status":  {
+                                      "type":  "string",
+                                      "nullable":  true
+                                  }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalUpdateBarcodeDto
+{
+    "type":  "object",
+    "properties":  {
+                       "stockId":  {
+                                       "type":  "integer",
+                                       "format":  "int32"
+                                   },
+                       "barcode":  {
+                                       "type":  "string",
+                                       "nullable":  true
+                                   }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+Schema: EDModels.TerminalUpdateShelfDto
+{
+    "type":  "object",
+    "properties":  {
+                       "stockId":  {
+                                       "type":  "integer",
+                                       "format":  "int32"
+                                   },
+                       "shelfAddress":  {
+                                            "type":  "string",
+                                            "nullable":  true
+                                        }
+                   },
+    "additionalProperties":  false
+}
+----------------------------------------
+

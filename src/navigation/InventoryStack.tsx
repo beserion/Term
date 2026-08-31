@@ -14,12 +14,22 @@ import { ShippingStack } from './ShippingStack';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { StockAddEditScreen } from '../screens/StockAddEditScreen';
 
+import { PackingListScreen } from '../screens/PackingListScreen';
+import { PackingBoardScreen } from '../screens/PackingBoardScreen';
+import { BinQueryScreen } from '../screens/BinQueryScreen';
+import { BinTransferScreen } from '../screens/BinTransferScreen';
+import { PutawayScreen } from '../screens/PutawayScreen';
+import { PickingScreen } from '../screens/PickingScreen';
+import { BinQrCodeScreen } from '../screens/BinQrCodeScreen';
+
 const Stack = createNativeStackNavigator();
 
 export function InventoryStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      <Stack.Screen name="PackingList" component={PackingListScreen} />
+      <Stack.Screen name="PackingBoard" component={PackingBoardScreen} />
       <Stack.Screen name="ProductCheck" component={ProductCheckScreen} />
       <Stack.Screen name="StockDecrease" component={StockDecreaseScreen} />
       <Stack.Screen name="StockIncrease" component={StockIncreaseScreen} />
@@ -32,8 +42,14 @@ export function InventoryStack() {
       <Stack.Screen name="ShippingStack" component={ShippingStack} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="StockAddEdit" component={StockAddEditScreen} />
+      <Stack.Screen name="BinQuery" component={BinQueryScreen} />
+      <Stack.Screen name="BinTransfer" component={BinTransferScreen} />
+      <Stack.Screen name="Putaway" component={PutawayScreen} />
+      <Stack.Screen name="Picking" component={PickingScreen} />
+      <Stack.Screen name="BinQrCode" component={BinQrCodeScreen} />
     </Stack.Navigator>
   );
 }
+
 
 

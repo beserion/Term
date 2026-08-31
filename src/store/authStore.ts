@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { UserData, getStoredUser, hasValidToken, login as loginService, logout as logoutService, LoginRequest } from '../services/auth';
+import { UserData, getStoredUser, hasValidToken, clearStoredAuth, login as loginService, logout as logoutService, LoginRequest } from '../services/auth';
 import { createApiInstance, registerOnUnauthorized } from '../services/api';
 
 /**
@@ -13,7 +13,7 @@ interface AuthState {
   user: UserData | null;
   error: string | null;
 
-  /** Uygulama başlarken kayıtlı token kontrolü */
+  /** Uygulama başlarken kayıtlı token kontrolü ve sıfırlama */
   initialize: () => Promise<void>;
   /** Giriş yap */
   login: (credentials: LoginRequest) => Promise<boolean>;
@@ -31,14 +31,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initialize: async () => {
     try {
-      const hasToken = await hasValidToken();
-      if (hasToken) {
-        const user = await getStoredUser();
-        await createApiInstance();
-        set({ isAuthenticated: true, user, isLoading: false });
-      } else {
-        set({ isAuthenticated: false, user: null, isLoading: false });
-      }
+      // Uygulama her başlatıldığında kayıtlı oturum verilerini temizle
+      // Giriş yapmadan ana ekrana (menülere) geçilmesini engelle
+      await clearStoredAuth();
+      set({ isAuthenticated: false, user: null, isLoading: false });
     } catch {
       set({ isAuthenticated: false, user: null, isLoading: false });
     }
