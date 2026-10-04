@@ -88,7 +88,8 @@ export function BinTransferScreen() {
 
   const handleSelectProduct = (item: LocationStockItem | Stock) => {
     setSelectedItem(item);
-    setQuantity(String(item.quantity || '1'));
+    const itemQty = 'quantity' in item ? (item as any).quantity : ((item as any).currentStock || 1);
+    setQuantity(String(itemQty || '1'));
     setStep(3);
     FeedbackService.playSuccess();
   };
@@ -119,7 +120,7 @@ export function BinTransferScreen() {
         handleSelectProduct(matchedSource);
       } else {
         const matchedGlobal = stocksList.find(
-          (s) => s.barCode === scannedCode || s.stockCode === scannedCode
+          (s) => s.barCode === scannedCode || s.stockCode === scannedCode || s.qrCode === scannedCode
         );
         if (matchedGlobal) {
           handleSelectProduct(matchedGlobal);
@@ -426,7 +427,10 @@ export function BinTransferScreen() {
           </View>
 
           <FlatList
-            data={stocksList.filter((s) => flexMatch(s.stockName || '', searchQuery))}
+            data={stocksList.filter((s) => {
+              const searchString = [s.barCode, s.qrCode, s.stockCode, s.stockName, s.stockNameTr, s.brand, s.model, s.description].filter(Boolean).join(' ');
+              return flexMatch(searchString, searchQuery);
+            })}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={{ padding: Spacing.md, gap: Spacing.sm }}
             renderItem={({ item }) => (

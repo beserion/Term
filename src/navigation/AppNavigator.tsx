@@ -13,9 +13,6 @@ export function AppNavigator() {
 
   useEffect(() => {
     initialize();
-    // Program her başlatıldığında aktif depo ve yazıcıyı sıfırla
-    clearActiveWarehouse();
-    clearActivePrinter();
   }, []);
 
   return (

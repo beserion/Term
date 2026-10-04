@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { TopAppBar } from '../components/TopAppBar';
 import { SearchBar } from '../components/SearchBar';
 import { EmptyState } from '../components/Toast';
@@ -23,7 +23,7 @@ export function PackingListScreen() {
     try {
       setLoading(true);
       const data = await getActivePackingOrders(debouncedSearch || undefined);
-      setOrders(data);
+      setOrders(data.filter((o) => !o.isPackingCompleted && (o.packedRatio === undefined || o.packedRatio < 100)));
     } catch (error: any) {
       showToast({ message: error?.message || 'Aktif paketleme siparişleri yüklenemedi', type: 'error' });
     } finally {
@@ -32,9 +32,11 @@ export function PackingListScreen() {
     }
   }, [debouncedSearch]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [fetchOrders])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -42,47 +44,116 @@ export function PackingListScreen() {
   };
 
   const renderPackingOrderCard = ({ item }: { item: PackingOrder }) => {
+    const isDone = !!item.isPackingCompleted || (item.packedRatio !== undefined && item.packedRatio >= 100);
+    const hasProgress = !isDone && (item.packedRatio || 0) > 0;
+    const isReceiptDone = item.isReceiptCompleted !== false;
+
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={[
+          styles.card,
+          isDone && { borderColor: '#A7F3D0', backgroundColor: '#F0FDF4' },
+          !isDone && !isReceiptDone && { borderColor: '#FDE68A', backgroundColor: '#FFFBEB' },
+        ]}
         activeOpacity={0.7}
-        onPress={() => navigation.navigate('PackingBoard', {
+        onPress={() => navigation.navigate('PackingSuppliers', {
           requestId: item.id,
+          orderId: item.orderId || item.id,
           documentNo: item.documentNo,
           partnerName: item.partnerName,
           rfqNo: item.rfqNo,
+          vesselName: item.vesselName,
+          productCount: item.productCount,
+          isReceiptCompleted: isReceiptDone,
         })}
       >
         <View style={styles.cardHeader}>
           <View style={styles.docInfo}>
-            <CustomIcon name="package-variant-closed" size={24} color={Colors.primary} />
-            <Text style={styles.docNo}>{item.documentNo}</Text>
+            <CustomIcon
+              name={isDone ? 'check-circle' : 'package-variant-closed'}
+              size={22}
+              color={isDone ? '#047857' : Colors.primary}
+            />
+            <View style={styles.docTextWrapper}>
+              <Text style={styles.docNo} numberOfLines={1}>{item.documentNo}</Text>
+              {item.rfqNo && item.documentNo !== item.rfqNo ? (
+                <Text style={styles.subRfqNo}>Talep: {item.rfqNo}</Text>
+              ) : null}
+            </View>
           </View>
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>{item.status || 'Paketlenecek'}</Text>
+          <View
+            style={[
+              styles.badgeContainer,
+              isDone
+                ? { backgroundColor: '#ECFDF5' }
+                : hasProgress
+                ? { backgroundColor: '#E0F2FE' }
+                : !isReceiptDone
+                ? { backgroundColor: '#FEF3C7' }
+                : undefined,
+            ]}
+          >
+            <Text
+              style={[
+                styles.badgeText,
+                isDone
+                  ? { color: '#047857' }
+                  : hasProgress
+                  ? { color: '#0284C7' }
+                  : !isReceiptDone
+                  ? { color: '#D97706' }
+                  : undefined,
+              ]}
+            >
+              {isDone
+                ? 'PAKETLENDİ'
+                : hasProgress
+                ? `%${item.packedRatio} Paketlendi`
+                : !isReceiptDone
+                ? 'MAL KABUL BEKLİYOR'
+                : item.status || 'Paketlenecek'}
+            </Text>
           </View>
         </View>
 
         <View style={styles.cardBody}>
-          <Text style={styles.partnerName} numberOfLines={1}>
-            <CustomIcon name="account" size={16} color={Colors.outline} /> {item.partnerName || 'Cari Belirtilmemiş'}
-          </Text>
-          
-          {item.rfqNo ? (
-            <Text style={styles.subDetail}>
-              <Text style={styles.subDetailLabel}>RFQ / Teklif No: </Text>{item.rfqNo}
+          {/* Gemi Adı */}
+          <View style={styles.detailRow}>
+            <CustomIcon name="ship" size={16} color={Colors.primary} />
+            <Text style={styles.vesselText}>
+              <Text style={styles.boldLabel}>Gemi: </Text>
+              {item.vesselName || 'Belirtilmemiş'}
             </Text>
-          ) : null}
+          </View>
+
+          {/* Müşteri / Cari Bilgisi */}
+          <View style={styles.detailRow}>
+            <CustomIcon name="account" size={16} color={Colors.outline} />
+            <Text style={styles.partnerName} numberOfLines={1}>
+              {item.partnerName || 'Cari Belirtilmemiş'}
+            </Text>
+          </View>
 
           <View style={styles.cardFooter}>
             <View style={styles.statItem}>
               <CustomIcon name="format-list-bulleted" size={16} color={Colors.secondary} />
-              <Text style={styles.statText}>{item.productCount || 0} Kalem Ürün</Text>
+              <Text style={styles.statText}>
+                {item.productCount || 0} Kalem
+                {((item.boxCount || 0) > 0 || (item.palletCount || 0) > 0) ? (
+                  ` • ${item.boxCount || 0} Koli${(item.palletCount || 0) > 0 ? `, ${item.palletCount} Palet` : ''}`
+                ) : ''}
+              </Text>
             </View>
 
             <View style={styles.actionLink}>
-              <Text style={styles.actionText}>Paketle</Text>
-              <CustomIcon name="chevron-right" size={20} color={Colors.primary} />
+              <Text style={[styles.actionText, isDone && { color: '#047857' }]}>
+                {isDone ? 'İncele' : 'Tedarikçiler'}
+              </Text>
+              <CustomIcon
+                name="chevron-right"
+                size={20}
+                color={isDone ? '#047857' : Colors.primary}
+              />
             </View>
           </View>
         </View>
@@ -117,7 +188,7 @@ export function PackingListScreen() {
         <FlatList
           data={orders}
           renderItem={renderPackingOrderCard}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => `${item.id}-${item.orderId || index}`}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           showsVerticalScrollIndicator={false}
@@ -132,8 +203,12 @@ export function PackingListScreen() {
           ListEmptyComponent={
             <EmptyState
               icon="package-variant-closed"
-              title="Paketlenecek Sipariş Yok"
-              subtitle={search ? 'Arama kriterinize uygun sipariş bulunamadı' : 'Paketlemeye hazır aktif sipariş bulunmuyor'}
+              title="Paketlenecek Sipariş Bulunamadı"
+              subtitle={
+                search
+                  ? 'Arama kriterinize uygun sipariş bulunamadı'
+                  : 'Paketlemeye hazır aktif sipariş bulunmuyor'
+              }
             />
           }
         />
@@ -149,7 +224,8 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: Spacing.marginMobile,
-    paddingVertical: Spacing.stackGap,
+    paddingTop: Spacing.stackGap,
+    paddingBottom: 8,
     backgroundColor: Colors.background,
   },
   centerContainer: {
@@ -164,20 +240,20 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   listContent: {
-    paddingHorizontal: Spacing.marginMobile,
-    paddingBottom: 100,
-    paddingTop: Spacing.xs,
+    padding: Spacing.marginMobile,
+    paddingTop: 4,
+    paddingBottom: 80,
   },
   separator: {
-    height: Spacing.gutter,
+    height: Spacing.stackGap,
   },
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    ...Shadow.sm,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.cardPadding,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
+    ...Shadow.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -191,39 +267,59 @@ const styles = StyleSheet.create({
   docInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  docTextWrapper: {
+    flex: 1,
   },
   docNo: {
     ...Typography.titleMedium,
     color: Colors.onSurface,
     fontWeight: 'bold',
+    fontSize: 13.5,
+  },
+  subRfqNo: {
+    fontSize: 10.5,
+    color: Colors.outline,
+    fontWeight: '500',
+    marginTop: 1,
   },
   badgeContainer: {
     backgroundColor: Colors.primaryContainer,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
     borderRadius: BorderRadius.full,
   },
   badgeText: {
     ...Typography.labelSmall,
     color: Colors.onPrimaryContainer,
     fontWeight: '600',
+    fontSize: 10,
   },
   cardBody: {
-    gap: 4,
+    gap: 6,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  vesselText: {
+    ...Typography.bodyMd,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  boldLabel: {
+    fontWeight: 'bold',
+    color: Colors.onSurface,
   },
   partnerName: {
     ...Typography.bodyMd,
     color: Colors.onSurface,
     fontWeight: '500',
-  },
-  subDetail: {
-    ...Typography.bodySm,
-    color: Colors.outline,
-  },
-  subDetailLabel: {
-    fontWeight: '600',
-    color: Colors.onSurfaceVariant,
+    flex: 1,
   },
   cardFooter: {
     flexDirection: 'row',

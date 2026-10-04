@@ -79,9 +79,13 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.headlineSm,
+    fontSize: 15,
+    fontWeight: '700',
     color: Colors.primary,
     flex: 1,
     textAlign: 'center',
+    includeFontPadding: false,
+    paddingHorizontal: 4,
   },
   iconButton: {
     width: Spacing.touchTargetMin,

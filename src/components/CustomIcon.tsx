@@ -48,6 +48,8 @@ import {
   faPrint,
   faCamera,
   faBolt,
+  faShip,
+  faLocationDot,
 } from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -115,12 +117,16 @@ const IconMap: Record<string, any> = {
   'plus-circle-outline': faCirclePlus,
   'swap-horizontal': faRightLeft,
   'office-building-marker': faBuilding,
+  'map-marker': faLocationDot,
+  'map-marker-outline': faLocationDot,
 
   // Shipping / Receiving
   'truck-fast': faTruckFast,
   'truck-delivery': faTruckFast,
   'truck-delivery-outline': faTruck,
   'storefront': faStore,
+  'ship': faShip,
+  'vessel': faShip,
   'clipboard-check-outline': faClipboardCheck,
   'clipboard-alert-outline': faClipboardQuestion,
   'clipboard-list-outline': faClipboardList,

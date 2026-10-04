@@ -21,15 +21,48 @@ import { addStock, updateStock, printLabel, getStocks, Stock } from '../services
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
-import { sendCpclToPrinter } from '../services/printHelper';
+import { sendCpclToPrinter, executePrintJob } from '../services/printHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
+
+/** Benzersiz sonraki STK kodunu üretir */
+function generateNextStockCode(allStocks: Stock[]): string {
+  const existingStockCodes = new Set(
+    allStocks.map(s => s.stockCode?.trim().toUpperCase()).filter(Boolean)
+  );
+
+  let maxStkNum = 0;
+  for (const s of allStocks) {
+    const code = (s.stockCode || '').trim();
+    const match = code.match(/^STK-(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num < 1000000 && num > maxStkNum) {
+        maxStkNum = num;
+      }
+    }
+  }
+
+  let nextNum = maxStkNum > 0 ? maxStkNum + 1 : 1;
+  let candidate = `STK-${String(nextNum).padStart(6, '0')}`;
+  let attempts = 0;
+  while (existingStockCodes.has(candidate.toUpperCase()) && attempts < 1000) {
+    nextNum++;
+    candidate = `STK-${String(nextNum).padStart(6, '0')}`;
+    attempts++;
+  }
+
+  if (existingStockCodes.has(candidate.toUpperCase())) {
+    candidate = `STK-${Date.now().toString().slice(-6)}`;
+  }
+  return candidate;
+}
 
 export function StockAddEditScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const showToast = useUIStore((s) => s.showToast);
-  const { activePrinterId } = useSettingsStore();
+  const { activePrinterId, activePrinterIp, activePrinterPort } = useSettingsStore();
 
   const existingProduct = route.params?.product as Stock | undefined;
   const initialBarcode = route.params?.barcode || '';
@@ -49,6 +82,21 @@ export function StockAddEditScreen() {
 
   const [saving, setSaving] = useState(false);
 
+  // Yeni stok kartı oluştururken stok kodu boşsa arka planda sıradaki kodu hazırla
+  useEffect(() => {
+    if (!isEditMode && !stockCode) {
+      (async () => {
+        try {
+          const allStocks = await getStocks();
+          const nextCode = generateNextStockCode(allStocks);
+          setStockCode(nextCode);
+        } catch (e) {
+          // Sessiz geç, kaydederken tekrar denenecek
+        }
+      })();
+    }
+  }, [isEditMode]);
+
   // Zebra DataWedge okuyucu entegrasyonu
   useBarcode((scannedBarcode) => {
     setBarcode(scannedBarcode.trim());
@@ -61,38 +109,47 @@ export function StockAddEditScreen() {
       showToast({ message: 'Lütfen stok adını girin.', type: 'error' });
       return;
     }
-    let finalBarcode = barcode.trim();
-    if (!finalBarcode) {
-      try {
-        // 1. Mevcut tüm stokları çekip barkod listesini çıkaralım
-        const allStocks = await getStocks();
-        const existingBarcodes = new Set(
-          allStocks.map(s => s.barCode?.trim()).filter(Boolean)
-        );
-
-        // 2. Benzersiz olan barkodu bulana kadar döngü çalıştır
-        let generated = '';
-        let attempts = 0;
-        do {
-          const timestamp = (Date.now() + attempts).toString();
-          generated = '20' + timestamp.slice(-11);
-          attempts++;
-        } while (existingBarcodes.has(generated) && attempts < 100);
-
-        finalBarcode = generated;
-      } catch (err) {
-        // Fallback: API veya bağlantı hatasında direkt zaman damgası ata
-        finalBarcode = '20' + Date.now().toString().slice(-11);
-      }
-
-      setBarcode(finalBarcode);
-      showToast({ message: 'Barkodsuz ürün için benzersiz barkod üretildi: ' + finalBarcode, type: 'info' });
-    }
-
-    let finalStockCode = stockCode.trim() || null;
 
     setSaving(true);
     try {
+      let finalBarcode = barcode.trim();
+      let finalStockCode = stockCode.trim();
+
+      // Barkod veya Stok Kodu boş ise sistem otomatik olarak benzersiz değerler üretir
+      if (!finalBarcode || !finalStockCode) {
+        let allStocks: Stock[] = [];
+        try {
+          allStocks = await getStocks();
+        } catch (err) {
+          console.warn('Mevcut stoklar getirilemedi:', err);
+        }
+
+        // 1. Barkod boşsa otomatik üret
+        if (!finalBarcode) {
+          const existingBarcodes = new Set(
+            allStocks.map(s => s.barCode?.trim()).filter(Boolean)
+          );
+          let generated = '';
+          let attempts = 0;
+          do {
+            const timestamp = (Date.now() + attempts).toString();
+            generated = '20' + timestamp.slice(-11);
+            attempts++;
+          } while (existingBarcodes.has(generated) && attempts < 100);
+
+          finalBarcode = generated || ('20' + Date.now().toString().slice(-11));
+          setBarcode(finalBarcode);
+          showToast({ message: 'Barkodsuz ürün için benzersiz barkod üretildi: ' + finalBarcode, type: 'info' });
+        }
+
+        // 2. Stok Kodu boşsa otomatik üret
+        if (!finalStockCode) {
+          finalStockCode = generateNextStockCode(allStocks);
+          setStockCode(finalStockCode);
+          showToast({ message: 'Stok kodu otomatik üretildi: ' + finalStockCode, type: 'info' });
+        }
+      }
+
       const payload: any = {
         id: isEditMode ? existingProduct.id : 0,
         companyId: existingProduct?.companyId || route.params?.companyId || null,
@@ -135,20 +192,15 @@ export function StockAddEditScreen() {
               text: 'Yazdır',
               onPress: async () => {
                 try {
-                  const printResult = await printLabel({
+                  await executePrintJob({
                     printerId: activePrinterId,
+                    printerIp: activePrinterIp,
+                    printerPort: activePrinterPort,
                     barcode: codeToPrint,
-                    qrCode: codeToPrint,
+                    title: stockName || 'BLUEHUB STOK ETİKETİ',
                     quantity: 1,
                   });
-                  if (printResult.cpclData && printResult.printerIp) {
-                    await sendCpclToPrinter(
-                      printResult.printerIp,
-                      printResult.printerPort || 6101,
-                      printResult.cpclData
-                    );
-                    showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
-                  }
+                  showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
                 } catch (printErr: any) {
                   showToast({ message: 'Etiket yazdırma hatası: ' + printErr.message, type: 'error' });
                 } finally {
@@ -218,10 +270,10 @@ export function StockAddEditScreen() {
 
             {/* Stok Kodu */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>STOK KODU (OPSİYONEL)</Text>
+              <Text style={styles.label}>STOK KODU (BOŞSA OTOMATİK ÜRETİLİR)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Örn: STK-001"
+                placeholder="Örn: STK-005530"
                 placeholderTextColor={Colors.outline}
                 value={stockCode}
                 onChangeText={setStockCode}

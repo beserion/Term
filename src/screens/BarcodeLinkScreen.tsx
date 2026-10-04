@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,7 +26,7 @@ import { useUIStore } from '../store/uiStore';
 import { resolveImageUri as resolveImageUriUtil } from '../utils/imageHelper';
 import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
-import { sendCpclToPrinter } from '../services/printHelper';
+import { sendCpclToPrinter, executePrintJob } from '../services/printHelper';
 import { flexMatch } from '../utils/searchHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
 
@@ -48,7 +48,7 @@ export function BarcodeLinkScreen() {
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [baseUrl, setBaseUrl] = useState('');
 
-  const { activePrinterId, activePrinterName } = useSettingsStore();
+  const { activePrinterId, activePrinterName, activePrinterIp, activePrinterPort } = useSettingsStore();
 
   const [fullApiUrl, setFullApiUrl] = useState('');
 
@@ -112,16 +112,15 @@ export function BarcodeLinkScreen() {
   // Otomatik yazdırma işlemi yardımcı fonksiyonu
   const printAndSendLabel = async (barcodeToPrint: string) => {
     try {
-      const result = await printLabel({
-        printerId: activePrinterId!,
+      await executePrintJob({
+        printerId: activePrinterId,
+        printerIp: activePrinterIp,
+        printerPort: activePrinterPort,
         barcode: barcodeToPrint,
-        qrCode: barcodeToPrint,
-        quantity: 1
+        title: selectedProduct?.stockName || 'BLUEHUB BARKOD ETİKETİ',
+        quantity: 1,
       });
-      if (result.cpclData && result.printerIp) {
-        await sendCpclToPrinter(result.printerIp, result.printerPort || 6101, result.cpclData);
-        showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
-      }
+      showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
     } catch (err: any) {
       showToast({ message: 'Otomatik etiket yazdırma hatası: ' + err.message, type: 'error' });
     }
@@ -149,11 +148,14 @@ export function BarcodeLinkScreen() {
     let matchSearch = true;
     if (searchTerm.trim()) {
       const searchString = [
+        item.barCode,
+        item.qrCode,
+        item.stockCode,
         item.stockName,
         item.stockNameTr,
-        item.stockCode,
         item.brand,
         item.model,
+        item.description,
         item.impaCode
       ].filter(Boolean).join(' ');
       matchSearch = flexMatch(searchString, searchTerm);

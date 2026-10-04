@@ -40,7 +40,7 @@ import { Config } from '../config';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { FeedbackService } from '../services/feedback';
-import { sendCpclToPrinter } from '../services/printHelper';
+import { sendCpclToPrinter, executePrintJob } from '../services/printHelper';
 import { flexMatch } from '../utils/searchHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
 
@@ -48,7 +48,7 @@ interface CountedItem {
   product: Stock;
   countedQty: number;
   barcodeMatched?: boolean;
-  shelfAddress?: string;
+  shelfAddress: string;
   photo?: string;
 }
 
@@ -59,6 +59,8 @@ export function QuickSetupScreen() {
   const {
     activePrinterId,
     activePrinterName,
+    activePrinterIp,
+    activePrinterPort,
     setActivePrinter,
     activeWarehouseId,
     activeWarehouseName,
@@ -391,19 +393,18 @@ export function QuickSetupScreen() {
         )
       );
 
-      // AŞAMA 2: Etiketi yazdır (printLabel)
-      if (activePrinterId) {
+      // AŞAMA 2: Etiketi yazdır (printLabel / executePrintJob)
+      if (activePrinterId || activePrinterIp) {
         try {
-          const printRes = await printLabel({
+          await executePrintJob({
             printerId: activePrinterId,
+            printerIp: activePrinterIp,
+            printerPort: activePrinterPort,
             barcode: scannedBarcode,
-            qrCode: scannedBarcode,
-            quantity: Math.max(1, Math.round(qtyVal)) // Etiket adet sayısına göre basılır
+            title: activeProduct.stockName || 'BLUEHUB ETİKET',
+            quantity: Math.max(1, Math.round(qtyVal)),
           });
-          if (printRes.cpclData && printRes.printerIp) {
-            await sendCpclToPrinter(printRes.printerIp, printRes.printerPort || 6101, printRes.cpclData);
-            showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
-          }
+          showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
         } catch (printErr: any) {
           showToast({ message: 'Etiket yazdırma hatası: ' + printErr.message, type: 'error' });
         }

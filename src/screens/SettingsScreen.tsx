@@ -17,12 +17,25 @@ export function SettingsScreen() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehousesLoading, setWarehousesLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const { activeWarehouseId, setActiveWarehouse } = useSettingsStore();
+  const {
+    activeWarehouseId,
+    setActiveWarehouse,
+    activePrinterId,
+    activePrinterName,
+    activePrinterIp,
+    activePrinterPort,
+    setCustomPrinterIpPort,
+  } = useSettingsStore();
 
   // API Sunucu Adresi state'leri
   const [currentApiUrl, setCurrentApiUrl] = useState('');
   const [showApiUrlModal, setShowApiUrlModal] = useState(false);
   const [newApiUrlInput, setNewApiUrlInput] = useState('');
+
+  // Yazıcı IP düzenleme state'leri
+  const [showPrinterIpModal, setShowPrinterIpModal] = useState(false);
+  const [printerIpInput, setPrinterIpInput] = useState('');
+  const [printerPortInput, setPrinterPortInput] = useState('6101');
 
   useEffect(() => {
     loadWarehouses();
@@ -45,6 +58,20 @@ export function SettingsScreen() {
     setCurrentApiUrl(trimmed);
     setShowApiUrlModal(false);
     showToast({ message: 'API sunucu adresi güncellendi', type: 'success' });
+  };
+
+  const handleSavePrinterIp = () => {
+    const trimmedIp = printerIpInput.trim();
+    const portNum = parseInt(printerPortInput.trim(), 10) || 6101;
+
+    if (!trimmedIp) {
+      showToast({ message: 'Lütfen geçerli bir IP adresi girin', type: 'error' });
+      return;
+    }
+
+    setCustomPrinterIpPort(trimmedIp, portNum);
+    setShowPrinterIpModal(false);
+    showToast({ message: 'Yazıcı IP ve Port adresi güncellendi', type: 'success' });
   };
 
   const loadWarehouses = async () => {
@@ -142,6 +169,38 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        {/* Terminal Yazıcı Ayarları */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Yazıcı Yapılandırması</Text>
+          <View style={styles.card}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Aktif Yazıcı</Text>
+              <Text style={styles.infoValue}>{activePrinterName || 'Seçilmemiş'}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Yazıcı IP / Port</Text>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}
+                onPress={() => {
+                  setPrinterIpInput(activePrinterIp || '');
+                  setPrinterPortInput(String(activePrinterPort || 6101));
+                  setShowPrinterIpModal(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[styles.infoValue, { color: Colors.primary, maxWidth: 160 }]}
+                  numberOfLines={1}
+                >
+                  {activePrinterIp ? `${activePrinterIp}:${activePrinterPort || 6101}` : 'IP Tanımsız'}
+                </Text>
+                <CustomIcon name="pencil" size={16} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
         {/* Uygulama Bilgileri & Sunucu Yapılandırması */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Uygulama & Sunucu</Text>
@@ -189,6 +248,93 @@ export function SettingsScreen() {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* Yazıcı IP / Port Düzenleme Modalı */}
+      <Modal
+        visible={showPrinterIpModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPrinterIpModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalIconContainer, { backgroundColor: Colors.secondaryContainer }]}>
+              <CustomIcon name="printer" size={28} color={Colors.onSecondaryContainer} />
+            </View>
+
+            <Text style={styles.modalTitle}>Yazıcı IP & Port Ayarı</Text>
+            <Text style={styles.modalMessage}>
+              Terminallerin etiket göndereceği yerel yazıcı IP adresini ve port numarasını ayarlayın:
+            </Text>
+
+            <View style={{ width: '100%', gap: Spacing.sm, marginBottom: Spacing.xl }}>
+              <Text style={{ ...Typography.labelMd, color: Colors.onSurfaceVariant }}>Yazıcı IP Adresi</Text>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: Colors.surfaceContainerLow,
+                borderRadius: BorderRadius.md,
+                borderWidth: 1,
+                borderColor: Colors.outlineVariant,
+                paddingHorizontal: Spacing.md,
+                height: 48,
+              }}>
+                <CustomIcon name="ip-network" size={20} color={Colors.outline} style={{ marginRight: Spacing.sm }} />
+                <TextInput
+                  style={{ flex: 1, ...Typography.bodyMd, color: Colors.onSurface, height: '100%' }}
+                  placeholder="örn: 192.168.1.200"
+                  placeholderTextColor={Colors.outline}
+                  value={printerIpInput}
+                  onChangeText={setPrinterIpInput}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <Text style={{ ...Typography.labelMd, color: Colors.onSurfaceVariant }}>Port (Varsayılan: 6101)</Text>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: Colors.surfaceContainerLow,
+                borderRadius: BorderRadius.md,
+                borderWidth: 1,
+                borderColor: Colors.outlineVariant,
+                paddingHorizontal: Spacing.md,
+                height: 48,
+              }}>
+                <CustomIcon name="numeric" size={20} color={Colors.outline} style={{ marginRight: Spacing.sm }} />
+                <TextInput
+                  style={{ flex: 1, ...Typography.bodyMd, color: Colors.onSurface, height: '100%' }}
+                  placeholder="6101"
+                  placeholderTextColor={Colors.outline}
+                  value={printerPortInput}
+                  onChangeText={setPrinterPortInput}
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowPrinterIpModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>İptal</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalConfirmButton, { backgroundColor: Colors.primary }]}
+                onPress={handleSavePrinterIp}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.modalConfirmText, { color: Colors.onPrimary }]}>Kaydet</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* API Sunucu Adresi Düzenleme Modalı */}
       <Modal
         visible={showApiUrlModal}
@@ -222,7 +368,7 @@ export function SettingsScreen() {
               <CustomIcon name="web" size={20} color={Colors.outline} style={{ marginRight: Spacing.sm }} />
               <TextInput
                 style={{ flex: 1, ...Typography.bodyMd, color: Colors.onSurface, height: '100%' }}
-                placeholder="https://arkship.posnetx.com/api"
+                placeholder="https://api.blackskyqore.com/api"
                 placeholderTextColor={Colors.outline}
                 value={newApiUrlInput}
                 onChangeText={setNewApiUrlInput}

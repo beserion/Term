@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -101,7 +101,7 @@ export function BinQueryScreen() {
     } else {
       // Product barcode scan
       const matched = stocksList.find(
-        (s) => s.barCode === scannedCode || s.stockCode === scannedCode
+        (s) => s.barCode === scannedCode || s.stockCode === scannedCode || s.qrCode === scannedCode
       );
       if (matched) {
         handleFetchProductLocations(matched);
@@ -114,7 +114,16 @@ export function BinQueryScreen() {
 
   const filteredStocks = stocksList.filter((item) => {
     if (!searchQuery.trim()) return true;
-    const text = [item.stockName, item.stockNameTr, item.stockCode, item.barCode].filter(Boolean).join(' ');
+    const text = [
+      item.barCode,
+      item.qrCode,
+      item.stockCode,
+      item.stockName,
+      item.stockNameTr,
+      item.brand,
+      item.model,
+      item.description
+    ].filter(Boolean).join(' ');
     return flexMatch(text, searchQuery);
   });
 

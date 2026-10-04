@@ -171,5 +171,6 @@ const styles = StyleSheet.create({
     ...Typography.titleLg,
     color: Colors.onPrimary,
     fontWeight: 'bold',
+    paddingHorizontal: 8,
   }
 });

@@ -1,0 +1,1359 @@
+{
+  "/files/view-terminal": {
+    "get": {
+      "tags": [
+        "Files"
+      ],
+      "parameters": [
+        {
+          "name": "fileName",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "width",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "format": "int32",
+            "default": 100
+          }
+        },
+        {
+          "name": "format",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "default": "ascii"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Orderlist": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "companyId",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          }
+        },
+        {
+          "name": "kriter",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "startRow",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          }
+        },
+        {
+          "name": "endRow",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "format": "int32",
+            "default": 100
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Warehouses": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stocks": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "search",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stocks/Search": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "query",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stock/QrCode": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "string"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "type": "string"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/StockOnHand/{warehouseId}": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "warehouseId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/StockOnHand/{warehouseId}/{stockId}": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "warehouseId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        {
+          "name": "stockId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/GoodsReceipt": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/GoodsIssue": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/StockTransfer": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalGoodsTransactionDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/CycleCount/List": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/CycleCount/Start": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountStartDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountStartDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountStartDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/CycleCount/SaveItem": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/CycleCount/Complete": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCycleCountItemDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stock/UpdateShelf": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalUpdateShelfDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalUpdateShelfDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalUpdateShelfDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stock/UpdateBarcode": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalUpdateBarcodeDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalUpdateBarcodeDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalUpdateBarcodeDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Settings/PrintLabel": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalPrintLabelDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalPrintLabelDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalPrintLabelDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stock/Add": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stock/Update": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Orders/List": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Orders/Details": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Orders/{orderId}/Suppliers": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "orderId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Orders/{orderId}/Supplier/{supplierId}/Details": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "orderId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        {
+          "name": "supplierId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/save-picking": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDApi.Controllers.SavePickingRequestDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/save-order-supplier-receipt": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalOrderReceiptDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalOrderReceiptDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalOrderReceiptDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Delivery/List": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Delivery/Details": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/ToDo/List": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Task/UpdateStatus": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalTaskUpdateDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalTaskUpdateDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalTaskUpdateDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Settings/Printers": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/ActiveOrders": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/BoardData/{id}": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/CreateBox": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCreateBoxDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCreateBoxDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCreateBoxDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/CreatePallet": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCreatePalletDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCreatePalletDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalCreatePalletDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/AssignItem": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalAssignItemDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalAssignItemDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalAssignItemDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/AssignBoxToPallet": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalAssignBoxToPalletDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalAssignBoxToPalletDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalAssignBoxToPalletDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/RemoveItem/{id}": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/DeleteBox/{id}": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/DeletePallet/{id}": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Packing/ProcessBarcode": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalProcessBarcodeDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalProcessBarcodeDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalProcessBarcodeDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Location/Scan/{code}": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "code",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Location/StockLocations/{stockId}": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "stockId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Location/Transfer": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.BinTransferDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.BinTransferDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.BinTransferDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Location/Putaway": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.StockLocation"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.StockLocation"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.StockLocation"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Location/Pick": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.BinTransferDto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.BinTransferDto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.BinTransferDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Location/PickingSuggestion/{stockId}": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "stockId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        {
+          "name": "requiredQty",
+          "in": "query",
+          "schema": {
+            "type": "number",
+            "format": "double",
+            "default": 1
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/ViewImage": {
+    "get": {
+      "tags": [
+        "Terminal"
+      ],
+      "parameters": [
+        {
+          "name": "fileName",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "width",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "format": "int32",
+            "default": 100
+          }
+        },
+        {
+          "name": "format",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "default": "ascii"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stock/UploadImage": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "stockId": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "file": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "encoding": {
+              "stockId": {
+                "style": "form"
+              },
+              "file": {
+                "style": "form"
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/terminal/Inventory/Stock/UploadImageBase64": {
+    "post": {
+      "tags": [
+        "Terminal"
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockImageBase64Dto"
+            }
+          },
+          "text/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockImageBase64Dto"
+            }
+          },
+          "application/*+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EDModels.TerminalStockImageBase64Dto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    }
+  }
+}

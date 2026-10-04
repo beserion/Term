@@ -45,8 +45,8 @@ export function DashboardScreen() {
     },
     {
       title: 'Mal Kabul',
-      icon: 'plus-circle' as const,
-      onPress: () => navigation.navigate('StockIncrease'),
+      icon: 'truck-delivery-outline' as const,
+      onPress: () => navigation.navigate('ReceivingStack'),
     },
     {
       title: 'Mal Çıkış',
@@ -70,13 +70,13 @@ export function DashboardScreen() {
     },
     {
       title: 'Depo Transferi',
-      icon: 'truck-delivery-outline' as const,
+      icon: 'swap-horizontal' as const,
       onPress: () => navigation.navigate('StockTransfer'),
     },
     {
-      title: 'Siparişler',
-      icon: 'clipboard-list-outline' as const,
-      onPress: () => navigation.navigate('ReceivingStack'),
+      title: 'Manuel Giriş',
+      icon: 'plus-circle' as const,
+      onPress: () => navigation.navigate('StockIncrease'),
     },
     {
       title: 'Barkod Eşleme',

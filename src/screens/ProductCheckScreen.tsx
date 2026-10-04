@@ -8,7 +8,7 @@ import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { useBarcode } from '../hooks/useBarcode';
 import { getStockByBarcode, getStocks, Stock, uploadImage, updateStockBarcode, printLabel, getPrinters, PrinterDto } from '../services/inventory';
-import { sendCpclToPrinter } from '../services/printHelper';
+import { sendCpclToPrinter, executePrintJob } from '../services/printHelper';
 import { useSettingsStore } from '../store/settingsStore';
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
@@ -35,7 +35,7 @@ export function ProductCheckScreen() {
   const [fullApiUrl, setFullApiUrl] = useState('');
   const [authToken, setAuthToken] = useState<string | null>(null);
 
-  const { activePrinterId, activePrinterName, setActivePrinter } = useSettingsStore();
+  const { activePrinterId, activePrinterName, activePrinterIp, activePrinterPort, setActivePrinter } = useSettingsStore();
   const [printing, setPrinting] = useState(false);
   const [showPrinterModal, setShowPrinterModal] = useState(false);
   const [printers, setPrinters] = useState<PrinterDto[]>([]);
@@ -47,7 +47,7 @@ export function ProductCheckScreen() {
       const list = await getPrinters();
       setPrinters(list);
       if (list.length > 0 && activePrinterId === null) {
-        setActivePrinter(list[0].id, list[0].name);
+        setActivePrinter(list[0].id, list[0].name, list[0].ipAddress, list[0].port);
       }
     } catch (err) {
       console.error("Yazıcılar yüklenemedi:", err);
@@ -66,7 +66,7 @@ export function ProductCheckScreen() {
     const prod = targetProduct || product;
     if (!prod) return;
 
-    if (activePrinterId === null) {
+    if (activePrinterId === null && !activePrinterIp) {
       showToast({ message: 'Lütfen önce bir yazıcı seçin.', type: 'info' });
       handleOpenPrinterModal();
       return;
@@ -80,18 +80,15 @@ export function ProductCheckScreen() {
 
     setPrinting(true);
     try {
-      const result = await printLabel({
+      await executePrintJob({
         printerId: activePrinterId,
+        printerIp: activePrinterIp,
+        printerPort: activePrinterPort,
         barcode: codeToPrint,
-        qrCode: codeToPrint,
+        title: prod.stockName || 'BLUEHUB ETİKET',
         quantity: 1,
       });
 
-      if (!result.cpclData || !result.printerIp) {
-        throw new Error('API\'den CPCL veri veya IP adresi dönmedi.');
-      }
-
-      await sendCpclToPrinter(result.printerIp, result.printerPort || 6101, result.cpclData);
       showToast({ message: 'Etiket yazıcıya başarıyla gönderildi.', type: 'success' });
       FeedbackService.playSuccess();
     } catch (err: any) {
@@ -179,10 +176,11 @@ export function ProductCheckScreen() {
 
     setNotFoundBarcode(null);
 
-    // 1. Önce lokal stocks listesinden barkod veya kod tam eşleşmesi arayalım (normalize edilmiş olarak)
+    // 1. Önce lokal stocks listesinden barkod, qrcode veya stok kodu tam eşleşmesi arayalım (normalize edilmiş olarak)
     const normalizedScanned = normalizeText(scannedBarcode);
     const matchedLocal = stocks.find(
       s => (s.barCode && normalizeText(s.barCode) === normalizedScanned) || 
+           (s.qrCode && normalizeText(s.qrCode) === normalizedScanned) ||
            (s.stockCode && normalizeText(s.stockCode) === normalizedScanned)
     );
 
@@ -198,6 +196,36 @@ export function ProductCheckScreen() {
       return;
     }
 
+    // 2. Lokal listede barkod, qrcode, stok kodu, ürün adı, marka, model, türkçe adı veya açıklamada eşleşme ara
+    const partialMatches = stocks.filter((item) => {
+      const searchString = [
+        item.barCode,
+        item.qrCode,
+        item.stockCode,
+        item.stockName,
+        item.stockNameTr,
+        item.brand,
+        item.model,
+        item.description,
+        item.remarks,
+        item.impaCode,
+        item.partNo,
+      ].filter(Boolean).join(' ');
+      return flexMatch(searchString, scannedBarcode);
+    });
+
+    if (partialMatches.length === 1) {
+      setProduct(partialMatches[0]);
+      setNotFoundBarcode(null);
+      FeedbackService.playLightImpact();
+      return;
+    } else if (partialMatches.length > 1) {
+      setSearchQuery(scannedBarcode);
+      setShowSearchModal(true);
+      return;
+    }
+
+    // 3. Lokal eşleşme yoksa backend API'yi çağır
     try {
       const data = await getStockByBarcode(scannedBarcode);
       if (data && data.id && data.id !== 0) {
@@ -209,7 +237,7 @@ export function ProductCheckScreen() {
         setNotFoundBarcode(scannedBarcode);
         setSearchQuery(scannedBarcode);
         setShowSearchModal(true);
-        showToast({ message: 'Barkod bulunamadı. Eşleştirmek için arayın.', type: 'info' });
+        showToast({ message: 'Eşleşen ürün bulunamadı. Aramayı genişletebilirsiniz.', type: 'info' });
         FeedbackService.playError();
       }
     } catch {
@@ -217,7 +245,7 @@ export function ProductCheckScreen() {
       setNotFoundBarcode(scannedBarcode);
       setSearchQuery(scannedBarcode);
       setShowSearchModal(true);
-      showToast({ message: 'Barkod bulunamadı. Listeden seçebilirsiniz.', type: 'error' });
+      showToast({ message: 'Ürün bulunamadı. Listeden arayabilirsiniz.', type: 'error' });
       FeedbackService.playError();
     }
   };
@@ -227,46 +255,82 @@ export function ProductCheckScreen() {
 
   const handleManualSearch = () => {
     const term = manualBarcode.trim();
-    if (term.length >= 1) {
-      const isNumeric = /^\d+$/.test(term);
-      if (isNumeric) {
-        handleScan(term);
-        setManualBarcode('');
-      } else {
-        setSearchQuery(term);
-        setShowSearchModal(true);
-        setManualBarcode('');
-      }
+    if (!term) return;
+
+    const normalized = normalizeText(term);
+
+    // 1. Önce tam eşleşen barkod, qrcode veya stok kodu var mı?
+    const exactMatch = stocks.find(
+      s => (s.barCode && normalizeText(s.barCode) === normalized) ||
+           (s.qrCode && normalizeText(s.qrCode) === normalized) ||
+           (s.stockCode && normalizeText(s.stockCode) === normalized)
+    );
+
+    if (exactMatch) {
+      setProduct(exactMatch);
+      setNotFoundBarcode(null);
+      setManualBarcode('');
+      FeedbackService.playSuccess();
+      return;
+    }
+
+    // 2. Tüm alanlarda flexMatch ile ara: barkod, qrcode, stockkodu, stokadı, marka, model, türkçe adı, açıklama
+    const matches = stocks.filter((item) => {
+      const searchString = [
+        item.barCode,
+        item.qrCode,
+        item.stockCode,
+        item.stockName,
+        item.stockNameTr,
+        item.brand,
+        item.model,
+        item.description,
+        item.remarks,
+        item.impaCode,
+        item.partNo,
+      ].filter(Boolean).join(' ');
+      return flexMatch(searchString, term);
+    });
+
+    if (matches.length === 1) {
+      setProduct(matches[0]);
+      setNotFoundBarcode(null);
+      setManualBarcode('');
+      FeedbackService.playSuccess();
+    } else {
+      // 0 veya birden çok sonuçta arama modalını aç
+      setSearchQuery(term);
+      setShowSearchModal(true);
+      setManualBarcode('');
     }
   };
 
   useEffect(() => {
     const term = manualBarcode.trim();
-    if (term.length >= 4) {
-      const isNumeric = /^\d+$/.test(term);
-      if (isNumeric) {
-        const timeout = setTimeout(() => {
-          handleManualSearch();
-        }, 500);
-        return () => clearTimeout(timeout);
-      } else {
-        setSearchQuery(term);
-        setShowSearchModal(true);
-        setManualBarcode('');
-      }
+    if (term.length >= 3) {
+      const timeout = setTimeout(() => {
+        handleManualSearch();
+      }, 600);
+      return () => clearTimeout(timeout);
     }
   }, [manualBarcode]);
 
-  // Arama modalındaki filtreleme mantığı (flexMatch kullanarak)
+  // Arama filtreleme mantığı: barkod, qrcode, stockkodu, stokadı, marka, model, türkçe adı, açıklama
   const filteredStocks = stocks.filter((item) => {
     if (!searchQuery.trim()) return true;
     const searchString = [
+      item.barCode,
+      item.qrCode,
+      item.stockCode,
       item.stockName,
       item.stockNameTr,
-      item.stockCode,
       item.brand,
       item.model,
-      item.impaCode
+      item.description,
+      item.remarks,
+      item.impaCode,
+      item.partNo,
+      item.shelfAddress,
     ].filter(Boolean).join(' ');
     return flexMatch(searchString, searchQuery);
   });
@@ -289,7 +353,7 @@ export function ProductCheckScreen() {
         <View style={styles.manualInputRow}>
           <TextInput
             style={styles.manualInput}
-            placeholder="Manuel barkod girin..."
+            placeholder="Barkod, QR, stok kodu, adı, marka, açıklama..."
             placeholderTextColor={Colors.outline}
             value={manualBarcode}
             onChangeText={setManualBarcode}
@@ -363,7 +427,17 @@ export function ProductCheckScreen() {
                 <Text style={styles.dataCellValue}>{product.stockCode || '-'}</Text>
               </View>
               <View style={styles.dataCell}>
-                <Text style={styles.dataCellLabel}>KONUM</Text>
+                <Text style={styles.dataCellLabel}>BARKOD</Text>
+                <Text style={styles.dataCellValue}>{product.barCode || '-'}</Text>
+              </View>
+              {product.qrCode ? (
+                <View style={styles.dataCell}>
+                  <Text style={styles.dataCellLabel}>QR KOD</Text>
+                  <Text style={styles.dataCellValue}>{product.qrCode}</Text>
+                </View>
+              ) : null}
+              <View style={styles.dataCell}>
+                <Text style={styles.dataCellLabel}>KONUM / RAF</Text>
                 <Text style={styles.dataCellValue}>{product.shelfAddress || '-'}</Text>
               </View>
               {product.brand ? (
@@ -378,10 +452,20 @@ export function ProductCheckScreen() {
                   <Text style={styles.dataCellValue}>{product.model}</Text>
                 </View>
               ) : null}
-              <View style={styles.dataCell}>
-                <Text style={styles.dataCellLabel}>IMPA KODU</Text>
-                <Text style={styles.dataCellValue}>{product.impaCode || '-'}</Text>
-              </View>
+              {product.impaCode ? (
+                <View style={styles.dataCell}>
+                  <Text style={styles.dataCellLabel}>IMPA KODU</Text>
+                  <Text style={styles.dataCellValue}>{product.impaCode}</Text>
+                </View>
+              ) : null}
+              {product.description || product.remarks ? (
+                <View style={styles.dataCellFull}>
+                  <Text style={styles.dataCellLabel}>AÇIKLAMA</Text>
+                  <Text style={[styles.dataCellValue, { fontSize: 12, lineHeight: 18 }]}>
+                    {product.description || product.remarks}
+                  </Text>
+                </View>
+              ) : null}
               <View style={styles.dataCellFull}>
                 <View style={styles.stockRow}>
                   <View>
@@ -517,9 +601,9 @@ export function ProductCheckScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.modalTitleText}>Ürün Seçin</Text>
               {searchQuery ? (
-                <Text style={styles.modalSubtitleText}>Arama: "{searchQuery}" için sonuçlar</Text>
+                <Text style={styles.modalSubtitleText}>"{searchQuery}" için {filteredStocks.length} sonuç bulundu</Text>
               ) : (
-                <Text style={styles.modalSubtitleText}>Esnek arama yapmak için yazın</Text>
+                <Text style={styles.modalSubtitleText}>Barkod, QR, stok kodu, adı, marka, model, açıklama ile arayın</Text>
               )}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -546,7 +630,7 @@ export function ProductCheckScreen() {
           <View style={styles.modalSearchRow}>
             <TextInput
               style={styles.modalSearchInput}
-              placeholder="Ürün adı veya stok kodu ile ara..."
+              placeholder="Barkod, QR, stok kodu, adı, marka, model, açıklama..."
               placeholderTextColor={Colors.outline}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -577,12 +661,20 @@ export function ProductCheckScreen() {
                     <Text style={styles.modalItemNameTr}>{item.stockNameTr}</Text>
                   ) : null}
                   <Text style={styles.modalItemCode}>
-                    {item.stockCode || 'KODSUZ'} {item.barCode ? `| ${item.barCode}` : '| BARKODSUZ'}
+                    {item.stockCode || 'KODSUZ'}
+                    {item.barCode ? ` | Barkod: ${item.barCode}` : ''}
+                    {item.qrCode ? ` | QR: ${item.qrCode}` : ''}
                     {item.brand ? (
                       <> | <Text style={styles.modalItemBrand}>{item.brand}</Text></>
                     ) : null}
                     {item.model ? ` | ${item.model}` : ''}
+                    {item.shelfAddress ? ` | Raf: ${item.shelfAddress}` : ''}
                   </Text>
+                  {item.description || item.remarks ? (
+                    <Text style={styles.modalItemDesc} numberOfLines={1}>
+                      Açıklama: {item.description || item.remarks}
+                    </Text>
+                  ) : null}
                 </View>
                 <CustomIcon name="chevron-right" size={16} color={Colors.outline} />
               </TouchableOpacity>
@@ -1128,6 +1220,12 @@ const styles = StyleSheet.create({
     ...Typography.bodySm,
     color: Colors.onSurfaceVariant,
     marginTop: 3,
+  },
+  modalItemDesc: {
+    ...Typography.bodySm,
+    fontSize: 11,
+    color: Colors.outline,
+    marginTop: 2,
   },
   emptyList: {
     padding: Spacing.xl,

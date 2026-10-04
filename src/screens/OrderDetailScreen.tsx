@@ -1,12 +1,29 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, Text, TouchableOpacity, TextInput, Modal, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
-import { getOrderDetail, getSupplierOrderDetail, Order, OrderLine, saveOrderSupplierReceipt } from '../services/orders';
-import { getStockByBarcode } from '../services/inventory';
+import {
+  getOrderDetail,
+  getSupplierOrderDetail,
+  Order,
+  OrderLine,
+  saveOrderSupplierReceipt,
+} from '../services/orders';
+import { getStockByBarcode, getStocks, getShelfAddressForCode } from '../services/inventory';
 import { useUIStore } from '../store/uiStore';
 import { useBarcode } from '../hooks/useBarcode';
 import { useSettingsStore } from '../store/settingsStore';
@@ -18,27 +35,33 @@ import { CameraScannerModal } from '../components/CameraScannerModal';
 export function OrderDetailScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { orderId, supplierId, supplierName } = route.params || {};
+  const { orderId, supplierId, supplierName, documentNo, partnerName, rfqNo, vesselName } = route.params || {};
+
   const [detail, setDetail] = useState<Order | null>(null);
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [barcode, setBarcode] = useState('');
   const [showCameraScanner, setShowCameraScanner] = useState(false);
-  
-  // Modal States
-  const [showModal, setShowModal] = useState(false);
-  const [selectedLine, setSelectedLine] = useState<OrderLine | null>(null);
-  const [qtyInput, setQtyInput] = useState('');
 
   // Uyuşmazlık Modali States
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false);
-  const [discrepancyList, setDiscrepancyList] = useState<Array<{ name: string, ordered: number, picked: number, type: 'missing' | 'extra' }>>([]);
+  const [discrepancyList, setDiscrepancyList] = useState<
+    Array<{ name: string; ordered: number; received: number; type: 'missing' | 'extra' }>
+  >([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Hızlı miktar modalı (opsiyonel büyük tuş takımı veya tekli düzenleme için)
+  const [showQtyModal, setShowQtyModal] = useState(false);
+  const [selectedLine, setSelectedLine] = useState<OrderLine | null>(null);
+  const [modalQtyInput, setModalQtyInput] = useState('');
 
   const showToast = useUIStore((s) => s.showToast);
   const showErrorLock = useUIStore((s) => s.showErrorLock);
   const { activeWarehouseId } = useSettingsStore();
 
+  const storageKey = `@order_receipt_${orderId}_${supplierId || 0}`;
+
+  // Detay Verilerini Getir
   const fetchDetail = useCallback(async () => {
     try {
       setRefreshing(true);
@@ -46,60 +69,172 @@ export function OrderDetailScreen() {
         ? await getSupplierOrderDetail(orderId, supplierId)
         : await getOrderDetail(orderId);
       setDetail(data);
-      if (data.lines) {
-        // Telefon hafızasında (AsyncStorage) kayıtlı toplanan miktarları yükle
-        const storageKey = `@order_picking_${orderId}_${supplierId || 0}`;
-        const savedDataStr = await AsyncStorage.getItem(storageKey);
-        const savedPickedMap = savedDataStr ? JSON.parse(savedDataStr) : {};
 
-        setLines(data.lines.map(line => {
+      if (data.lines) {
+        // Telefon hafızasındaki (AsyncStorage) kayıtlı kabul miktarlarını yükle
+        const savedDataStr = await AsyncStorage.getItem(storageKey);
+        const savedMap = savedDataStr ? JSON.parse(savedDataStr) : {};
+
+        // Sunucudan gelen zenginleştirilmiş satırları doğrudan eşle (N+1 döngüsü olmadan)
+        const updatedLines = data.lines.map((line) => {
           const key = String(line.id);
-          const pickedQty = savedPickedMap[key] !== undefined ? savedPickedMap[key] : 0;
+          const pickedQty = savedMap[key] !== undefined ? savedMap[key] : (line.receivedQty || 0);
           return {
             ...line,
             pickedQty,
-            isPicked: pickedQty === line.quantity
+            isPicked: pickedQty === line.quantity && line.quantity > 0,
+            shelfAddress: (line.shelfAddress && line.shelfAddress !== 'Tanımsız') ? line.shelfAddress : 'Tanımsız',
           };
-        }));
+        });
+        setLines(updatedLines);
+
+        // Eğer sunucudaki tüm satırlar zaten teslim alınmışsa tedarikçi bazında hafızaya işaretle
+        const serverAllReceived = data.lines.length > 0 && data.lines.every((l) => (l.receivedQty || 0) >= l.quantity && l.quantity > 0);
+        if (serverAllReceived) {
+          AsyncStorage.setItem(`@order_receipt_completed_${orderId}_${supplierId || 0}`, 'true').catch(() => {});
+        }
       }
     } catch {
-      showToast({ message: 'Sipariş detayı yüklenemedi', type: 'error' });
+      showToast({ message: 'Sipariş detayları yüklenemedi', type: 'error' });
     } finally {
       setRefreshing(false);
     }
-  }, [orderId, supplierId]);
+  }, [orderId, supplierId, storageKey]);
 
   useEffect(() => {
     fetchDetail();
   }, [fetchDetail]);
 
+  // Yerel hafızaya miktar haritasını kaydet
+  const persistLinesToStorage = async (updatedLines: OrderLine[]) => {
+    try {
+      const map: Record<string, number> = {};
+      updatedLines.forEach((l) => {
+        map[String(l.id)] = l.pickedQty || 0;
+      });
+      await AsyncStorage.setItem(storageKey, JSON.stringify(map));
+    } catch (err) {
+      console.error('AsyncStorage kaydetme hatası:', err);
+    }
+  };
+
+  // Miktarı doğrudan güncelle
+  const updateLineQty = (lineId: number, newQty: number) => {
+    const validQty = Math.max(0, isNaN(newQty) ? 0 : newQty);
+    setLines((prev) => {
+      const updated = prev.map((line) => {
+        if (line.id === lineId) {
+          return {
+            ...line,
+            pickedQty: validQty,
+            isPicked: validQty === line.quantity,
+          };
+        }
+        return line;
+      });
+      persistLinesToStorage(updated);
+      return updated;
+    });
+  };
+
+  // Tüm satırların miktarını tek dokunuşla sipariş miktarına eşitle
+  const handleFillAll = () => {
+    Alert.alert(
+      'Tümünü Doldur',
+      'Tüm ürünlerin gelen miktarları beklenen sipariş miktarına eşitlensin mi?',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Evet, Doldur',
+          onPress: () => {
+            setLines((prev) => {
+              const updated = prev.map((line) => ({
+                ...line,
+                pickedQty: line.quantity,
+                isPicked: true,
+              }));
+              persistLinesToStorage(updated);
+              return updated;
+            });
+            FeedbackService.playSuccess();
+            showToast({ message: 'Tüm ürünler tam miktar olarak işaretlendi.', type: 'success' });
+          },
+        },
+      ]
+    );
+  };
+
+  // Sıfırla
+  const handleResetAll = () => {
+    Alert.alert(
+      'Miktarları Sıfırla',
+      'Girilen tüm gelen miktarlar sıfırlanacak. Emin misiniz?',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Sıfırla',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem(storageKey);
+              setLines((prev) =>
+                prev.map((line) => ({
+                  ...line,
+                  pickedQty: 0,
+                  isPicked: false,
+                }))
+              );
+              FeedbackService.playLightImpact();
+              showToast({ message: 'Gelen miktarlar sıfırlandı.', type: 'info' });
+            } catch (err) {
+              console.error('Sıfırlama hatası:', err);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Barkod Okutma
   const handleScan = async (scannedCode: string) => {
-    if (!lines || lines.length === 0) return;
-    
-    // 1. Önce yerel olarak Sipariş kalemlerinde ara
-    let matchedIndex = lines.findIndex(l => l.stockCode === scannedCode || l.stockId.toString() === scannedCode);
-    
-    // 2. Yerelde bulunamazsa, API'den (barkod/karekod sorgusu) ara
+    if (!scannedCode || !lines || lines.length === 0) return;
+    const cleanCode = scannedCode.trim();
+
+    // 1. Yerel satırlarda ara (stockCode, stockId veya barkod)
+    let matchedIndex = lines.findIndex(
+      (l) =>
+        (l.stockCode && l.stockCode.toLowerCase() === cleanCode.toLowerCase()) ||
+        String(l.stockId) === cleanCode
+    );
+
+    // 2. Bulunamazsa API barkod sorgusundan ara
     if (matchedIndex === -1) {
       try {
-        const stockData = await getStockByBarcode(scannedCode);
+        const stockData = await getStockByBarcode(cleanCode);
         if (stockData && stockData.stockCode) {
-          matchedIndex = lines.findIndex(l => l.stockCode === stockData.stockCode);
+          const sc = stockData.stockCode.toLowerCase();
+          matchedIndex = lines.findIndex(
+            (l) => l.stockCode && l.stockCode.toLowerCase() === sc
+          );
         }
-      } catch (err) {
-        // API hatası durumunda devam et, altta bulunamadı uyarısı verilecek
+      } catch {
+        // Yok say
       }
     }
-    
+
     if (matchedIndex !== -1) {
       const line = lines[matchedIndex];
-      setSelectedLine(line);
-      setQtyInput(line.pickedQty ? String(line.pickedQty) : '');
-      setShowModal(true);
+      const currentQty = line.pickedQty || 0;
+      const nextQty = currentQty + 1;
+      updateLineQty(line.id, nextQty);
       FeedbackService.playSuccess();
+      showToast({
+        message: `${line.stockName}: +1 eklendi (${nextQty}/${line.quantity})`,
+        type: 'success',
+      });
     } else {
       FeedbackService.playError();
-      showErrorLock('Okuttuğunuz ürün bu tedarikçinin sipariş kalemlerinde bulunamadı!');
+      showErrorLock('Okutulan barkod bu tedarikçinin sipariş kalemlerinde bulunamadı!');
     }
   };
 
@@ -115,80 +250,46 @@ export function OrderDetailScreen() {
     }
   }, [barcode]);
 
-  const handleSaveQty = async () => {
-    if (!selectedLine) return;
-    const parsedQty = parseInt(qtyInput, 10);
-    const finalQty = isNaN(parsedQty) || parsedQty < 0 ? 0 : parsedQty;
-    
-    const updatedLines = lines.map(line => {
-      const isIdMatch = String(line.id) === String(selectedLine.id);
-      const isCodeMatch = line.stockCode && line.stockCode === selectedLine.stockCode;
-      
-      if (isIdMatch || isCodeMatch) {
-        return {
-          ...line,
-          pickedQty: finalQty,
-          isPicked: finalQty === line.quantity
-        };
-      }
-      return line;
-    });
-    
-    setLines(updatedLines);
-    setShowModal(false);
-    FeedbackService.playSuccess();
-    showToast({ 
-      message: `${selectedLine.stockName} miktarı güncellendi: ${finalQty}/${selectedLine.quantity}`, 
-      type: 'success' 
-    });
-
-    // Telefon hafızasını güncelle
-    try {
-      const storageKey = `@order_picking_${orderId}_${supplierId || 0}`;
-      const savedDataStr = await AsyncStorage.getItem(storageKey);
-      const savedPickedMap = savedDataStr ? JSON.parse(savedDataStr) : {};
-      savedPickedMap[String(selectedLine.id)] = finalQty;
-      await AsyncStorage.setItem(storageKey, JSON.stringify(savedPickedMap));
-    } catch (err) {
-      console.error('AsyncStorage kaydetme hatası:', err);
-    }
-  };
-
-  const handleClearPicking = async () => {
-    try {
-      const storageKey = `@order_picking_${orderId}_${supplierId || 0}`;
-      await AsyncStorage.removeItem(storageKey);
-      setLines(prev => prev.map(line => ({ ...line, pickedQty: 0, isPicked: false })));
-      showToast({ message: 'Tüm toplanan miktarlar sıfırlandı.', type: 'info' });
-      FeedbackService.playLightImpact();
-    } catch (err) {
-      console.error('AsyncStorage temizleme hatası:', err);
-    }
-  };
-
-  const handleCompletePicking = () => {
-    if (!activeWarehouseId) {
-      showToast({ message: 'Lütfen ayarlardan terminal deposunu seçin', type: 'error' });
+  // Mal Kabulü Kaydetme İşlemi
+  const handleSaveReceipt = () => {
+    if (isAlreadyFullyReceived) {
+      Alert.alert(
+        'Mal Kabul Tamamlandı',
+        'Bu tedarikçiye ait tüm ürünlerin mal kabulü daha önce tamamlanmıştır. Tekrar mal kabul fişi oluşturulamaz.',
+        [{ text: 'Tamam', onPress: () => navigation.goBack() }]
+      );
       return;
     }
 
+    if (!activeWarehouseId) {
+      showToast({ message: 'Lütfen ayarlardan aktif terminal deposunu seçin', type: 'error' });
+      return;
+    }
+
+    const totalReceived = lines.reduce((acc, l) => acc + (l.pickedQty || 0), 0);
+    if (totalReceived === 0) {
+      showToast({ message: 'Lütfen en az bir ürün için gelen miktar giriniz.', type: 'info' });
+      return;
+    }
+
+    // Uyuşmazlık kontrolü
     const discrepancies: typeof discrepancyList = [];
-    lines.forEach(line => {
-      const picked = line.pickedQty || 0;
+    lines.forEach((line) => {
+      const received = line.pickedQty || 0;
       const ordered = line.quantity;
-      if (picked < ordered) {
+      if (received < ordered) {
         discrepancies.push({
           name: line.stockName,
           ordered,
-          picked,
-          type: 'missing'
+          received,
+          type: 'missing',
         });
-      } else if (picked > ordered) {
+      } else if (received > ordered) {
         discrepancies.push({
           name: line.stockName,
           ordered,
-          picked,
-          type: 'extra'
+          received,
+          type: 'extra',
         });
       }
     });
@@ -209,26 +310,27 @@ export function OrderDetailScreen() {
         orderId: Number(orderId),
         supplierId: Number(supplierId),
         warehouseId: Number(activeWarehouseId),
-        remarks: 'Terminal Toplama Fişi',
+        remarks: 'Terminal Mal Kabul Fişi',
         lines: lines
-          .filter(line => (line.pickedQty || 0) > 0)
-          .map(line => ({
+          .filter((line) => (line.pickedQty || 0) > 0)
+          .map((line) => ({
             orderDetailId: Number(line.id),
-            receivedQty: Number(line.pickedQty)
-          }))
+            receivedQty: Number(line.pickedQty),
+          })),
       };
 
       await saveOrderSupplierReceipt(payload);
 
-      // Başarılı kayıttan sonra yerel hafızayı temizle
-      const storageKey = `@order_picking_${orderId}_${supplierId || 0}`;
+      // Başarılı kayıttan sonra yerel hafızayı temizle ve yalnızca ilgili tedarikçi için mal kabul yapıldı olarak işaretle
       await AsyncStorage.removeItem(storageKey);
+      await AsyncStorage.setItem(`@order_receipt_completed_${orderId}_${supplierId || 0}`, 'true');
+      await AsyncStorage.removeItem(`@order_receipt_completed_${orderId}`).catch(() => {});
 
-      showToast({ message: 'Sipariş kabulü başarıyla kaydedildi.', type: 'success' });
+      showToast({ message: 'Mal kabul işlemi başarıyla kaydedildi.', type: 'success' });
       FeedbackService.playSuccess();
       navigation.goBack();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Sipariş kabulü kaydedilemedi.';
+      const msg = err.response?.data?.message || err.message || 'Mal kabul kaydedilemedi.';
       showToast({ message: msg, type: 'error' });
       FeedbackService.playError();
     } finally {
@@ -236,152 +338,259 @@ export function OrderDetailScreen() {
     }
   };
 
-  const totalRequired = lines.reduce((acc, l) => acc + l.quantity, 0);
-  const totalPicked = lines.reduce((acc, l) => acc + (l.pickedQty || 0), 0);
-  const isComplete = totalRequired > 0 && totalPicked === totalRequired;
-
-  const getCardStyle = (item: OrderLine) => {
-    const picked = item.pickedQty || 0;
-    const required = item.quantity;
-    
-    if (picked === 0) {
-      return styles.productCard;
-    }
-    if (picked < required) {
-      return [styles.productCard, styles.productCardUnder];
-    }
-    if (picked > required) {
-      return [styles.productCard, styles.productCardOver];
-    }
-    return [styles.productCard, styles.productCardMatch];
-  };
-
-  const getStatusIconInfo = (item: OrderLine) => {
-    const picked = item.pickedQty || 0;
-    const required = item.quantity;
-    
-    if (picked === 0) {
-      return { name: "package-variant-closed" as const, color: Colors.primary };
-    }
-    if (picked < required) {
-      return { name: "minus-circle-outline" as const, color: Colors.error };
-    }
-    if (picked > required) {
-      return { name: "plus-circle-outline" as const, color: Colors.warning };
-    }
-    return { name: "check-circle" as const, color: Colors.success };
-  };
-
-  const getQtyPickedStyle = (item: OrderLine) => {
-    const picked = item.pickedQty || 0;
-    const required = item.quantity;
-    
-    if (picked === 0) {
-      return styles.qtyPicked;
-    }
-    if (picked < required) {
-      return [styles.qtyPicked, { color: Colors.error }];
-    }
-    if (picked > required) {
-      return [styles.qtyPicked, { color: Colors.warning }];
-    }
-    return [styles.qtyPicked, { color: Colors.success }];
-  };
+  // İstatistikler
+  const totalOrdered = lines.reduce((acc, l) => acc + l.quantity, 0);
+  const totalReceived = lines.reduce((acc, l) => acc + (l.pickedQty || 0), 0);
+  const completedLinesCount = lines.filter((l) => (l.pickedQty || 0) >= l.quantity && l.quantity > 0).length;
+  const isAllComplete = lines.length > 0 && completedLinesCount === lines.length;
+  const isAlreadyFullyReceived = lines.length > 0 && lines.every((l) => (l.receivedQty || 0) >= l.quantity && l.quantity > 0);
 
   const renderItem = ({ item }: { item: OrderLine }) => {
-    const iconInfo = getStatusIconInfo(item);
-    
+    const received = item.pickedQty || 0;
+    const ordered = item.quantity;
+
+    let cardBorderColor: string = Colors.outlineVariant;
+    let cardBgColor: string = Colors.surface;
+    let statusLabel = 'Bekliyor';
+    let statusType: 'primary' | 'success' | 'warning' | 'error' = 'primary';
+
+    if (received > 0) {
+      if (received === ordered) {
+        cardBorderColor = Colors.success;
+        cardBgColor = '#F2F9F4';
+        statusLabel = 'Tam Kabul';
+        statusType = 'success';
+      } else if (received < ordered) {
+        cardBorderColor = Colors.warning;
+        cardBgColor = '#FFFBF2';
+        statusLabel = 'Kısmi Kabul';
+        statusType = 'warning';
+      } else {
+        cardBorderColor = Colors.secondary;
+        cardBgColor = '#F4F5FB';
+        statusLabel = 'Fazla Kabul';
+        statusType = 'primary';
+      }
+    }
+
     return (
-      <TouchableOpacity 
-        style={getCardStyle(item)}
-        activeOpacity={0.7}
-        onPress={() => {
-          setSelectedLine(item);
-          setQtyInput(item.pickedQty ? String(item.pickedQty) : '');
-          setShowModal(true);
-        }}
-      >
-        <View style={styles.productIconBox}>
-          <CustomIcon 
-            name={iconInfo.name} 
-            size={24} 
-            color={iconInfo.color} 
-          />
+      <View style={[styles.itemCard, { borderColor: cardBorderColor, backgroundColor: cardBgColor }]}>
+        {/* Ürün Üst Bilgi Satırı */}
+        <View style={styles.itemHeader}>
+          <View style={styles.codeAndShelfRow}>
+            <Text style={styles.stockCode}>{item.stockCode || 'KOD YOK'}</Text>
+            {(() => {
+              const hasShelf = !!(item.shelfAddress && item.shelfAddress.trim() && item.shelfAddress.trim() !== 'Tanımsız');
+              const shelfVal = hasShelf ? item.shelfAddress!.trim() : 'Tanımsız';
+              return (
+                <View style={[styles.shelfTag, hasShelf ? styles.shelfTagActive : styles.shelfTagEmpty]}>
+                  <CustomIcon
+                    name="map-marker-outline"
+                    size={12}
+                    color={hasShelf ? '#047857' : '#6B7280'}
+                  />
+                  <Text style={[styles.shelfTagBold, hasShelf ? styles.shelfTagTextActive : styles.shelfTagTextEmpty]}>
+                    Raf: {shelfVal}
+                  </Text>
+                </View>
+              );
+            })()}
+          </View>
+          <Badge label={statusLabel} type={statusType} />
         </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productCode}>{item.stockCode || '-'}</Text>
-          <Text style={styles.productName}>{item.stockName}</Text>
+
+        {/* Ürün Adı - Kartın Tam Genişliğinde */}
+        <Text style={styles.stockName}>{item.stockName}</Text>
+        {item.stockNameTr && item.stockNameTr.toLowerCase().trim() !== item.stockName.toLowerCase().trim() ? (
+          <Text style={styles.stockNameTr}>{item.stockNameTr}</Text>
+        ) : null}
+        {(item.brand || item.model) ? (
+          <View style={styles.brandModelRow}>
+            {item.brand ? (
+              <Text style={styles.brandText}>Marka: <Text style={styles.brandValue}>{item.brand}</Text></Text>
+            ) : null}
+            {item.model ? (
+              <Text style={styles.brandText}>Model: <Text style={styles.brandValue}>{item.model}</Text></Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Sipariş ve Miktar Düzenleme Alanı */}
+        <View style={styles.itemActionRow}>
+          <View style={styles.expectedBox}>
+            <Text style={styles.expectedLabel}>Sipariş Edilen</Text>
+            <Text style={styles.expectedValue}>
+              {ordered} <Text style={styles.unitText}>{item.unit || 'Adet'}</Text>
+            </Text>
+          </View>
+
+          {/* Hızlı Miktar Girişi / Stepper */}
+          <View style={styles.stepperContainer}>
+            <Text style={styles.stepperLabel}>Gelen Miktar</Text>
+            <View style={styles.stepperControls}>
+              <TouchableOpacity
+                style={[styles.stepBtn, received <= 0 && styles.stepBtnDisabled]}
+                onPress={() => updateLineQty(item.id, received - 1)}
+                disabled={received <= 0}
+                activeOpacity={0.7}
+              >
+                <CustomIcon name="minus" size={18} color={received > 0 ? Colors.primary : Colors.outline} />
+              </TouchableOpacity>
+
+              <TextInput
+                style={styles.qtyInput}
+                keyboardType="numeric"
+                value={String(received)}
+                onChangeText={(val) => {
+                  const num = parseInt(val, 10);
+                  updateLineQty(item.id, isNaN(num) ? 0 : num);
+                }}
+                selectTextOnFocus={true}
+              />
+
+              <TouchableOpacity
+                style={styles.stepBtn}
+                onPress={() => updateLineQty(item.id, received + 1)}
+                activeOpacity={0.7}
+              >
+                <CustomIcon name="plus" size={18} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-        <View style={styles.qtyBox}>
-          <Text style={getQtyPickedStyle(item)}>
-            {item.pickedQty || 0}
-          </Text>
-          <Text style={styles.qtyTotal}> / {item.quantity}</Text>
+
+        {/* Hızlı Aksiyon: Tamamı Geldi Butonu */}
+        <View style={styles.itemFooterRow}>
+          <TouchableOpacity
+            style={[styles.quickFillBtn, received === ordered && styles.quickFillBtnActive]}
+            onPress={() => updateLineQty(item.id, ordered)}
+            activeOpacity={0.7}
+          >
+            <CustomIcon
+              name={received === ordered ? 'check-circle' : 'clipboard-check-outline'}
+              size={16}
+              color={received === ordered ? Colors.success : Colors.primary}
+            />
+            <Text style={[styles.quickFillText, received === ordered && { color: Colors.success }]}>
+              {received === ordered ? 'Tamamı Alındı' : `Tamamı Geldi (${ordered} ${item.unit || 'Adet'})`}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
   return (
     <View style={styles.container}>
       <TopAppBar
-        title={detail ? `Sipariş: ${detail.documentNo}` : "Sipariş Detayı"}
+        title={documentNo ? `Mal Kabul: ${documentNo}` : 'Mal Kabul Girişi'}
         onBack={() => navigation.goBack()}
         showBack={true}
-        onAction={handleClearPicking}
         actionIcon="trash-can-outline"
+        onAction={handleResetAll}
       />
 
-      {/* Progress & Scan Area */}
-      <View style={styles.headerArea}>
-        {(supplierName || detail?.partnerName) ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm, backgroundColor: Colors.background, padding: 8, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.outlineVariant }}>
-            <CustomIcon name="storefront" size={16} color={Colors.primary} style={{ marginRight: 6 }} />
-            <Text style={{ ...Typography.labelMd, color: Colors.onSurface, fontWeight: '600', flex: 1 }} numberOfLines={1}>
-              Tedarikçi: {supplierName || detail?.partnerName}
+      {/* Üst Bilgi Kartı */}
+      <View style={styles.headerCard}>
+        <View style={styles.headerTop}>
+          <View style={styles.supplierBadge}>
+            <CustomIcon name="storefront" size={16} color={Colors.primary} />
+            <Text style={styles.supplierText} numberOfLines={1}>
+              {supplierName || detail?.partnerName || 'Tedarikçi'}
             </Text>
           </View>
-        ) : null}
-        <View style={styles.progressRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.progressLabel}>Toplama Durumu</Text>
-            <Text style={styles.progressValue}>{totalPicked} / {totalRequired} Ürün</Text>
-          </View>
           <Badge
-            label={isComplete ? 'TAMAMLANDI' : 'DEVAM EDİYOR'}
-            type={isComplete ? 'success' : 'warning'}
-            icon={isComplete ? 'check-circle' : 'progress-clock'}
+            label={isAllComplete ? 'TAMAMLANDI' : 'KABUL BEKLİYOR'}
+            type={isAllComplete ? 'success' : 'warning'}
+            icon={isAllComplete ? 'check-circle' : 'progress-clock'}
           />
         </View>
 
+        {(vesselName || rfqNo) ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {vesselName ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <CustomIcon name="ship" size={14} color={Colors.primary} />
+                <Text style={{ ...Typography.bodySm, color: Colors.primary, fontWeight: '600' }} numberOfLines={1}>
+                  {vesselName}
+                </Text>
+              </View>
+            ) : null}
+            {rfqNo ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <CustomIcon name="clipboard-list-outline" size={14} color={Colors.outline} />
+                <Text style={{ ...Typography.bodySm, color: Colors.outline }}>
+                  RFQ: <Text style={{ fontWeight: '600', color: Colors.onSurface }}>{rfqNo}</Text>
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Kalem Durumu</Text>
+            <Text style={styles.statValue}>
+              {completedLinesCount} / {lines.length} Kalem
+            </Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Toplam Miktar</Text>
+            <Text style={styles.statValue}>
+              {totalReceived} / {totalOrdered} Adet
+            </Text>
+          </View>
+        </View>
+
+        {/* Hızlı Aksiyon Çubuğu */}
+        <View style={styles.quickActionRow}>
+          <TouchableOpacity style={styles.bulkFillBtn} onPress={handleFillAll} activeOpacity={0.8}>
+            <CustomIcon name="clipboard-check-outline" size={16} color={Colors.onSecondaryContainer} />
+            <Text style={styles.bulkFillText}>Tümünü Sipariş Kadar Doldur</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Barkod Okuma Satırı */}
         <View style={styles.scanRow}>
           <TextInput
             style={styles.barcodeInput}
-            placeholder="Ürün barkodunu okutun..."
+            placeholder="Ürün barkodunu okutun veya yazın..."
             placeholderTextColor={Colors.outline}
             value={barcode}
             onChangeText={setBarcode}
-            onSubmitEditing={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
+            onSubmitEditing={() => {
+              if (barcode.trim()) {
+                handleScan(barcode.trim());
+                setBarcode('');
+              }
+            }}
             returnKeyType="search"
             showSoftInputOnFocus={true}
           />
           <TouchableOpacity
-            style={[styles.scanButton, { backgroundColor: Colors.secondaryContainer, marginRight: 4 }]}
+            style={styles.cameraBtn}
             onPress={() => setShowCameraScanner(true)}
             activeOpacity={0.7}
           >
             <CustomIcon name="camera" size={20} color={Colors.onSecondaryContainer} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.scanButton}
-            onPress={() => { if (barcode.trim()) handleScan(barcode.trim()); }}
+            style={styles.scanSubmitBtn}
+            onPress={() => {
+              if (barcode.trim()) {
+                handleScan(barcode.trim());
+                setBarcode('');
+              }
+            }}
             activeOpacity={0.7}
           >
-            <CustomIcon name="barcode-scan" size={22} color={Colors.onPrimary} />
+            <CustomIcon name="barcode-scan" size={20} color={Colors.onPrimary} />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* Ürün Listesi */}
       {refreshing && lines.length === 0 ? (
         <FlatList
           data={[1, 2, 3, 4]}
@@ -396,89 +605,55 @@ export function OrderDetailScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={fetchDetail}
-              colors={[Colors.primary]}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={fetchDetail} colors={[Colors.primary]} />
           }
           ListEmptyComponent={
             !refreshing ? (
-              <View style={{ padding: 40, alignItems: 'center' }}>
-                <CustomIcon name="clipboard-alert-outline" size={48} color={Colors.outline} />
-                <Text style={{ marginTop: 10, color: Colors.outline }}>Bu siparişte kalem bulunmuyor.</Text>
+              <View style={styles.emptyContainer}>
+                <CustomIcon name="package-variant-closed" size={48} color={Colors.outline} />
+                <Text style={styles.emptyText}>Bu tedarikçiye ait ürün kalemi bulunamadı.</Text>
               </View>
             ) : null
           }
         />
       )}
 
-      {/* Toplama Kaydetme Butonu (Footer) */}
+      {/* Alt Kaydet Butonu */}
       <View style={styles.footer}>
+        <View style={styles.footerSummary}>
+          <Text style={styles.footerSummaryLabel}>Toplam Gelen:</Text>
+          <Text style={styles.footerSummaryValue}>
+            {totalReceived} <Text style={styles.footerSummaryTotal}>/ {totalOrdered}</Text>
+          </Text>
+        </View>
+
         <TouchableOpacity
-          style={[styles.saveBtn, totalPicked === 0 && styles.saveBtnDisabled]}
-          onPress={handleCompletePicking}
-          disabled={totalPicked === 0 || submitting}
+          style={[
+            styles.saveBtn,
+            totalReceived === 0 && !isAlreadyFullyReceived && styles.saveBtnDisabled,
+            isAlreadyFullyReceived && { backgroundColor: Colors.success },
+          ]}
+          onPress={isAlreadyFullyReceived ? () => navigation.goBack() : handleSaveReceipt}
+          disabled={(totalReceived === 0 && !isAlreadyFullyReceived) || submitting}
+          activeOpacity={0.8}
         >
           {submitting ? (
             <ActivityIndicator size="small" color={Colors.onPrimary} />
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <CustomIcon name="content-save" size={18} color={Colors.onPrimary} style={{ marginRight: 6 }} />
-              <Text style={styles.saveBtnText}>Toplamayı Tamamla</Text>
+            <View style={styles.saveBtnContent}>
+              <CustomIcon name={isAlreadyFullyReceived ? "check-circle" : "content-save"} size={20} color={Colors.onPrimary} />
+              <Text style={styles.saveBtnText}>
+                {isAlreadyFullyReceived ? "Mal Kabul Tamamlandı (Geri Dön)" : "Mal Kabulü Kaydet"}
+              </Text>
             </View>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Miktar Düzenleme Modali */}
-      <Modal visible={showModal} animationType="fade" transparent={true} onRequestClose={() => setShowModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Miktar Girin</Text>
-            {selectedLine && (
-              <View style={styles.modalProductInfo}>
-                <Text style={styles.modalProductCode}>{selectedLine.stockCode || '-'}</Text>
-                <Text style={styles.modalProductName}>{selectedLine.stockName}</Text>
-                <Text style={styles.modalProductMeta}>
-                  Sipariş Miktarı: <Text style={{ fontWeight: 'bold', color: Colors.primary }}>{selectedLine.quantity}</Text> {selectedLine.unit || 'Adet'}
-                </Text>
-              </View>
-            )}
-            
-            <TextInput
-              style={styles.modalInput}
-              keyboardType="numeric"
-              value={qtyInput}
-              onChangeText={setQtyInput}
-              autoFocus={true}
-              placeholder="0"
-              placeholderTextColor={Colors.outline}
-              selectTextOnFocus={true}
-              onSubmitEditing={handleSaveQty}
-            />
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton} 
-                onPress={() => setShowModal(false)}
-              >
-                <Text style={styles.modalCancelText}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalSaveButton} 
-                onPress={handleSaveQty}
-              >
-                <Text style={styles.modalSaveText}>Kaydet</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Uyuşmazlık Uyarı Modalı */}
+      {/* Miktar Uyuşmazlığı Uyarı Modalı */}
       <Modal
         visible={showDiscrepancyModal}
         transparent={true}
@@ -488,17 +663,17 @@ export function OrderDetailScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.discrepancyModalContent}>
             <View style={styles.discrepancyHeader}>
-              <CustomIcon name="alert-circle-outline" size={24} color={Colors.warning} style={{ marginRight: 6 }} />
-              <Text style={styles.discrepancyTitle}>Miktar Uyuşmazlığı Uyarı</Text>
+              <CustomIcon name="alert-circle-outline" size={26} color={Colors.warning} />
+              <Text style={styles.discrepancyTitle}>Miktar Uyuşmazlığı Bildirimi</Text>
             </View>
             <Text style={styles.discrepancySubtitle}>
-              Sipariş miktarları ile toplanan miktarlar arasında farklar tespit edildi. Yine de kaydetmek istiyor musunuz?
+              Sipariş edilen miktarlar ile kabul edilen miktarlar arasında farklar var. Devam edilsin mi?
             </Text>
 
             <FlatList
               data={discrepancyList}
-              keyExtractor={(item, index) => String(index)}
-              style={{ maxHeight: 150, marginVertical: Spacing.sm }}
+              keyExtractor={(_, idx) => String(idx)}
+              style={styles.discrepancyList}
               renderItem={({ item }) => (
                 <View style={styles.discrepancyItem}>
                   <Text style={styles.discrepancyItemName} numberOfLines={1}>
@@ -506,7 +681,7 @@ export function OrderDetailScreen() {
                   </Text>
                   <View style={styles.discrepancyItemQtyBox}>
                     <Text style={styles.discrepancyItemQty}>
-                      {item.picked} / {item.ordered}
+                      {item.received} / {item.ordered}
                     </Text>
                     <Badge
                       label={item.type === 'missing' ? 'EKSİK' : 'FAZLA'}
@@ -523,7 +698,7 @@ export function OrderDetailScreen() {
                 onPress={() => setShowDiscrepancyModal(false)}
                 disabled={submitting}
               >
-                <Text style={styles.modalCancelText}>Geri Dön</Text>
+                <Text style={styles.modalCancelText}>Geri Dön ve Düzelt</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalSaveButton, { backgroundColor: Colors.warning }]}
@@ -541,7 +716,6 @@ export function OrderDetailScreen() {
         visible={showCameraScanner}
         onClose={() => setShowCameraScanner(false)}
         onScan={(scannedCode) => {
-          setBarcode(scannedCode);
           handleScan(scannedCode);
         }}
       />
@@ -554,46 +728,91 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  headerArea: {
-    padding: Spacing.md,
+  headerCard: {
     backgroundColor: Colors.surface,
+    padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.outlineVariant,
     ...Shadow.sm,
+    gap: Spacing.sm,
   },
-  progressRow: {
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
   },
-  progressLabel: {
-    ...Typography.labelSm,
+  supplierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  supplierText: {
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+    fontSize: 13.5,
+    includeFontPadding: false,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    alignItems: 'center',
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: Colors.outlineVariant,
+  },
+  statLabel: {
+    fontSize: 10.5,
     color: Colors.outline,
+    fontWeight: '600',
+    includeFontPadding: false,
+    paddingHorizontal: 4,
+    textAlign: 'center',
   },
-  progressValue: {
-    fontSize: 16,
+  statValue: {
+    fontSize: 13,
     color: Colors.primary,
     fontWeight: 'bold',
+    marginTop: 2,
+    includeFontPadding: false,
+    paddingHorizontal: 4,
+    textAlign: 'center',
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(30, 58, 138, 0.1)',
+  quickActionRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
   },
-  statusBadgeComplete: {
-    backgroundColor: 'rgba(52, 168, 83, 0.1)',
+  bulkFillBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.secondaryContainer,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.sm,
   },
-  statusText: {
-    ...Typography.labelSm,
-    color: Colors.primary,
-  },
-  statusTextComplete: {
-    color: Colors.success,
+  bulkFillText: {
+    ...Typography.labelMedium,
+    color: Colors.onSecondaryContainer,
+    fontWeight: 'bold',
   },
   scanRow: {
     flexDirection: 'row',
+    gap: 6,
   },
   barcodeInput: {
     flex: 1,
@@ -602,232 +821,362 @@ const styles = StyleSheet.create({
     borderColor: Colors.outlineVariant,
     borderRadius: BorderRadius.sm,
     paddingHorizontal: Spacing.md,
-    height: 38,
+    height: 40,
     fontSize: 13,
     color: Colors.onSurface,
   },
-  scanButton: {
-    width: 38,
-    height: 38,
+  cameraBtn: {
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: Colors.secondaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanSubmitBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   listContent: {
-    padding: 8,
-    gap: 6,
-    paddingBottom: 40,
+    padding: Spacing.marginMobile,
+    paddingBottom: 110,
   },
-  productCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: 6,
-    borderRadius: BorderRadius.xs,
-    borderWidth: 1,
-    borderColor: Colors.outlineVariant,
-    ...Shadow.sm,
-  },
-  productCardUnder: {
-    backgroundColor: Colors.errorContainer,
-    borderColor: Colors.error,
-  },
-  productCardOver: {
-    backgroundColor: Colors.warningContainer,
-    borderColor: Colors.warning,
-  },
-  productCardMatch: {
-    backgroundColor: Colors.successContainer,
-    borderColor: Colors.success,
-  },
-  productIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.xs,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productCode: {
-    fontSize: 10,
-    color: Colors.outline,
-  },
-  productName: {
-    fontSize: 13,
-    color: Colors.onSurface,
-    fontWeight: '500',
-  },
-  qtyBox: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    backgroundColor: 'transparent',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
-  },
-  qtyPicked: {
-    fontSize: 15,
-    color: Colors.onSurface,
-    fontWeight: 'bold',
-  },
-  qtyTotal: {
-    fontSize: 11,
-    color: Colors.outline,
-    marginLeft: 2,
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  modalContent: {
-    backgroundColor: Colors.surface,
+  itemCard: {
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    ...Shadow.card,
+    borderWidth: 1.5,
+    ...Shadow.sm,
+    gap: Spacing.sm,
   },
-  modalTitle: {
-    fontSize: 16,
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  codeAndShelfRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  shelfTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2.5,
+    paddingHorizontal: 7,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+  },
+  shelfTagActive: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  shelfTagEmpty: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+  },
+  shelfTagBold: {
     fontWeight: 'bold',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  shelfTagTextActive: {
+    color: '#047857',
+  },
+  shelfTagTextEmpty: {
+    color: '#6B7280',
+  },
+  stockCode: {
+    ...Typography.dataMono,
+    fontSize: 11,
+    color: Colors.primary,
+    fontWeight: 'bold',
+    includeFontPadding: false,
+  },
+  stockName: {
+    fontSize: 13.5,
+    lineHeight: 18,
     color: Colors.onSurface,
-    marginBottom: Spacing.sm,
+    fontWeight: '700',
+    marginTop: 2,
+    includeFontPadding: false,
+    width: '100%',
   },
-  modalProductInfo: {
-    backgroundColor: Colors.background,
-    padding: 8,
-    borderRadius: BorderRadius.xs,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.outlineVariant,
-  },
-  modalProductCode: {
-    fontSize: 10,
-    color: Colors.outline,
-    marginBottom: 1,
-  },
-  modalProductName: {
-    fontSize: 14,
-    color: Colors.onSurface,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  modalProductMeta: {
+  stockNameTr: {
     fontSize: 12,
-    color: Colors.onSurfaceVariant,
+    color: '#0D9488',
+    fontStyle: 'italic',
+    width: '100%',
+    marginTop: 1,
   },
-  modalInput: {
+  brandModelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 2,
+    flexWrap: 'wrap',
+  },
+  brandText: {
+    fontSize: 11,
+    color: Colors.outline,
+  },
+  brandValue: {
+    fontWeight: '600',
+    color: Colors.onSurface,
+  },
+  itemActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  expectedBox: {
+    flex: 1,
+  },
+  expectedLabel: {
+    fontSize: 10.5,
+    color: Colors.outline,
+    includeFontPadding: false,
+  },
+  expectedValue: {
+    fontSize: 13.5,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+    includeFontPadding: false,
+  },
+  unitText: {
+    fontSize: 11,
+    fontWeight: 'normal',
+    color: Colors.outline,
+    includeFontPadding: false,
+  },
+  stepperContainer: {
+    alignItems: 'flex-end',
+  },
+  stepperLabel: {
+    fontSize: 10.5,
+    color: Colors.outline,
+    marginBottom: 4,
+    includeFontPadding: false,
+    paddingHorizontal: 4,
+  },
+  stepperControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.background,
+    borderRadius: BorderRadius.sm,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
-    borderRadius: BorderRadius.xs,
-    paddingHorizontal: Spacing.md,
     height: 38,
-    fontSize: 14,
-    color: Colors.onSurface,
-    textAlign: 'center',
   },
-  modalActions: {
+  stepBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnDisabled: {
+    opacity: 0.3,
+  },
+  qtyInput: {
+    width: 54,
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    padding: 0,
+    includeFontPadding: false,
+  },
+  itemFooterRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: Spacing.md,
-    marginTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+    paddingTop: Spacing.xs,
   },
-  modalCancelButton: {
-    padding: Spacing.sm,
-    justifyContent: 'center',
-  },
-  modalCancelText: {
-    ...Typography.labelLg,
-    color: Colors.outline,
-  },
-  modalSaveButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+  quickFillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: BorderRadius.xs,
+    backgroundColor: 'rgba(30, 58, 138, 0.06)',
+  },
+  quickFillBtnActive: {
+    backgroundColor: 'rgba(52, 168, 83, 0.1)',
+  },
+  quickFillText: {
+    color: Colors.primary,
+    fontWeight: '600',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  modalSaveText: {
-    ...Typography.labelLg,
-    color: Colors.onPrimary,
-    fontWeight: 'bold',
+  emptyText: {
+    ...Typography.bodyMd,
+    color: Colors.outline,
+    marginTop: 12,
   },
   footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: Colors.surface,
-    padding: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.outlineVariant,
-    ...Shadow.nav,
+    paddingHorizontal: Spacing.marginMobile,
+    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...Shadow.card,
+  },
+  footerSummary: {
+    marginRight: Spacing.md,
+  },
+  footerSummaryLabel: {
+    fontSize: 10.5,
+    color: Colors.outline,
+    includeFontPadding: false,
+    paddingHorizontal: 4,
+  },
+  footerSummaryValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    includeFontPadding: false,
+  },
+  footerSummaryTotal: {
+    fontSize: 12,
+    color: Colors.outline,
+    fontWeight: 'normal',
+    includeFontPadding: false,
   },
   saveBtn: {
+    flex: 1,
     backgroundColor: Colors.primary,
     height: 48,
-    borderRadius: BorderRadius.xs,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveBtnDisabled: {
-    backgroundColor: Colors.outline,
-    opacity: 0.6,
+    backgroundColor: Colors.outlineVariant,
+  },
+  saveBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   saveBtnText: {
-    ...Typography.labelLg,
+    fontSize: 13.5,
     color: Colors.onPrimary,
     fontWeight: 'bold',
+    includeFontPadding: false,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
   },
   discrepancyModalContent: {
+    width: '100%',
+    maxHeight: '80%',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
     ...Shadow.card,
-    width: '90%',
-    alignSelf: 'center',
   },
   discrepancyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    gap: 8,
+    marginBottom: Spacing.xs,
   },
   discrepancyTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    ...Typography.titleMedium,
     color: Colors.onSurface,
+    fontWeight: 'bold',
   },
   discrepancySubtitle: {
-    fontSize: 13,
+    ...Typography.bodyMd,
     color: Colors.outline,
     marginBottom: Spacing.md,
-    lineHeight: 18,
+  },
+  discrepancyList: {
+    maxHeight: 200,
+    marginVertical: Spacing.sm,
   },
   discrepancyItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.outlineVariant,
   },
   discrepancyItemName: {
-    fontSize: 13,
+    ...Typography.bodyMd,
     color: Colors.onSurface,
     flex: 1,
-    marginRight: Spacing.md,
+    marginRight: 8,
   },
   discrepancyItemQtyBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 8,
   },
   discrepancyItemQty: {
-    fontSize: 13,
+    ...Typography.bodyMd,
     fontWeight: 'bold',
-    color: Colors.onSurfaceVariant,
+    color: Colors.onSurface,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    ...Typography.labelMedium,
+    color: Colors.onSurface,
+    fontWeight: 'bold',
+  },
+  modalSaveButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSaveText: {
+    ...Typography.labelMedium,
+    color: '#ffffff',
+    fontWeight: 'bold',
   },
 });

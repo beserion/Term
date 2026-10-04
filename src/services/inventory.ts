@@ -13,6 +13,9 @@ export interface Stock {
   stockName?: string;
   stockNameTr?: string;
   barCode?: string;
+  qrCode?: string;
+  description?: string;
+  remarks?: string;
   companyId?: number;
   shelfAddress?: string;
   unit?: string;
@@ -22,6 +25,7 @@ export interface Stock {
   brand?: string;
   model?: string;
   impaCode?: string;
+  partNo?: string;
 }
 
 export interface GoodsReceiptLine {
@@ -97,7 +101,16 @@ export interface CycleCountDto {
 /** Tüm depoları getirir */
 export async function getWarehouses(): Promise<Warehouse[]> {
   const api = await getApi();
-  const response = await api.get('/terminal/Inventory/Warehouses');
+  let response;
+  try {
+    response = await api.get('Inventory/warehouses');
+  } catch {
+    try {
+      response = await api.get('/terminal/Inventory/Warehouses');
+    } catch {
+      response = await api.get('/api/Inventory/warehouses');
+    }
+  }
   const data = response.data;
   if (Array.isArray(data)) {
     return data;
@@ -109,10 +122,28 @@ export async function getWarehouses(): Promise<Warehouse[]> {
   return [];
 }
 
-/** Tüm stokları getirir */
-export async function getStocks(): Promise<Stock[]> {
+let cachedStocks: Stock[] | null = null;
+let lastStocksFetchTime = 0;
+const STOCKS_CACHE_TTL = 5 * 60 * 1000; // 5 dakika önbellek
+
+/** Tüm stokları getirir (Terminal için tüm envanter - 5 dk önbellekli) */
+export async function getStocks(forceRefresh: boolean = false): Promise<Stock[]> {
+  const now = Date.now();
+  if (!forceRefresh && cachedStocks && (now - lastStocksFetchTime < STOCKS_CACHE_TTL)) {
+    return cachedStocks;
+  }
+
   const api = await getApi();
-  const response = await api.get('/terminal/Inventory/Stocks');
+  let response;
+  try {
+    response = await api.get('/terminal/Inventory/Stocks');
+  } catch {
+    try {
+      response = await api.get('Inventory/stocks');
+    } catch {
+      response = await api.get('/api/Inventory/stocks');
+    }
+  }
   const data = response.data;
   let rawList: any[] = [];
   if (Array.isArray(data)) {
@@ -121,21 +152,223 @@ export async function getStocks(): Promise<Stock[]> {
     if (Array.isArray(data.data)) rawList = data.data;
     else if (Array.isArray(data.items)) rawList = data.items;
   }
-  return rawList.map((item) => {
+  const result = rawList.map((item) => {
+    const idVal = item.id || item.stockId;
     const photoVal = item.photo || item.imageUrl || item.image || item.photoUrl || item.picture || item.filePath || item.fileName || item.pictureUrl || item.imagePath;
+    const shelfVal = item.shelfAddress || item.ShelfAddress || item.rafAdresi || item.RafAdresi || item.raf || item.Raf || item.locationCode || item.LocationCode || item.location || item.Location || item.shelf || item.Shelf || item.rack || item.Rack || item.bin || item.Bin;
     return {
       ...item,
+      id: idVal,
       photo: photoVal,
       imageUrl: photoVal,
+      shelfAddress: shelfVal ? String(shelfVal).trim() : undefined,
     };
   });
+  cachedStocks = result;
+  return result;
+}
+
+const shelfCodeCache = new Map<string, string>();
+
+/**
+ * Stok kodu ile hızlı raf adresi sorgular (/terminal/Inventory/Stocks?search=...)
+ * Ağır tüm stok listesi indirmesi yapmadan doğrudan doğru rafı getirir (Örn: C-6-2).
+ */
+export async function getShelfAddressForCode(stockCode: string): Promise<string> {
+  const cleanCode = (stockCode || '').trim();
+  if (!cleanCode) return 'Tanımsız';
+  const lower = cleanCode.toLowerCase();
+  const strippedLower = lower.replace(/^stk-?/, '');
+  
+  if (shelfCodeCache.has(lower)) {
+    return shelfCodeCache.get(lower)!;
+  }
+  try {
+    const api = await getApi();
+    const res = await api.get(`/terminal/Inventory/Stocks?search=${encodeURIComponent(cleanCode)}`);
+    const items = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    
+    // 1. Önce hem kodu uyan hem de raf adresi dolu olanı seç
+    let match = items.find((x: any) => {
+      const sCode = (x.stockCode || '').trim().toLowerCase();
+      const codeMatches = sCode === lower || sCode.replace(/^stk-?/, '') === strippedLower;
+      const hasShelf = x.shelfAddress && String(x.shelfAddress).trim().length > 0;
+      return codeMatches && hasShelf;
+    });
+
+    // 2. Bulunamazsa doğrudan kod eşleşmesi
+    if (!match) {
+      match = items.find((x: any) => {
+        const sCode = (x.stockCode || '').trim().toLowerCase();
+        return sCode === lower || sCode.replace(/^stk-?/, '') === strippedLower;
+      });
+    }
+
+    const rawShelf = match?.shelfAddress || match?.ShelfAddress || match?.locationCode || match?.shelf;
+    const shelf = (rawShelf && String(rawShelf).trim()) ? String(rawShelf).trim() : 'Tanımsız';
+    
+    if (shelf !== 'Tanımsız') {
+      shelfCodeCache.set(lower, shelf);
+      if (strippedLower !== lower) shelfCodeCache.set(strippedLower, shelf);
+    }
+    return shelf;
+  } catch {
+    return 'Tanımsız';
+  }
+}
+
+export interface StockExtendedInfo {
+  shelfAddress: string;
+  stockNameTr?: string;
+  brand?: string;
+  model?: string;
+}
+
+const stockExtendedCache = new Map<string, StockExtendedInfo>();
+
+/** Sayfalanmış ve optimize stok arama */
+export async function searchStocksPaged(search: string, page: number = 1, pageSize: number = 30): Promise<Stock[]> {
+  const api = await getApi();
+  const response = await api.get(`/terminal/Inventory/Stocks/Search?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`);
+  const data = response.data;
+  const rawList: any[] = Array.isArray(data) ? data : (data?.data || []);
+  return rawList.map((item) => ({
+    id: item.id || item.stockId,
+    stockCode: item.stockCode,
+    impaCode: item.impaCode,
+    stockName: item.stockName,
+    stockNameTr: item.stockNameTr,
+    brand: item.brand,
+    model: item.model,
+    shelfAddress: item.shelfAddress ? String(item.shelfAddress).trim() : undefined,
+    barCode: item.barCode,
+    unit: item.unit,
+    qty: item.qty,
+    photo: item.photo,
+    imageUrl: item.photo,
+  }));
+}
+
+/** Barkod veya stok kodu ile tekil hızlı stok kartı sorgulama (ByCode) */
+export async function getStockByCode(stockCode: string): Promise<Stock | null> {
+  const cleanCode = (stockCode || '').trim();
+  if (!cleanCode) return null;
+  const api = await getApi();
+  try {
+    const response = await api.get(`/terminal/Inventory/Stocks/ByCode/${encodeURIComponent(cleanCode)}`);
+    const item = response.data?.data || response.data;
+    if (item && (item.id || item.stockCode)) {
+      return {
+        id: item.id || item.stockId,
+        stockCode: item.stockCode,
+        impaCode: item.impaCode,
+        stockName: item.stockName,
+        stockNameTr: item.stockNameTr,
+        brand: item.brand,
+        model: item.model,
+        shelfAddress: item.shelfAddress ? String(item.shelfAddress).trim() : undefined,
+        barCode: item.barCode,
+        unit: item.unit,
+        qty: item.qty,
+        photo: item.photo,
+        imageUrl: item.photo,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stok kodu ile raf adresi, Türkçe ürün adı, marka ve model bilgilerini getirir.
+ */
+export async function getStockDetailsForCode(stockCode: string): Promise<StockExtendedInfo> {
+  const cleanCode = (stockCode || '').trim();
+  if (!cleanCode) return { shelfAddress: 'Tanımsız' };
+  const lower = cleanCode.toLowerCase();
+  const strippedLower = lower.replace(/^stk-?/, '');
+
+  if (stockExtendedCache.has(lower)) {
+    return stockExtendedCache.get(lower)!;
+  }
+
+  try {
+    // 1. Doğrudan ByCode endpoint'i ile O(1) hızlı arama
+    const stock = await getStockByCode(cleanCode);
+    if (stock) {
+      const shelf = (stock.shelfAddress && String(stock.shelfAddress).trim().length > 0) ? String(stock.shelfAddress).trim() : 'Tanımsız';
+      const result: StockExtendedInfo = {
+        shelfAddress: shelf,
+        stockNameTr: stock.stockNameTr,
+        brand: stock.brand,
+        model: stock.model,
+      };
+      stockExtendedCache.set(lower, result);
+      if (strippedLower !== lower) stockExtendedCache.set(strippedLower, result);
+      shelfCodeCache.set(lower, shelf);
+      return result;
+    }
+  } catch {
+    // fallback
+  }
+
+  try {
+    const api = await getApi();
+    const res = await api.get(`/terminal/Inventory/Stocks?search=${encodeURIComponent(cleanCode)}`);
+    const items = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+
+    let match = items.find((x: any) => {
+      const sCode = (x.stockCode || '').trim().toLowerCase();
+      const codeMatches = sCode === lower || sCode.replace(/^stk-?/, '') === strippedLower;
+      const hasShelf = x.shelfAddress && String(x.shelfAddress).trim().length > 0;
+      return codeMatches && hasShelf;
+    });
+
+    if (!match) {
+      match = items.find((x: any) => {
+        const sCode = (x.stockCode || '').trim().toLowerCase();
+        return sCode === lower || sCode.replace(/^stk-?/, '') === strippedLower;
+      });
+    }
+
+    const rawShelf = match?.shelfAddress || match?.ShelfAddress || match?.locationCode || match?.shelf;
+    const shelf = (rawShelf && String(rawShelf).trim()) ? String(rawShelf).trim() : 'Tanımsız';
+    const stockNameTr = match?.stockNameTr || match?.StockNameTr || undefined;
+    const brand = match?.brand || match?.Brand || undefined;
+    const model = match?.model || match?.Model || undefined;
+
+    const result: StockExtendedInfo = {
+      shelfAddress: shelf,
+      stockNameTr: stockNameTr && String(stockNameTr).trim() ? String(stockNameTr).trim() : undefined,
+      brand: brand && String(brand).trim() ? String(brand).trim() : undefined,
+      model: model && String(model).trim() ? String(model).trim() : undefined,
+    };
+
+    stockExtendedCache.set(lower, result);
+    if (strippedLower !== lower) stockExtendedCache.set(strippedLower, result);
+    shelfCodeCache.set(lower, shelf);
+
+    return result;
+  } catch {
+    return { shelfAddress: 'Tanımsız' };
+  }
 }
 
 /** Barkod/QR ile tekil stok kartını getirir */
 export async function getStockByBarcode(barcode: string): Promise<Stock> {
+  const cleanCode = (barcode || '').trim();
+  if (cleanCode) {
+    try {
+      const stock = await getStockByCode(cleanCode);
+      if (stock && stock.id) return stock;
+    } catch {
+      // fallback
+    }
+  }
+
   const api = await getApi();
-  // .NET backend "application/json" beklerken body type "string" olduğundan JSON.stringify() ile sarıyoruz.
-  const response = await api.post('/terminal/Inventory/Stock/QrCode', JSON.stringify(barcode), {
+  const response = await api.post('/terminal/Inventory/Stock/QrCode', JSON.stringify(cleanCode), {
     headers: { 'Content-Type': 'application/json' }
   });
   
@@ -145,10 +378,13 @@ export async function getStockByBarcode(barcode: string): Promise<Stock> {
 
   if (raw && typeof raw === 'object') {
     const photoVal = raw.photo || raw.imageUrl || raw.image || raw.photoUrl || raw.picture || raw.filePath || raw.fileName || raw.pictureUrl || raw.imagePath || firstImage;
+    const shelfVal = raw.shelfAddress || raw.ShelfAddress || raw.rafAdresi || raw.RafAdresi || raw.raf || raw.Raf || raw.locationCode || raw.LocationCode || raw.location || raw.Location || raw.shelf || raw.Shelf || raw.rack || raw.Rack || raw.bin || raw.Bin;
     return {
       ...raw,
+      id: raw.id || raw.stockId,
       photo: photoVal,
       imageUrl: photoVal,
+      shelfAddress: shelfVal ? String(shelfVal).trim() : undefined,
     };
   }
   
@@ -173,7 +409,12 @@ export async function getStockOnHandForProduct(warehouseId: number, stockId: num
 export async function createGoodsReceipt(data: GoodsReceiptDto): Promise<void> {
   const api = await getApi();
   if (!data.documentNo) data.documentNo = '';
-  const response = await api.post('/Inventory/goods-receipt', data);
+  let response;
+  try {
+    response = await api.post('/terminal/Inventory/goods-receipt', data);
+  } catch {
+    response = await api.post('/Inventory/goods-receipt', data);
+  }
   
   if (response.data && response.data.success === false) {
     const err: any = new Error(response.data.message || 'Stok ekleme işlemi başarısız oldu.');
@@ -185,7 +426,12 @@ export async function createGoodsReceipt(data: GoodsReceiptDto): Promise<void> {
 /** Mal Çıkış / Stok Düşme (Goods Issue) */
 export async function createGoodsIssue(payload: GoodsIssueDto): Promise<void> {
   const api = await getApi();
-  const response = await api.post('/Inventory/goods-issue', payload);
+  let response;
+  try {
+    response = await api.post('/terminal/Inventory/goods-issue', payload);
+  } catch {
+    response = await api.post('/Inventory/goods-issue', payload);
+  }
   
   if (response.data && response.data.success === false) {
     const err: any = new Error(response.data.message || 'Stok azaltma işlemi başarısız oldu.');
@@ -197,7 +443,12 @@ export async function createGoodsIssue(payload: GoodsIssueDto): Promise<void> {
 /** Stok Transferi (Stock Transfer) */
 export async function createStockTransfer(payload: StockTransferDto): Promise<void> {
   const api = await getApi();
-  const response = await api.post('/Inventory/stock-transfer', payload);
+  let response;
+  try {
+    response = await api.post('/terminal/Inventory/stock-transfer', payload);
+  } catch {
+    response = await api.post('/Inventory/stock-transfer', payload);
+  }
   
   if (response.data && response.data.success === false) {
     const err: any = new Error(response.data.message || 'Stok transferi işlemi başarısız oldu.');
@@ -220,26 +471,44 @@ export async function createCycleCount(payload: CycleCountDto): Promise<any> {
       countDate: payload.countDate
     });
 
-    cycleCountId = startResponse.data?.id || startResponse.data?.data?.id || startResponse.data?.cycleCountId;
+    cycleCountId = startResponse.data?.id || startResponse.data?.data?.id || startResponse.data?.cycleCountId || startResponse.data?.data?.cycleCountId;
   }
 
   if (!cycleCountId) {
     throw new Error('Sayım başlatılamadı, geçerli bir Sayım ID alınamadı.');
   }
 
-  // 2. Her bir kalemi SaveItem uç noktasına gönder
-  for (const line of payload.lines) {
-    const saveResponse = await api.post('/terminal/Inventory/CycleCount/SaveItem', {
+  // 2. Kalemleri topluca SaveItemsBulk uç noktasına gönder (tek HTTP isteği)
+  try {
+    const bulkResponse = await api.post('/terminal/Inventory/CycleCount/SaveItemsBulk', {
       cycleCountId,
-      stockId: line.stockId,
-      countedQty: line.countedQty,
-      shelfAddress: line.shelfAddress,
-      photo: line.photo
+      lines: payload.lines.map(l => ({
+        stockId: l.stockId,
+        countedQty: l.countedQty,
+        shelfAddress: l.shelfAddress,
+        photo: l.photo
+      }))
     });
 
-    if (saveResponse.data && saveResponse.data.success === false) {
-      const errMessage = saveResponse.data.message || 'Ürün sayım satırı kaydedilemedi.';
-      throw new Error(`Satır Kayıt Hatası:\n${errMessage}`);
+    if (bulkResponse.data && bulkResponse.data.success === false) {
+      throw new Error(bulkResponse.data.message || 'Toplu sayım kaydedilemedi.');
+    }
+  } catch (bulkErr) {
+    console.warn('SaveItemsBulk failed, falling back to sequential SaveItem:', bulkErr);
+    // Fallback: her bir kalemi SaveItem uç noktasına gönder
+    for (const line of payload.lines) {
+      const saveResponse = await api.post('/terminal/Inventory/CycleCount/SaveItem', {
+        cycleCountId,
+        stockId: line.stockId,
+        countedQty: line.countedQty,
+        shelfAddress: line.shelfAddress,
+        photo: line.photo
+      });
+
+      if (saveResponse.data && saveResponse.data.success === false) {
+        const errMessage = saveResponse.data.message || 'Ürün sayım satırı kaydedilemedi.';
+        throw new Error(`Satır Kayıt Hatası:\n${errMessage}`);
+      }
     }
   }
 
@@ -281,6 +550,9 @@ export async function getCycleCounts(): Promise<CycleCountListItemDto[]> {
 export interface PrinterDto {
   id: number;
   name: string;
+  ipAddress?: string;
+  port?: number;
+  location?: string;
 }
 
 export interface PrintLabelDto {
@@ -292,36 +564,42 @@ export interface PrintLabelDto {
 
 /** Yazıcı Listesini Al */
 export async function getPrinters(): Promise<PrinterDto[]> {
-  const api = await getApi();
-  const response = await api.get('/terminal/Settings/Printers');
-  
-  console.log("=== GET_PRINTERS RESPONSE RAW ===", JSON.stringify(response.data));
-
-  let rawList: any[] = [];
-  if (response.data) {
-    if (Array.isArray(response.data)) {
-      rawList = response.data;
-    } else if (Array.isArray(response.data.data)) {
-      rawList = response.data.data;
-    } else if (response.data.success && Array.isArray(response.data.data)) {
-      rawList = response.data.data;
-    } else if (response.data.items && Array.isArray(response.data.items)) {
-      rawList = response.data.items;
-    } else if (typeof response.data.data === 'object' && response.data.data !== null) {
-      // Dizi değilse ama bir objeyse (örneğin dictionary ise) diziye dönüştür
-      rawList = Object.entries(response.data.data).map(([key, value]) => ({
-        id: key,
-        name: value
-      }));
+  try {
+    const api = await getApi();
+    const response = await api.get('/terminal/Settings/Printers');
+    
+    let rawList: any[] = [];
+    if (response.data) {
+      if (Array.isArray(response.data)) {
+        rawList = response.data;
+      } else if (Array.isArray(response.data.data)) {
+        rawList = response.data.data;
+      } else if (response.data.success && Array.isArray(response.data.data)) {
+        rawList = response.data.data;
+      } else if (response.data.items && Array.isArray(response.data.items)) {
+        rawList = response.data.items;
+      } else if (typeof response.data.data === 'object' && response.data.data !== null) {
+        rawList = Object.entries(response.data.data).map(([key, value]) => ({
+          id: key,
+          name: value
+        }));
+      }
     }
-  }
 
-  // Özellikleri (id, printerId, value, vb.) ve (name, printerName, text, vb.) esnek şekilde normalize et
-  return rawList.map((item: any) => {
-    const id = Number(item.printerId ?? item.id ?? item.value ?? item.key ?? 0);
-    const name = String(item.printerName ?? item.name ?? item.text ?? item.value ?? 'Bilinmeyen Yazıcı');
-    return { id, name };
-  });
+    const list: PrinterDto[] = rawList.map((item: any) => {
+      const id = Number(item.printerId ?? item.id ?? item.value ?? item.key ?? 0);
+      const name = String(item.printerName ?? item.name ?? item.text ?? item.value ?? 'Bilinmeyen Yazıcı');
+      const ipAddress = item.ipAddress || item.ip || item.host || '';
+      const port = Number(item.port || 6101);
+      const location = String(item.location || '');
+      return { id, name, ipAddress, port, location };
+    });
+
+    return list.length > 0 ? list : [{ id: 1, name: 'Zebra ZT410 (Varsayılan)', ipAddress: '192.168.1.100', port: 6101 }];
+  } catch {
+    console.log('[getPrinters] Sunucu yanıt vermedi, varsayılan yazıcı listesi yükleniyor.');
+    return [{ id: 1, name: 'Zebra ZT410 (Varsayılan)', ipAddress: '192.168.1.100', port: 6101 }];
+  }
 }
 
 export interface PrintLabelResponse {

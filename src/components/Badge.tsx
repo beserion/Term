@@ -19,9 +19,9 @@ export function Badge({
   style,
 }: BadgeProps) {
   const getStyles = () => {
-    let backgroundColor = Colors.primaryFixed || '#dce1ff';
-    let textColor = Colors.primary;
-    let iconColor = Colors.primary;
+    let backgroundColor: string = Colors.primaryFixed || '#dce1ff';
+    let textColor: string = Colors.primary;
+    let iconColor: string = Colors.primary;
 
     switch (type) {
       case 'success':
@@ -79,17 +79,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: BorderRadius.xs,
     borderWidth: 0.5,
-    borderColor: 'rgba(0,0,0,0.05)',
+    borderColor: 'rgba(0,0,0,0.06)',
   },
   icon: {
-    marginRight: 4,
+    marginRight: 3,
   },
   text: {
-    ...Typography.labelSm,
-    fontWeight: 'bold',
+    fontSize: 10.5,
+    fontWeight: '700',
+    includeFontPadding: false,
+    letterSpacing: 0.2,
   },
 });

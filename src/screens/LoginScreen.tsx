@@ -21,8 +21,8 @@ import { Config } from '../config';
 import { resetApiInstance } from '../services/api';
 
 export function LoginScreen() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('depo@geminimar.com');
+  const [password, setPassword] = useState('BlueHub1!');
   const [showPassword, setShowPassword] = useState(false);
 
   // API Base URL Modal state
@@ -219,7 +219,7 @@ export function LoginScreen() {
                 <CustomIcon name="link-variant" size={20} color={Colors.outline} style={{ marginRight: Spacing.sm }} />
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="https://arkship.posnetx.com/api"
+                  placeholder="https://api.blackskyqore.com/api"
                   placeholderTextColor={Colors.outline}
                   value={apiUrlInput}
                   onChangeText={setApiUrlInput}
@@ -234,7 +234,7 @@ export function LoginScreen() {
                   style={styles.modalCancelButton}
                   onPress={() => setShowApiModal(false)}
                 >
-                  <Text style={styles.modalCancelButtonText}>Vazgeç</Text>
+                  <Text style={styles.modalCancelButtonText}>Vazgeç </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(7, 12, 27, 0.72)',
   },
   container: {
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(56, 189, 248, 0.5)',
     marginBottom: Spacing.md,
-    ...Shadow.md,
+    ...Shadow.card,
   },
   brandTitle: {
     fontSize: 28,
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
-    ...Shadow.lg,
+    ...Shadow.card,
   },
   cardHeaderTitle: {
     fontSize: 20,
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     height: 52,
     marginTop: Spacing.xs,
-    ...Shadow.md,
+    ...Shadow.card,
   },
   loginButtonDisabled: {
     opacity: 0.6,
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
-    ...Shadow.lg,
+    ...Shadow.card,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -471,6 +471,7 @@ const styles = StyleSheet.create({
   modalCancelButtonText: {
     fontSize: 14,
     color: Colors.onSurfaceVariant,
+    paddingHorizontal: 6,
   },
   modalSaveButton: {
     flexDirection: 'row',
@@ -485,5 +486,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#ffffff',
+    paddingHorizontal: 4,
   },
 });

@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   API_BASE_URL: '@wms_api_base_url',
 } as const;
 
-const DEFAULT_API_BASE_URL = 'https://arkship.posnetx.com/api';
+const DEFAULT_API_BASE_URL = 'https://api.blackskyqore.com/api';
 
 /** API Base URL'i al (Kayıtlı URL yoksa varsayılanı döndürür) */
 async function getApiBaseUrl(): Promise<string> {
