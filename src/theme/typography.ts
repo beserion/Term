@@ -59,6 +59,18 @@ export const Typography: Record<string, TextStyle> = {
     letterSpacing: 0.5,
     fontWeight: '600',
   },
+  titleMedium: {
+    fontFamily: FontFamilies.semiBold,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600',
+  },
+  bodySm: {
+    fontFamily: FontFamilies.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '400',
+  },
   dataMono: {
     fontFamily: FontFamilies.mono,
     fontSize: 14,

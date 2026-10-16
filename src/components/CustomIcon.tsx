@@ -50,6 +50,10 @@ import {
   faBolt,
   faShip,
   faLocationDot,
+  faBell,
+  faBellSlash,
+  faFileLines,
+  faUserTie,
 } from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -93,10 +97,20 @@ const IconMap: Record<string, any> = {
   'login': faRightToBracket,
   'logout': faRightFromBracket,
 
+  // Notifications
+  'bell': faBell,
+  'bell-outline': faBell,
+  'bell-ring': faBell,
+  'bell-off-outline': faBellSlash,
+  'file-document-outline': faFileLines,
+  'storefront-outline': faStore,
+  'account-tie': faUserTie,
+
   // Status / Alerts
   'alert-circle': faCircleExclamation,
   'alert-circle-outline': faCircleExclamation,
   'alert-octagon': faTriangleExclamation,
+  'alert-decagram': faTriangleExclamation,
   'check-circle': faCheckCircleSolid,
   'check-circle-outline': faCheckCircleRegular,
   'play-circle-outline': faPlayCircle,

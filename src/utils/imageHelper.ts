@@ -1,40 +1,52 @@
+const DEFAULT_ORIGIN = 'https://api.blackskyqore.com';
+
 /**
  * Resim yollarını/sunucu adreslerini çözümleyerek doğrudan yüklenebilir URL'ler üretir.
  */
 export function resolveImageUri(
   uri: string | undefined,
-  baseUrl: string,
-  fullApiUrl: string
+  baseUrl?: string,
+  fullApiUrl?: string
 ): string | undefined {
-  if (!uri) return undefined;
-  
+  if (!uri || typeof uri !== 'string') return undefined;
+  const trimmed = uri.trim();
+  if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return undefined;
+  if (trimmed.toLowerCase().includes('nophoto')) return undefined;
+
   if (
-    uri.startsWith('http://') ||
-    uri.startsWith('https://') ||
-    uri.startsWith('data:') ||
-    uri.startsWith('blob:') ||
-    uri.startsWith('file:')
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('file:')
   ) {
-    return uri;
+    return trimmed;
   }
 
-  const cleanPath = uri.startsWith('/') ? uri.substring(1) : uri;
-
-  // Case 1: Eğer yol "images/" ile başlıyorsa static dosyadır, doğrudan sunucunun ana dizininden yüklenir
-  if (cleanPath.startsWith('images/')) {
-    return `${baseUrl}/${cleanPath}`;
+  // Güvenli baseUrl tespiti
+  let origin = DEFAULT_ORIGIN;
+  if (baseUrl && typeof baseUrl === 'string' && baseUrl.trim().length > 0 && baseUrl !== 'undefined') {
+    origin = baseUrl.trim().replace(/\/+$/, '').replace(/\/api$/, '');
+  } else if (fullApiUrl && typeof fullApiUrl === 'string' && fullApiUrl.trim().length > 0) {
+    origin = fullApiUrl.trim().replace(/\/+$/, '').replace(/\/api$/, '');
   }
 
-  // Case 2: Sadece bir dosya adı ise veya stok klasörü altındaysa
-  const filename = (cleanPath.endsWith('.jpg') || cleanPath.endsWith('.png') || cleanPath.endsWith('.jpeg'))
+  const cleanPath = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
+
+  // Case 1: Eğer yol "images/" veya "uploads/" ile başlıyorsa static dosyadır
+  if (cleanPath.startsWith('images/') || cleanPath.startsWith('uploads/')) {
+    return `${origin}/${cleanPath}`;
+  }
+
+  // Case 2: Sadece bir dosya adı ise
+  const filename = (cleanPath.endsWith('.jpg') || cleanPath.endsWith('.png') || cleanPath.endsWith('.jpeg') || cleanPath.endsWith('.webp'))
     ? cleanPath
     : `${cleanPath}.jpg`;
 
-  // Dosya adının basit olması durumunda varsayılan olarak stok resimleri klasöründen yükle
   if (!filename.includes('/')) {
-    return `${baseUrl}/images/stocks/${filename}`;
+    return `${origin}/images/stocks/${filename}`;
   }
 
-  // Diğer durumlar için API üzerinden ViewImage yerine doğrudan static file klasöründen erişimi dene
-  return `${baseUrl}/${cleanPath}`;
+  return `${origin}/${cleanPath}`;
 }
+

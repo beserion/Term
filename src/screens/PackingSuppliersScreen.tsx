@@ -61,6 +61,10 @@ export function PackingSuppliersScreen() {
         if (targetId) {
           AsyncStorage.setItem(`@packing_order_completed_${targetId}`, 'true').catch(() => {});
         }
+      } else {
+        if (targetId) {
+          AsyncStorage.removeItem(`@packing_order_completed_${targetId}`).catch(() => {});
+        }
       }
     } catch (error: any) {
       showToast({ message: error?.message || 'Tedarikçi listesi yüklenemedi', type: 'error' });
@@ -94,41 +98,7 @@ export function PackingSuppliersScreen() {
           !isDone && !isReceiptDone && styles.cardWarning,
         ]}
         onPress={() => {
-          // 1. Eğer tedarikçi zaten paketlendiyse -> Paketlemeyi İnceleme ekranına (PackingBoard) git
-          if (isDone) {
-            navigation.navigate('PackingBoard', {
-              requestId: item.requestId || requestId,
-              orderId: item.orderId || orderId,
-              documentNo,
-              partnerName,
-              rfqNo,
-              vesselName,
-              supplierId: item.partnerId,
-              supplierName: item.partnerName,
-              isReceiptCompleted: true,
-              isPackingCompleted: true,
-            });
-            return;
-          }
-
-          // 2. Eğer henüz paketlenmemiş VE mal kabulü de yapılmamışsa (Kendi aktif depo ürünleri hariç!) -> Mal Kabul ekranına git
-          if (!isReceiptDone && !isInternal) {
-            navigation.navigate('ReceivingStack', {
-              screen: 'OrderDetail',
-              params: {
-                orderId: item.orderId || orderId,
-                supplierId: item.partnerId,
-                supplierName: item.partnerName,
-                documentNo,
-                partnerName,
-                rfqNo,
-                vesselName,
-              },
-            });
-            return;
-          }
-
-          // 3. Mal kabulü tamamlanmış veya kendi aktif depo firması -> Doğrudan PackingBoard
+          // Tedarikçi paketleme ekranına (PackingBoard) git
           navigation.navigate('PackingBoard', {
             requestId: item.requestId || requestId,
             orderId: item.orderId || orderId,
@@ -138,8 +108,8 @@ export function PackingSuppliersScreen() {
             vesselName,
             supplierId: item.partnerId,
             supplierName: item.partnerName,
-            isReceiptCompleted: true,
-            isPackingCompleted: false,
+            isReceiptCompleted: isInternal ? true : (item.isReceiptCompleted !== undefined ? item.isReceiptCompleted : true),
+            isPackingCompleted: !!isDone,
           });
         }}
         activeOpacity={0.7}

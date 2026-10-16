@@ -22,10 +22,14 @@ export interface Stock {
   qty?: number;
   photo?: string;
   imageUrl?: string;
+  photoUrl?: string;
   brand?: string;
   model?: string;
   impaCode?: string;
   partNo?: string;
+  purchasePrice?: number;
+  salePrice?: number;
+  currency?: string;
 }
 
 export interface GoodsReceiptLine {
@@ -126,8 +130,15 @@ let cachedStocks: Stock[] | null = null;
 let lastStocksFetchTime = 0;
 const STOCKS_CACHE_TTL = 5 * 60 * 1000; // 5 dakika önbellek
 
+/** Stok önbelleğini anında sıfırlar */
+export function clearStocksCache(): void {
+  cachedStocks = null;
+  lastStocksFetchTime = 0;
+}
+
 /** Tüm stokları getirir (Terminal için tüm envanter - 5 dk önbellekli) */
 export async function getStocks(forceRefresh: boolean = false): Promise<Stock[]> {
+
   const now = Date.now();
   if (!forceRefresh && cachedStocks && (now - lastStocksFetchTime < STOCKS_CACHE_TTL)) {
     return cachedStocks;
@@ -620,13 +631,63 @@ export async function printLabel(payload: PrintLabelDto): Promise<PrintLabelResp
   return response.data;
 }
 
+/**
+ * Stok ürününün fotoğrafını ve barkodunu kalıcı olarak günceller
+ */
+export async function updateStockPhoto(stockId: number, photoUrl: string, barcode?: string): Promise<any> {
+  const api = await getApi();
+  
+  // 1. /terminal/Inventory/Stock/Update üzerinden photoUrl'i kalıcı güncelle
+  const payload: any = {
+    id: Number(stockId),
+    photoUrl: photoUrl,
+  };
+  if (barcode && barcode.trim()) {
+    payload.barCode = barcode.trim();
+  }
+
+  let updateRes = null;
+  try {
+    const res = await api.post('/terminal/Inventory/Stock/Update', payload);
+    updateRes = res.data;
+  } catch (err: any) {
+    console.warn('Error updating stock photo via /terminal/Inventory/Stock/Update:', err?.message);
+  }
+
+  // 2. Eğer barkod da verildiyse UpdateBarcode'u da tetikle
+  if (barcode && barcode.trim()) {
+    try {
+      await api.post('/terminal/Inventory/Stock/UpdateBarcode', {
+        stockId: Number(stockId),
+        barcode: barcode.trim(),
+      });
+    } catch (err: any) {
+      console.warn('Error updating barcode:', err?.message);
+    }
+  }
+
+  // 3. Önbelleği temizle
+  clearStocksCache();
+
+  return updateRes;
+}
+
 /** Stok ürünün barkodunu günceller/tanımlar */
 export async function updateStockBarcode(stockId: number, barcode: string, photo?: string): Promise<void> {
   const api = await getApi();
+  
+  if (photo && photo.trim()) {
+    try {
+      await updateStockPhoto(stockId, photo.trim(), barcode);
+      return;
+    } catch {
+      // fallback to barcode update
+    }
+  }
+
   const response = await api.post('/terminal/Inventory/Stock/UpdateBarcode', {
     stockId,
     barcode,
-    photo
   });
   
   if (response.data && response.data.success === false) {
@@ -634,6 +695,8 @@ export async function updateStockBarcode(stockId: number, barcode: string, photo
     err.response = response;
     throw err;
   }
+
+  clearStocksCache();
 }
 
 /** Stok ürünün raf konumunu günceller */
@@ -691,14 +754,26 @@ export async function uploadImage(imageUri: string, stockId: number = 0): Promis
   const data = response.data;
   console.log('Upload image response data:', data);
 
+  let returnedUrl = '';
   if (typeof data === 'string') {
-    return data;
+    returnedUrl = data;
+  } else if (data && typeof data === 'object') {
+    returnedUrl = data.data || data.url || data.path || data.fileName || data.filePath || data.photoUrl || '';
   }
-  if (data && typeof data === 'object') {
-    return data.data || data.url || data.path || data.fileName || data.filePath || '';
+
+  // Eğer stockId varsa stok kartında kalıcı güncelle
+  if (stockId > 0 && returnedUrl) {
+    try {
+      await updateStockPhoto(stockId, returnedUrl);
+    } catch (e) {
+      console.warn('Auto updateStockPhoto warning:', e);
+    }
   }
-  return '';
+
+  clearStocksCache();
+  return returnedUrl;
 }
+
 
 /** Stok Kartı Ekleme (Inventory/Stock/Add) */
 export async function addStock(payload: Partial<Stock>): Promise<any> {

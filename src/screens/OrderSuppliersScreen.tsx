@@ -5,6 +5,7 @@ import { CustomIcon } from '../components/CustomIcon';
 import { TopAppBar } from '../components/TopAppBar';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
 import { getOrderSuppliers, OrderSupplier } from '../services/orders';
+import { isWarehouseSupplier } from '../services/packing';
 import { useUIStore } from '../store/uiStore';
 import { EmptyState } from '../components/Toast';
 
@@ -22,7 +23,9 @@ export function OrderSuppliersScreen() {
     try {
       setLoading(true);
       const data = await getOrderSuppliers(orderId);
-      setSuppliers(data);
+      // Mal kabul ekranında Gemini firması gelmemeli, sadece diğer tedarikçiler gelmeli
+      const filtered = (data || []).filter((s) => !isWarehouseSupplier(s.partnerName));
+      setSuppliers(filtered);
     } catch (error: any) {
       showToast({ message: error?.message || 'Tedarikçi listesi yüklenemedi', type: 'error' });
     } finally {

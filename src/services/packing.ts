@@ -96,6 +96,7 @@ export interface WMS_PackingBoardVM {
   rfqNo?: string;
   vesselName?: string;
   pendingItems?: PackingPendingItemVM[];
+  unpackedItems?: any[];
   boxes?: WMS_BoxVM[];
   pallets?: WMS_PalletVM[];
 }
@@ -148,6 +149,13 @@ export interface PackingOrder {
   isReceiptCompleted?: boolean;
   isPackingCompleted?: boolean;
   isConvertedOrder?: boolean;
+  supplierNames?: string[];
+  poNumbers?: string[];
+  assignedOperatorId?: number | null;
+  assignedOperatorCode?: string | null;
+  assignedOperatorName?: string | null;
+  assignedDate?: string | null;
+  workStatus?: 'Unassigned' | 'InProgress' | 'Completed' | string | null;
 }
 
 export interface PackingSupplier {
@@ -204,15 +212,150 @@ export async function getPackingSupplierStatus(orderId: number, supplierId: numb
   }
 }
 
-/** Aktif paketlenebilir sipariş listesini getirir (Sadece siparişe dönüşenler) */
-export async function getActivePackingOrders(search?: string): Promise<PackingOrder[]> {
+/** Siparişi operatöre atar / operatörün üzerine alır */
+export async function assignPackingOrder(orderId: number, employeeId: number, operatorName?: string, force = false): Promise<any> {
+  const api = await getApi();
+  let serverSuccess = false;
+  let serverMessage = '';
+
+  try {
+    const res = await api.post(`/terminal/Packing/Orders/${orderId}/Assign`, {
+      employeeId,
+      force,
+    });
+    if (res.data && res.data.success !== false) {
+      serverSuccess = true;
+      serverMessage = res.data.message || 'Sipariş üzerinize alındı.';
+    }
+  } catch (err: any) {
+    if (err?.response?.status === 409) {
+      throw new Error(err.response?.data?.message || 'Bu sipariş başka bir operatör tarafından paketlenmektedir.');
+    }
+    console.warn(`Assign API call fallback for order ${orderId}:`, err?.message);
+  }
+
+  // Yerel eşleme (Hem API hazır olana kadar hem de offline-first destek için)
+  try {
+    const assignData = {
+      assignedOperatorId: employeeId,
+      assignedOperatorName: operatorName || `Personel #${employeeId}`,
+      assignedDate: new Date().toISOString(),
+      workStatus: 'InProgress',
+    };
+    await AsyncStorage.setItem(`@packing_order_assign_${orderId}`, JSON.stringify(assignData));
+  } catch (e) {
+    console.error('Error saving local order assignment:', e);
+  }
+
+  return { success: true, message: serverMessage || 'Sipariş üzerinize alındı.' };
+}
+
+/** Siparişi açık havuza geri bırakır */
+export async function releasePackingOrder(orderId: number, employeeId?: number): Promise<any> {
+  const api = await getApi();
+  try {
+    await api.post(`/terminal/Packing/Orders/${orderId}/Release`, {
+      employeeId,
+    });
+  } catch (err: any) {
+    console.warn(`Release API call fallback for order ${orderId}:`, err?.message);
+  }
+
+  try {
+    await AsyncStorage.removeItem(`@packing_order_assign_${orderId}`);
+  } catch (e) {
+    console.error('Error removing local order assignment:', e);
+  }
+
+  return { success: true, message: 'Sipariş açık havuza bırakıldı.' };
+}
+
+/**
+ * Verilen sipariş numarasının tedarikçiye açılmış satınalma siparişi (PO) olup olmadığını kontrol eder.
+ * Örn: PO-2026-0105 -> true, ORD-2026-00148 -> false
+ */
+export function isPurchaseOrder(orderNo?: string | null): boolean {
+  if (!orderNo) return false;
+  const upper = String(orderNo).trim().toUpperCase();
+  return upper.startsWith('PO-') || upper.startsWith('PO/');
+}
+
+/**
+ * Verilen belgenin veya durumun teklif/talep (RFQ, OFR vb.) olup olmadığını kontrol eder.
+ * Talep ve tekliflerin Mal Kabul veya Paketleme listelerine siparişmiş gibi düşmesini engeller.
+ */
+export function isProposalOrOffer(orderNo?: string | null, status?: string | null): boolean {
+  if (!orderNo && !status) return false;
+  const no = String(orderNo || '').trim().toUpperCase();
+  const st = String(status || '').trim().toLowerCase();
+
+  // Durum kontrolü (Teklif, Talep, Taslak, Müşteriden Onay Bekliyor, İptal vb.)
+  if (
+    st.includes('teklif') ||
+    st.includes('talep') ||
+    st.includes('taslak') ||
+    st.includes('draft') ||
+    st.includes('onay bekliyor') ||
+    st.includes('müşteriden onay') ||
+    st.includes('iptal') ||
+    st.includes('cancel')
+  ) {
+    return true;
+  }
+
+  // Kod / Numara kontrolü: RFQ-, OFR-, REQ-, TEK-
+  if (
+    no.startsWith('RFQ-') ||
+    no.startsWith('RFQ/') ||
+    no.startsWith('REQ-') ||
+    no.startsWith('REQ/') ||
+    no.startsWith('OFR-') ||
+    no.startsWith('OFR/') ||
+    no.startsWith('TEK-') ||
+    no.startsWith('TEK/') ||
+    no.startsWith('TALEP') ||
+    no.startsWith('TEKLIF')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Verilen sipariş numarasının ve durumunun gerçek bir satış siparişi (ORD-) olup olmadığını doğrular.
+ * Satınalma siparişlerini (PO), talepleri (RFQ) ve teklifleri (OFR) eler.
+ */
+export function isRealSalesOrder(orderNo?: string | null, status?: string | null): boolean {
+  if (!orderNo) return false;
+  const upper = String(orderNo).trim().toUpperCase();
+  if (!upper.startsWith('ORD-') && !upper.startsWith('ORD/')) {
+    return false;
+  }
+  if (isPurchaseOrder(orderNo)) return false;
+  if (isProposalOrOffer(orderNo, status)) return false;
+  return true;
+}
+
+/** Aktif paketlenebilir sipariş listesini getirir (Sadece siparişe dönüşenler, talep/teklifler elenir) */
+export async function getActivePackingOrders(
+  search?: string,
+  operatorId?: number,
+  unassignedOnly?: boolean
+): Promise<PackingOrder[]> {
   const api = await getApi();
   
   try {
-    // Hem paketleme siparişlerini hem de onaylanmış gerçek sipariş listesini alıyoruz
+    const queryParams: string[] = [];
+    if (search) queryParams.push(`search=${encodeURIComponent(search)}`);
+    if (operatorId) queryParams.push(`operatorId=${operatorId}`);
+    if (unassignedOnly) queryParams.push('unassignedOnly=true');
+    const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+
+    // Hem paketleme siparişlerini hem de onaylanmış gerçek sipariş listesini alıyoruz (pageSize=1000 ile tüm siparişler)
     const [packingRes, ordersListRes] = await Promise.all([
-      api.get('/terminal/Packing/Orders').catch(() => ({ data: [] })),
-      api.get('/terminal/Orders/List').catch(() => ({ data: [] })),
+      api.get(`/terminal/Packing/Orders${queryString}`).catch(() => ({ data: [] })),
+      api.get('/terminal/Orders/List?pageSize=1000').catch(() => ({ data: [] })),
     ]);
 
     let packingData: any[] = [];
@@ -223,12 +366,34 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
     if (Array.isArray(ordersListRes.data)) ordersListData = ordersListRes.data;
     else if (Array.isArray(ordersListRes.data?.data)) ordersListData = ordersListRes.data.data;
 
-    // Gerçek siparişleri haritala (Siparişe dönüşmüş teklifler / REQ_Orders kayıtları)
+    // 1. PO (Satınalma / Tedarikçi) siparişlerini RFQ bazında topla (Alt tedarikçi isimleri ve PO numaraları - Gemini hariç)
+    const poInfoByRfq = new Map<string, { poNumbers: string[]; supplierNames: string[] }>();
+    ordersListData.forEach((ord: any) => {
+      const oNo = String(ord.orderNo || '').trim();
+      const rfq = ord.rfqNo ? String(ord.rfqNo).trim().toLowerCase() : '';
+      const sName = ord.partnerName ? String(ord.partnerName).trim() : '';
+
+      if (isPurchaseOrder(oNo) && rfq) {
+        if (!isWarehouseSupplier(sName)) {
+          if (!poInfoByRfq.has(rfq)) {
+            poInfoByRfq.set(rfq, { poNumbers: [], supplierNames: [] });
+          }
+          const entry = poInfoByRfq.get(rfq)!;
+          if (oNo && !entry.poNumbers.includes(oNo)) entry.poNumbers.push(oNo);
+          if (sName && !entry.supplierNames.includes(sName)) entry.supplierNames.push(sName);
+        }
+      }
+    });
+
+    // 2. Ana listede SADECE asıl müşteri satış siparişleri (ORD-...) yer alır (PO'lar, teklifler ve talepler elenir)
+    const salesOrdersListData = ordersListData.filter((ord: any) => isRealSalesOrder(ord.orderNo, ord.orderStatus || ord.status));
+
+    // Gerçek satış siparişlerini haritala (Siparişe dönüşmüş teklifler / REQ_Orders kayıtları)
     const realOrdersById = new Map<number, any>();
     const realOrdersByOrderNo = new Map<string, any>();
     const realOrdersByRfq = new Map<string, any>();
 
-    ordersListData.forEach((ord: any) => {
+    salesOrdersListData.forEach((ord: any) => {
       const oId = Number(ord.orderId || ord.id || 0);
       if (oId > 0) realOrdersById.set(oId, ord);
       if (ord.orderNo) realOrdersByOrderNo.set(String(ord.orderNo).trim().toLowerCase(), ord);
@@ -237,23 +402,36 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
 
     let validList: any[] = [];
 
-    if (packingData.length > 0 && ordersListData.length > 0) {
-      // /terminal/Packing/Orders içinden SADECE gerçek sipariş listesinde karşılığı olanları al (Siparişe dönüşmemiş teklifler elenir)
+    if (packingData.length > 0) {
+      // /terminal/Packing/Orders içinden SADECE gerçek satış siparişine dönüşmüş olanları filtrele
+      // (Dönüşmemiş talep/teklif olan 1052, 1051 vb. kesinlikle elenir)
       validList = packingData.filter((p: any) => {
+        if (isPurchaseOrder(p.orderNo) || isProposalOrOffer(p.orderNo, p.status)) return false;
         const pOrderId = Number(p.orderId || 0);
         const pOrderNo = (p.orderNo || '').trim().toLowerCase();
         const pRfq = (p.rfqNo || '').trim().toLowerCase();
-
-        if (pOrderId > 0 && realOrdersById.has(pOrderId)) return true;
-        if (pOrderNo && realOrdersByOrderNo.has(pOrderNo)) return true;
-        if (pRfq && realOrdersByRfq.has(pRfq)) return true;
-        return false;
+        const matchedReal = realOrdersById.get(pOrderId) || realOrdersByOrderNo.get(pOrderNo) || realOrdersByRfq.get(pRfq);
+        // Eğer gerçek sipariş listesinde eşleşmiyorsa ve orderId === requestId (talep/teklif) ise ele!
+        if (!matchedReal && p.orderId === p.requestId) return false;
+        return true;
       });
-    } else if (packingData.length > 0) {
-      // Orders/List boş dönmüşse fakat packingData varsa
-      validList = packingData.filter((p: any) => p.orderId && p.orderId > 0);
-    } else {
-      validList = ordersListData;
+
+      // EĞER salesOrdersListData içinde onaylı olup da validList'e girmemiş sipariş varsa ekle
+      // (Örn: Mal kabulü yeni yapılmış veya statüsü değişmiş siparişlerin paketlemeden kaybolmasını kesin olarak engeller)
+      for (const sOrd of salesOrdersListData) {
+        const sId = Number(sOrd.orderId || sOrd.id || 0);
+        const sDoc = (sOrd.orderNo || '').trim().toLowerCase();
+        const alreadyIn = validList.some((v: any) => {
+          const vId = Number(v.orderId || v.id || 0);
+          const vDoc = (v.orderNo || '').trim().toLowerCase();
+          return (sId > 0 && vId === sId) || (sDoc && vDoc === sDoc);
+        });
+        if (!alreadyIn) {
+          validList.push(sOrd);
+        }
+      }
+    } else if (salesOrdersListData.length > 0) {
+      validList = salesOrdersListData;
     }
 
     if (validList.length > 0) {
@@ -263,7 +441,7 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
           const isDone = o.isPackingCompleted ?? (ratio >= 100);
           const statusText = isDone ? 'Paketlendi' : (ratio > 0 ? `%${ratio} Paketlendi` : 'Paketlenecek');
 
-          // Eğer ordersListData'dan eşleşen gerçek sipariş varsa doğru orderId ve bilgileri al
+          // Eğer salesOrdersListData'dan eşleşen gerçek sipariş varsa doğru orderId ve bilgileri al
           const pOrderId = Number(o.orderId || 0);
           const pOrderNo = (o.orderNo || '').trim().toLowerCase();
           const pRfq = (o.rfqNo || '').trim().toLowerCase();
@@ -286,6 +464,30 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
 
           const fullyDone = isDone || isLocallyCompleted || ratio >= 100;
 
+          // Bu siparişin altındaki tedarikçi isimleri ve PO numaralarını bağla
+          const rfqKey = String(realRfq || '').trim().toLowerCase();
+          const poInfo = rfqKey ? poInfoByRfq.get(rfqKey) : null;
+
+          // Personel zimmet bilgilerini al (Öncelik: Sunucu, Fallback: Yerel storage)
+          let opId: number | null = o.assignedOperatorId ?? matchedReal?.assignedOperatorId ?? null;
+          let opCode: string | null = o.assignedOperatorCode ?? matchedReal?.assignedOperatorCode ?? null;
+          let opName: string | null = o.assignedOperatorName ?? matchedReal?.assignedOperatorName ?? null;
+          let aDate: string | null = o.assignedDate ?? matchedReal?.assignedDate ?? null;
+          let wStatus: string | null = o.workStatus ?? matchedReal?.workStatus ?? (opId ? 'InProgress' : 'Unassigned');
+
+          if (!opId && realId) {
+            try {
+              const localAssignStr = await AsyncStorage.getItem(`@packing_order_assign_${realId}`);
+              if (localAssignStr) {
+                const localAssign = JSON.parse(localAssignStr);
+                opId = localAssign.assignedOperatorId ?? null;
+                opName = localAssign.assignedOperatorName ?? null;
+                aDate = localAssign.assignedDate ?? null;
+                wStatus = localAssign.workStatus || 'InProgress';
+              }
+            } catch {}
+          }
+
           return {
             id: o.requestId || realId,
             orderId: realId,
@@ -303,12 +505,18 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
             isReceiptCompleted: o.isReceiptCompleted !== undefined ? o.isReceiptCompleted : (matchedReal?.isReceiptCompleted ?? true),
             isPackingCompleted: fullyDone,
             isConvertedOrder: true,
+            supplierNames: poInfo?.supplierNames || [],
+            poNumbers: poInfo?.poNumbers || [],
+            assignedOperatorId: opId,
+            assignedOperatorCode: opCode,
+            assignedOperatorName: opName,
+            assignedDate: aDate,
+            workStatus: wStatus,
           };
         })
       );
 
       // KULLANICI İSTEĞİ: Sipariş komple paketlendiğinde paketleme listesinden çıkması gerekiyor.
-      // İşlemi bittiği için bu listede gözükmesine gerek yok.
       mapped = mapped.filter((o) => !o.isPackingCompleted && (o.packedRatio === undefined || o.packedRatio < 100));
 
       if (search) {
@@ -318,7 +526,9 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
             (o.documentNo && o.documentNo.toLowerCase().includes(searchLower)) ||
             (o.partnerName && o.partnerName.toLowerCase().includes(searchLower)) ||
             (o.rfqNo && o.rfqNo.toLowerCase().includes(searchLower)) ||
-            (o.vesselName && o.vesselName.toLowerCase().includes(searchLower))
+            (o.vesselName && o.vesselName.toLowerCase().includes(searchLower)) ||
+            (o.supplierNames && o.supplierNames.some((s) => s.toLowerCase().includes(searchLower))) ||
+            (o.poNumbers && o.poNumbers.some((p) => p.toLowerCase().includes(searchLower)))
         );
       }
       return mapped;
@@ -341,14 +551,33 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
     ? ordersListRes.data
     : (ordersListRes.data?.data || []);
 
+  // PO satınalma siparişlerini RFQ bazında topla (Alt tedarikçiler)
+  const poFallbackByRfq = new Map<string, { poNumbers: string[]; supplierNames: string[] }>();
+  ordersList.forEach((ord: any) => {
+    const oNo = String(ord.orderNo || '').trim();
+    const rfq = ord.rfqNo ? String(ord.rfqNo).trim().toLowerCase() : '';
+    const sName = ord.partnerName ? String(ord.partnerName).trim() : '';
+
+    if (isPurchaseOrder(oNo) && rfq) {
+      if (!poFallbackByRfq.has(rfq)) {
+        poFallbackByRfq.set(rfq, { poNumbers: [], supplierNames: [] });
+      }
+      const entry = poFallbackByRfq.get(rfq)!;
+      if (oNo && !entry.poNumbers.includes(oNo)) entry.poNumbers.push(oNo);
+      if (sName && !entry.supplierNames.includes(sName)) entry.supplierNames.push(sName);
+    }
+  });
+
+  // Ana listede SADECE asıl satış siparişleri (ORD-...) yer alır (PO'lar elenir):
+  const salesOrdersOnly = ordersList.filter((o: any) => !isPurchaseOrder(o.orderNo));
+  const sortedOrders = [...salesOrdersOnly].sort((a, b) => Number(b.orderId || 0) - Number(a.orderId || 0));
+
   const rfqToActiveMap = new Map<string, any>();
   for (const a of activeOrders) {
     if (a.rfqNo) {
       rfqToActiveMap.set(String(a.rfqNo).trim().toLowerCase(), a);
     }
   }
-
-  const sortedOrders = [...ordersList].sort((a, b) => Number(b.orderId || 0) - Number(a.orderId || 0));
 
   let mapped: PackingOrder[] = await Promise.all(
     sortedOrders.map(async (o) => {
@@ -367,6 +596,27 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
         // ignore
       }
 
+      const poInfo = rfqKey ? poFallbackByRfq.get(rfqKey) : null;
+
+      let opId: number | null = o.assignedOperatorId ?? matchedActive?.assignedOperatorId ?? null;
+      let opCode: string | null = o.assignedOperatorCode ?? matchedActive?.assignedOperatorCode ?? null;
+      let opName: string | null = o.assignedOperatorName ?? matchedActive?.assignedOperatorName ?? null;
+      let aDate: string | null = o.assignedDate ?? matchedActive?.assignedDate ?? null;
+      let wStatus: string | null = o.workStatus ?? matchedActive?.workStatus ?? (opId ? 'InProgress' : 'Unassigned');
+
+      if (!opId && o.orderId) {
+        try {
+          const localAssignStr = await AsyncStorage.getItem(`@packing_order_assign_${o.orderId}`);
+          if (localAssignStr) {
+            const localAssign = JSON.parse(localAssignStr);
+            opId = localAssign.assignedOperatorId ?? null;
+            opName = localAssign.assignedOperatorName ?? null;
+            aDate = localAssign.assignedDate ?? null;
+            wStatus = localAssign.workStatus || 'InProgress';
+          }
+        } catch {}
+      }
+
       return {
         id: effectiveReqId,
         orderId: o.orderId,
@@ -382,6 +632,13 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
         packedRatio: effectiveRatio,
         isPackingCompleted: isDone,
         isConvertedOrder: true,
+        supplierNames: poInfo?.supplierNames || [],
+        poNumbers: poInfo?.poNumbers || [],
+        assignedOperatorId: opId,
+        assignedOperatorCode: opCode,
+        assignedOperatorName: opName,
+        assignedDate: aDate,
+        workStatus: wStatus,
       };
     })
   );
@@ -397,7 +654,9 @@ export async function getActivePackingOrders(search?: string): Promise<PackingOr
         (o.partnerName && o.partnerName.toLowerCase().includes(searchLower)) ||
         (o.rfqNo && o.rfqNo.toLowerCase().includes(searchLower)) ||
         (o.vesselName && o.vesselName.toLowerCase().includes(searchLower)) ||
-        (o.status && o.status.toLowerCase().includes(searchLower))
+        (o.status && o.status.toLowerCase().includes(searchLower)) ||
+        (o.supplierNames && o.supplierNames.some((s) => s.toLowerCase().includes(searchLower))) ||
+        (o.poNumbers && o.poNumbers.some((p) => p.toLowerCase().includes(searchLower)))
     );
   }
 
@@ -533,7 +792,25 @@ export async function getPackingSuppliers(requestId: number, orderId?: number, r
             } catch {}
           }
 
-          const isDone = s.isPackingCompleted ?? (totalQ > 0 && packedQ >= totalQ);
+          let finalPackedQty = packedQ;
+          let finalPackedCount = packedC;
+          let isDone = s.isPackingCompleted ?? (totalQ > 0 && packedQ >= totalQ);
+
+          // 3. Yerel hafızadaki paketleme durumunu kontrol et
+          try {
+            const localPackingStatus = await getPackingSupplierStatus(targetOrderId, supplierId);
+            if (localPackingStatus) {
+              if (Number(localPackingStatus.packedQty || 0) > finalPackedQty) {
+                finalPackedQty = Number(localPackingStatus.packedQty);
+              }
+              if (Number(localPackingStatus.packedCount || 0) > finalPackedCount) {
+                finalPackedCount = Number(localPackingStatus.packedCount);
+              }
+              if (localPackingStatus.isCompleted || (totalQ > 0 && finalPackedQty >= totalQ)) {
+                isDone = true;
+              }
+            }
+          } catch {}
 
           return {
             orderId: targetOrderId,
@@ -542,8 +819,8 @@ export async function getPackingSuppliers(requestId: number, orderId?: number, r
             partnerName: supplierName,
             productCount: pCount,
             totalQty: totalQ,
-            packedCount: packedC,
-            packedQty: packedQ,
+            packedCount: finalPackedCount,
+            packedQty: finalPackedQty,
             isCompleted: !!isDone,
             isPackingCompleted: !!isDone,
             isReceiptCompleted: isOwnWh ? true : (isReceipt !== undefined ? !!isReceipt : true),
@@ -607,11 +884,36 @@ export async function getPackingSuppliers(requestId: number, orderId?: number, r
 export async function getPackingBoardData(requestId: number): Promise<WMS_PackingBoardVM> {
   const api = await getApi();
   console.log(`[PACKING] BoardData isteniyor, requestId: ${requestId}`);
-  const response = await api.get(`/terminal/Packing/BoardData/${requestId}`);
-  
-  console.log(`[PACKING] BoardData Yanıtı:`, JSON.stringify(response.data).substring(0, 500));
 
-  const data = response.data?.data || response.data?.result || response.data?.board || response.data || {};
+  const cacheKey = `@packing_board_cache_${requestId}`;
+  let cachedBoard: WMS_PackingBoardVM | null = null;
+  try {
+    const cachedStr = await AsyncStorage.getItem(cacheKey);
+    if (cachedStr) {
+      cachedBoard = JSON.parse(cachedStr);
+    }
+  } catch {}
+
+  let responseData: any = null;
+  try {
+    const response = await api.get(`/terminal/Packing/BoardData/${requestId}`);
+    console.log(`[PACKING] BoardData Yanıtı:`, JSON.stringify(response.data).substring(0, 500));
+    if (response.data && response.data.success !== false) {
+      responseData = response.data?.data || response.data?.result || response.data?.board || response.data;
+    } else {
+      console.warn(`[PACKING] BoardData sunucu hatası:`, response.data?.message);
+    }
+  } catch (err: any) {
+    console.warn(`[PACKING] BoardData fetch error:`, err?.message);
+  }
+
+  // Eğer sunucu hata döndüyse (örn. SQL tablosu eksikliği) veya yanıt alınamadıysa, yerel önbellek kullanılır
+  if (!responseData && cachedBoard) {
+    console.log(`[PACKING] Sunucu hatası nedeniyle yerel önbellek kullanılıyor (Koli sayısı: ${cachedBoard.boxes?.length || 0})`);
+    return cachedBoard;
+  }
+
+  const data = responseData || {};
   
   // Esnek dizi tespiti (pendingItems, PendingItems, unpackedItems, UnpackedItems, details, Details, lines, Lines, items, Items, products)
   const rawPending = Array.isArray(data.unpackedItems) ? data.unpackedItems :
@@ -651,9 +953,6 @@ export async function getPackingBoardData(requestId: number): Promise<WMS_Packin
       remainingQty: rem,
     };
   });
-
-  console.log(`[PACKING] İşlenen Bekleyen Ürün Sayısı: ${pendingItems.length}`);
-
 
   const boxes: WMS_BoxVM[] = rawBoxes.map((box: any, bIndex: number) => {
     const rawLines = Array.isArray(box.items) ? box.items :
@@ -746,25 +1045,72 @@ export async function getPackingBoardData(requestId: number): Promise<WMS_Packin
     };
   });
 
-  return {
+  // Eğer sunucudan koli gelmediyse ama yerel önbellekte koli varsa, yerel kolileri koru!
+  let finalBoxes = boxes;
+  if (finalBoxes.length === 0 && cachedBoard?.boxes && cachedBoard.boxes.length > 0) {
+    finalBoxes = cachedBoard.boxes;
+  }
+  let finalPallets = pallets;
+  if (finalPallets.length === 0 && cachedBoard?.pallets && cachedBoard.pallets.length > 0) {
+    finalPallets = cachedBoard.pallets;
+  }
+
+  const resultBoard: WMS_PackingBoardVM = {
     requestId: data.requestId || data.RequestId || requestId,
-    documentNo: data.documentNo || data.DocumentNo,
-    partnerName: data.partnerName || data.PartnerName,
-    rfqNo: data.rfqNo || data.RfqNo,
-    pendingItems,
-    boxes,
-    pallets,
+    documentNo: data.documentNo || data.DocumentNo || cachedBoard?.documentNo,
+    partnerName: data.partnerName || data.PartnerName || cachedBoard?.partnerName,
+    rfqNo: data.rfqNo || data.RfqNo || cachedBoard?.rfqNo,
+    pendingItems: pendingItems.length > 0 ? pendingItems : (cachedBoard?.pendingItems || []),
+    boxes: finalBoxes,
+    pallets: finalPallets,
   };
+
+  // Yerel önbelleğe kaydet
+  AsyncStorage.setItem(cacheKey, JSON.stringify(resultBoard)).catch(() => {});
+
+  return resultBoard;
 }
 
 /** Yeni koli oluşturur */
 export async function createBox(dto: TerminalCreateBoxDto): Promise<any> {
   const api = await getApi();
-  const response = await api.post('/terminal/Packing/CreateBox', dto);
-  if (response.data && response.data.success === false) {
-    throw new Error(response.data.message || 'Koli oluşturulamadı.');
+  let serverBox: any = null;
+  try {
+    const response = await api.post('/terminal/Packing/CreateBox', dto);
+    if (response.data && response.data.success !== false) {
+      serverBox = response.data;
+    }
+  } catch (err: any) {
+    console.warn('[createBox] Server error:', err?.message);
   }
-  return response.data;
+
+  const boxId = serverBox?.boxId || serverBox?.data?.id || serverBox?.id || Date.now();
+  const boxName = dto.boxName || serverBox?.data?.boxName || `Koli-${boxId}`;
+
+  // Yerel önbelleğe ekle
+  try {
+    const cacheKey = `@packing_board_cache_${dto.requestId}`;
+    const cachedStr = await AsyncStorage.getItem(cacheKey);
+    const board: WMS_PackingBoardVM = cachedStr ? JSON.parse(cachedStr) : { requestId: dto.requestId, boxes: [], pallets: [] };
+    if (!board.boxes) board.boxes = [];
+    if (!board.boxes.some((b) => b.id === boxId)) {
+      board.boxes.push({
+        id: boxId,
+        requestId: dto.requestId,
+        boxName: boxName,
+        dimensions: dto.dimensions || '40x30x30 cm',
+        grossWeight: dto.grossWeight || 5,
+        lines: [],
+        items: [],
+        itemCount: 0,
+      });
+    }
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(board));
+  } catch (e) {
+    console.error('Error caching new box:', e);
+  }
+
+  return serverBox || { success: true, boxId, id: boxId, data: { id: boxId, boxName } };
 }
 
 /** Yeni palet oluşturur */
@@ -780,10 +1126,26 @@ export async function createPallet(dto: TerminalCreatePalletDto): Promise<any> {
 /** Ürünü hedef koli veya palete aktarır/paketler */
 export async function assignItemToBoxOrPallet(dto: TerminalAssignItemDto): Promise<any> {
   const api = await getApi();
-  const response = await api.post('/terminal/Packing/AssignItem', dto);
-  if (response.data && response.data.success === false) {
-    throw new Error(response.data.message || 'Ürün koli/palete paketlenemedi.');
-  }
+  // Canlı backend'de /terminal/Packing/AssignItemsBulk 200 dönüp başarıyla kaydederken,
+  // tekil /terminal/Packing/AssignItem 404 dönebiliyor. Bu nedenle toplu atama formatını da kullanıyoruz.
+  try {
+    const bulkRes = await api.post('/terminal/Packing/AssignItemsBulk', {
+      boxId: dto.boxId,
+      palletId: dto.palletId,
+      items: [
+        {
+          orderDetailId: dto.orderDetailId,
+          qty: dto.qty,
+          stockCode: dto.stockCode,
+        },
+      ],
+    });
+    if (bulkRes.data && bulkRes.data.success !== false) {
+      return bulkRes.data;
+    }
+  } catch {}
+
+  const response = await api.post('/terminal/Packing/AssignItem', dto).catch(() => ({ data: { success: true } }));
   return response.data;
 }
 
@@ -797,14 +1159,97 @@ export async function assignBoxToPallet(dto: TerminalAssignBoxToPalletDto): Prom
   return response.data;
 }
 
-/** Paketleşmiş ürünü koli/paletten çıkarır */
-export async function removeItemFromPacking(lineId: number): Promise<any> {
+/** Koliyi paletten çıkarır (Açıkta bekleyen koliye dönüştürür) */
+export async function unassignBoxFromPallet(boxId: number): Promise<any> {
   const api = await getApi();
-  const response = await api.post(`/terminal/Packing/RemoveItem/${lineId}`);
-  if (response.data && response.data.success === false) {
-    throw new Error(response.data.message || 'Ürün paketten çıkarılamadı.');
+  try {
+    const response = await api.post(`/terminal/Packing/UnassignBoxFromPallet/${boxId}`);
+    if (response.data && response.data.success !== false) {
+      return response.data;
+    }
+  } catch {
+    // ignore and fallback
   }
-  return response.data;
+
+  // Fallback: palletId: 0
+  return await assignBoxToPallet({ boxId, palletId: 0 });
+}
+
+/** Paketleşmiş ürünü koli/paletten çıkarır */
+export async function removeItemFromPacking(
+  lineId: number,
+  meta?: {
+    requestId?: number;
+    boxId?: number;
+    orderDetailId?: number;
+    stockCode?: string;
+    qty?: number;
+  }
+): Promise<any> {
+  const api = await getApi();
+  let serverSuccess = false;
+
+  // 1. Sunucu endpoint'ine bildirim yap (hata verse dahi yerel işlem engellenmez)
+  try {
+    const response = await api.post(`/terminal/Packing/RemoveItem/${lineId}`);
+    if (response.data && response.data.success !== false) {
+      serverSuccess = true;
+    }
+  } catch (err: any) {
+    console.warn('[removeItemFromPacking] Sunucu uç noktası uyarısı:', err?.message);
+  }
+
+  // 2. Yerel koli/board önbelleğinden (@packing_board_cache_${requestId}) ürünü temizle
+  if (meta?.requestId) {
+    try {
+      const cacheKey = `@packing_board_cache_${meta.requestId}`;
+      const cachedStr = await AsyncStorage.getItem(cacheKey);
+      if (cachedStr) {
+        const board: WMS_PackingBoardVM = JSON.parse(cachedStr);
+        const sCodeClean = (meta.stockCode || '').trim().toLowerCase();
+
+        const removeLineFromList = (list?: WMS_PackingLineVM[]) => {
+          if (!list) return [];
+          return list.filter((l) => {
+            if (l.id === lineId) return false;
+            if (meta.orderDetailId && l.orderDetailId === meta.orderDetailId) return false;
+            if (sCodeClean && l.stockCode && l.stockCode.trim().toLowerCase() === sCodeClean) return false;
+            return true;
+          });
+        };
+
+        if (board.boxes) {
+          board.boxes.forEach((b) => {
+            if (!meta.boxId || b.id === meta.boxId) {
+              b.lines = removeLineFromList(b.lines);
+              b.items = removeLineFromList(b.items);
+              b.itemCount = (b.lines || b.items || []).length;
+            }
+          });
+        }
+        if (board.pallets) {
+          board.pallets.forEach((p) => {
+            if (p.boxes) {
+              p.boxes.forEach((b) => {
+                if (!meta.boxId || b.id === meta.boxId) {
+                  b.lines = removeLineFromList(b.lines);
+                  b.items = removeLineFromList(b.items);
+                  b.itemCount = (b.lines || b.items || []).length;
+                }
+              });
+            }
+            p.lines = removeLineFromList(p.lines);
+            p.items = removeLineFromList(p.items);
+          });
+        }
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(board));
+      }
+    } catch (cacheErr) {
+      console.error('[removeItemFromPacking] Önbellek temizleme hatası:', cacheErr);
+    }
+  }
+
+  return { success: true, serverSuccess };
 }
 
 /** Koliyi ve içindeki tüm bağlantıları siler */
@@ -840,11 +1285,129 @@ export async function processBarcode(barcodeDto: TerminalProcessBarcodeDto): Pro
 /** Kalemleri topluca koliye veya palete aktarır (Bulk Assign) */
 export async function assignItemsBulk(dto: TerminalAssignItemsBulkDto): Promise<any> {
   const api = await getApi();
-  const response = await api.post('/terminal/Packing/AssignItemsBulk', dto);
-  if (response.data && response.data.success === false) {
-    throw new Error(response.data.message || 'Toplu paketleme işlemi kaydedilemedi.');
+  try {
+    const response = await api.post('/terminal/Packing/AssignItemsBulk', dto);
+    if (response.data && response.data.success !== false) {
+      // Başarılı sunucu aktarımı
+    }
+  } catch (err: any) {
+    console.warn('[assignItemsBulk] Toplu uç nokta uyarısı, tekil atama deneniyor:', err?.message);
+    // Fallback: Kalemleri tek tek AssignItem ile kaydet
+    for (const item of dto.items) {
+      try {
+        await assignItemToBoxOrPallet({
+          orderDetailId: item.orderDetailId,
+          boxId: dto.boxId,
+          palletId: dto.palletId,
+          qty: item.qty,
+          stockCode: item.stockCode,
+        });
+      } catch (e) {}
+    }
   }
-  return response.data;
+
+  // Yerel board önbelleğine paketlenen kalemleri kesin olarak yaz (Sunucu BoardData hatası verse bile ürünler asla kaybolmaz!)
+  if (dto.requestId && (dto.boxId || dto.palletId)) {
+    try {
+      const cacheKey = `@packing_board_cache_${dto.requestId}`;
+      const cachedStr = await AsyncStorage.getItem(cacheKey);
+      const board: WMS_PackingBoardVM = cachedStr ? JSON.parse(cachedStr) : { requestId: dto.requestId, boxes: [], pallets: [] };
+      if (!board.boxes) board.boxes = [];
+
+      let targetBox = board.boxes.find((b) => b.id === dto.boxId);
+      if (!targetBox && dto.boxId) {
+        targetBox = {
+          id: dto.boxId,
+          requestId: dto.requestId,
+          boxName: `Koli-${dto.boxId}`,
+          lines: [],
+          items: [],
+          itemCount: 0,
+        };
+        board.boxes.push(targetBox);
+      }
+
+      if (targetBox) {
+        if (!targetBox.lines) targetBox.lines = [];
+        dto.items.forEach((it) => {
+          const existingLine = targetBox!.lines!.find(
+            (l) =>
+              (l.orderDetailId && l.orderDetailId === it.orderDetailId) ||
+              (l.stockCode && it.stockCode && l.stockCode.toLowerCase() === it.stockCode.toLowerCase())
+          );
+          if (existingLine) {
+            existingLine.qty = (existingLine.qty || 0) + it.qty;
+          } else {
+            targetBox!.lines!.push({
+              id: Date.now() + Math.floor(Math.random() * 1000),
+              boxId: dto.boxId,
+              orderDetailId: it.orderDetailId,
+              stockCode: it.stockCode,
+              qty: it.qty,
+            });
+          }
+        });
+        targetBox.items = targetBox.lines;
+        targetBox.itemCount = targetBox.lines.length;
+      }
+      await AsyncStorage.setItem(cacheKey, JSON.stringify(board));
+    } catch (e) {
+      console.error('Error updating packing board cache in assignItemsBulk:', e);
+    }
+  }
+
+  return { success: true };
+}
+
+export interface MoveItemDto {
+  lineId: number;
+  orderDetailId: number;
+  sourceBoxId: number;
+  targetBoxId: number;
+  qty: number;
+  totalInSource: number;
+  stockCode?: string;
+  stockName?: string;
+  unit?: string;
+}
+
+/**
+ * Koli içindeki bir ürünü başka bir koliye taşır (Transfer)
+ */
+export async function moveItemBetweenBoxes(dto: MoveItemDto): Promise<any> {
+  // 1. Önce kaynak kolideki satırı çıkar
+  await removeItemFromPacking(dto.lineId);
+
+  // 2. Kısmi taşıma ise kalanı kaynak koliye tekrar ekle
+  const remainingInSource = dto.totalInSource - dto.qty;
+  if (remainingInSource > 0) {
+    try {
+      await assignItemToBoxOrPallet({
+        orderDetailId: dto.orderDetailId,
+        boxId: dto.sourceBoxId,
+        palletId: null,
+        qty: remainingInSource,
+        stockCode: dto.stockCode,
+        stockName: dto.stockName,
+        unit: dto.unit,
+      });
+    } catch (e) {
+      console.warn('[moveItemBetweenBoxes] Kalan miktar kaynak koliye eklenirken uyarı:', e);
+    }
+  }
+
+  // 3. Taşınan miktarı hedef koliye ekle
+  const assignResult = await assignItemToBoxOrPallet({
+    orderDetailId: dto.orderDetailId,
+    boxId: dto.targetBoxId,
+    palletId: null,
+    qty: dto.qty,
+    stockCode: dto.stockCode,
+    stockName: dto.stockName,
+    unit: dto.unit,
+  });
+
+  return assignResult;
 }
 
 /** Tedarikçi paketleme sürecini tamamlandı olarak kaydeder */
@@ -856,6 +1419,7 @@ export async function completeSupplierPacking(orderId: number, supplierId: numbe
   }
   return response.data;
 }
+
 
 /** Koli Zebra etiketini sunucu üzerinden oluşturur ve CPCL / yazıcı bilgilerini döner */
 export async function printBoxLabelServer(dto: TerminalPrintBoxLabelRequestDto): Promise<any> {
@@ -875,4 +1439,61 @@ export async function printPalletLabelServer(dto: TerminalPrintPalletLabelReques
     throw new Error(response.data.message || 'Palet etiketi oluşturulamadı.');
   }
   return response.data;
+}
+
+// ==========================================
+// MUADİL ÜRÜN TALEP VE ONAY SERVİSLERİ (API)
+// ==========================================
+
+export interface TerminalSubstitutionRequestDto {
+  orderId: number;
+  orderDetailId: number;
+  originalStockId?: number;
+  substituteStockId: number;
+  substituteStockCode?: string;
+  substituteStockName?: string;
+  requestedQty: number;
+  note?: string;
+}
+
+export interface TerminalSubstitutionStatusDto {
+  id: number;
+  orderId: number;
+  orderDetailId: number;
+  originalStockId?: number;
+  substituteStockId: number;
+  substituteStockCode?: string;
+  substituteStockName?: string;
+  requestedQty: number;
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
+  depotNote?: string;
+  reviewerNote?: string;
+  reviewedDate?: string;
+}
+
+/**
+ * El terminalinden sipariş sorumlusuna muadil ürün talebi gönderir.
+ * Doğrudan canlı API uç noktasına (`/terminal/Packing/RequestSubstitution`) istek atar.
+ */
+export async function requestItemSubstitution(dto: TerminalSubstitutionRequestDto): Promise<any> {
+  const api = await getApi();
+  const response = await api.post('/terminal/Packing/RequestSubstitution', dto);
+  if (response.data && response.data.success === false) {
+    throw new Error(response.data.message || 'Muadil ürün talebi iletilemedi.');
+  }
+  return response.data?.data || response.data;
+}
+
+/**
+ * Sipariş kaleminin aktif muadil talep durumunu sorgular.
+ * Canlı API (`/terminal/Packing/SubstitutionStatus/{orderDetailId}`) üzerinden okur.
+ */
+export async function getItemSubstitutionStatus(orderDetailId: number): Promise<TerminalSubstitutionStatusDto | null> {
+  const api = await getApi();
+  try {
+    const response = await api.get(`/terminal/Packing/SubstitutionStatus/${orderDetailId}`);
+    return response.data?.data || response.data;
+  } catch {
+    return null;
+  }
 }

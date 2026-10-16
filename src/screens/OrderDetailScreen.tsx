@@ -31,6 +31,9 @@ import { FeedbackService } from '../services/feedback';
 import { ShipmentItemSkeleton } from '../components/skeletons/ShipmentItemSkeleton';
 import { Badge } from '../components/Badge';
 import { CameraScannerModal } from '../components/CameraScannerModal';
+import { OperatorBadge } from '../components/OperatorBadge';
+import { useOperatorStore } from '../store/operatorStore';
+import { useNotificationStore } from '../store/notificationStore';
 
 export function OrderDetailScreen() {
   const route = useRoute<any>();
@@ -49,6 +52,7 @@ export function OrderDetailScreen() {
     Array<{ name: string; ordered: number; received: number; type: 'missing' | 'extra' }>
   >([]);
   const [submitting, setSubmitting] = useState(false);
+  const [discrepancyRemarks, setDiscrepancyRemarks] = useState('');
 
   // Hızlı miktar modalı (opsiyonel büyük tuş takımı veya tekli düzenleme için)
   const [showQtyModal, setShowQtyModal] = useState(false);
@@ -58,6 +62,11 @@ export function OrderDetailScreen() {
   const showToast = useUIStore((s) => s.showToast);
   const showErrorLock = useUIStore((s) => s.showErrorLock);
   const { activeWarehouseId } = useSettingsStore();
+  const { activeOperator, loadOperators, findOperatorByCodeOrId, setActiveOperator } = useOperatorStore();
+
+  useEffect(() => {
+    loadOperators();
+  }, [loadOperators]);
 
   const storageKey = `@order_receipt_${orderId}_${supplierId || 0}`;
 
@@ -197,8 +206,19 @@ export function OrderDetailScreen() {
 
   // Barkod Okutma
   const handleScan = async (scannedCode: string) => {
-    if (!scannedCode || !lines || lines.length === 0) return;
+    if (!scannedCode) return;
     const cleanCode = scannedCode.trim();
+
+    // 0. Personel / Operatör Kartı Barkodu Kontrolü (Model 2)
+    const matchedOp = findOperatorByCodeOrId(cleanCode);
+    if (matchedOp) {
+      setActiveOperator(matchedOp);
+      FeedbackService.playSuccess();
+      showToast({ message: `Depocu: ${matchedOp.fullName} seçildi`, type: 'success' });
+      return;
+    }
+
+    if (!lines || lines.length === 0) return;
 
     // 1. Yerel satırlarda ara (stockCode, stockId veya barkod)
     let matchedIndex = lines.findIndex(
@@ -306,11 +326,19 @@ export function OrderDetailScreen() {
     setShowDiscrepancyModal(false);
     setSubmitting(true);
     try {
+      const opPrefix = activeOperator
+        ? `[Depocu: ${activeOperator.fullName}${activeOperator.employeeCode ? ` (${activeOperator.employeeCode})` : ''}] `
+        : '';
+
+      const finalRemarks = discrepancyRemarks.trim()
+        ? `${opPrefix}Terminal Mal Kabul: ${discrepancyRemarks.trim()}`
+        : `${opPrefix}Terminal Mal Kabul Fişi`;
+
       const payload = {
         orderId: Number(orderId),
         supplierId: Number(supplierId),
         warehouseId: Number(activeWarehouseId),
-        remarks: 'Terminal Mal Kabul Fişi',
+        remarks: finalRemarks,
         lines: lines
           .filter((line) => (line.pickedQty || 0) > 0)
           .map((line) => ({
@@ -325,6 +353,24 @@ export function OrderDetailScreen() {
       await AsyncStorage.removeItem(storageKey);
       await AsyncStorage.setItem(`@order_receipt_completed_${orderId}_${supplierId || 0}`, 'true');
       await AsyncStorage.removeItem(`@order_receipt_completed_${orderId}`).catch(() => {});
+
+      // Paketleme birimine ve sipariş sorumlusuna bildirim gönder
+      try {
+        await useNotificationStore.getState().addNotification({
+          type: 'RECEIPT_COMPLETED',
+          title: `Mal Kabul Edildi: ${supplierName || 'Tedarikçi'}`,
+          message: `${documentNo || `ORD-${orderId}`} siparişinin ${supplierName || 'tedarikçi'} kalemleri kabul edildi. Koli ve palet paketleme birimine hazır!`,
+          orderId: Number(orderId),
+          documentNo: documentNo || `ORD-${orderId}`,
+          rfqNo: rfqNo,
+          supplierId: Number(supplierId || 0),
+          supplierName: supplierName || 'Tedarikçi',
+          responsiblePerson: route.params?.responsiblePerson || 'Sipariş Sorumlusu',
+          targetRole: 'PACKING',
+        });
+      } catch (notifErr) {
+        console.warn('Bildirim kaydedilemedi:', notifErr);
+      }
 
       showToast({ message: 'Mal kabul işlemi başarıyla kaydedildi.', type: 'success' });
       FeedbackService.playSuccess();
@@ -492,6 +538,9 @@ export function OrderDetailScreen() {
 
       {/* Üst Bilgi Kartı */}
       <View style={styles.headerCard}>
+        {/* Depocu / Operatör Seçici (Model 2) */}
+        <OperatorBadge style={{ marginBottom: Spacing.sm }} />
+
         <View style={styles.headerTop}>
           <View style={styles.supplierBadge}>
             <CustomIcon name="storefront" size={16} color={Colors.primary} />
@@ -598,15 +647,18 @@ export function OrderDetailScreen() {
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
       ) : (
         <FlatList
           data={lines}
           renderItem={renderItem}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 120 }]}
           ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={fetchDetail} colors={[Colors.primary]} />
           }
@@ -691,6 +743,55 @@ export function OrderDetailScreen() {
                 </View>
               )}
             />
+
+            {/* Açıklama / Hasar - Eksik Nedeni Girişi */}
+            <View style={styles.discrepancyRemarksContainer}>
+              <Text style={styles.discrepancyRemarksLabel}>AÇIKLAMA / NEDEN (OPSİYONEL)</Text>
+              <View style={styles.quickChipsRow}>
+                {['Eksik Geldi', 'Kırık / Hasarlı', 'Koli Hasarlı', 'Hatalı Ürün', 'İade Edilecek'].map((tag) => (
+                  <TouchableOpacity
+                    key={tag}
+                    style={[
+                      styles.quickChip,
+                      discrepancyRemarks.includes(tag) && styles.quickChipActive,
+                    ]}
+                    onPress={() => {
+                      if (discrepancyRemarks.includes(tag)) {
+                        setDiscrepancyRemarks((prev) =>
+                          prev
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter((s) => s && s !== tag)
+                            .join(', ')
+                        );
+                      } else {
+                        setDiscrepancyRemarks((prev) =>
+                          prev ? `${prev}, ${tag}` : tag
+                        );
+                      }
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.quickChipText,
+                        discrepancyRemarks.includes(tag) && styles.quickChipTextActive,
+                      ]}
+                    >
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={styles.discrepancyInput}
+                placeholder="Örn: 1 adet kırık çıktı, koli hasarlı geldi..."
+                placeholderTextColor={Colors.outline}
+                value={discrepancyRemarks}
+                onChangeText={setDiscrepancyRemarks}
+                multiline={true}
+                numberOfLines={3}
+              />
+            </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -1178,5 +1279,54 @@ const styles = StyleSheet.create({
     ...Typography.labelMedium,
     color: '#ffffff',
     fontWeight: 'bold',
+  },
+  discrepancyRemarksContainer: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  discrepancyRemarksLabel: {
+    ...Typography.bodySm,
+    fontWeight: 'bold',
+    color: Colors.onSurfaceVariant,
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  quickChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  quickChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.xs,
+    backgroundColor: Colors.surfaceVariant,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+  },
+  quickChipActive: {
+    backgroundColor: Colors.secondaryContainer,
+    borderColor: Colors.primary,
+  },
+  quickChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.onSurfaceVariant,
+  },
+  quickChipTextActive: {
+    color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  discrepancyInput: {
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.sm,
+    backgroundColor: Colors.surfaceVariant,
+    ...Typography.bodyMd,
+    color: Colors.onSurface,
+    textAlignVertical: 'top',
+    minHeight: 60,
   },
 });

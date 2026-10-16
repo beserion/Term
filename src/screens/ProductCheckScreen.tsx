@@ -16,6 +16,7 @@ import { Config } from '../config';
 import { flexMatch, normalizeText } from '../utils/searchHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
 import { resolveImageUri as resolveImageUriUtil } from '../utils/imageHelper';
+import { SafeKeyboardScrollView } from '../components/SafeKeyboardScrollView';
 
 export function ProductCheckScreen() {
   const navigation = useNavigation<any>();
@@ -152,10 +153,11 @@ export function ProductCheckScreen() {
           const uploadedUrl = await uploadImage(photoAsset.uri, product.id);
           const photoToSet = uploadedUrl || photoAsset.uri;
           await updateStockBarcode(product.id, product.barCode || '', photoToSet);
-          setProduct((prev) => (prev ? { ...prev, photo: photoAsset.uri, imageUrl: photoToSet } : null));
+          setProduct((prev) => (prev ? { ...prev, photo: photoToSet, imageUrl: photoToSet } : null));
           setStocks((prev) =>
-            prev.map((s) => (s.id === product.id ? { ...s, photo: photoAsset.uri, imageUrl: photoToSet } : s))
+            prev.map((s) => (s.id === product.id ? { ...s, photo: photoToSet, imageUrl: photoToSet } : s))
           );
+
           showToast({ message: 'Ürün fotoğrafı yüklendi ve güncellendi', type: 'success' });
           FeedbackService.playSuccess();
         } catch (uploadErr: any) {
@@ -346,9 +348,10 @@ export function ProductCheckScreen() {
     <View style={styles.container}>
       <TopAppBar title="Ürün Kontrol" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-
+      <SafeKeyboardScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: 60 }]}
+        extraHeight={80}
+      >
         {/* Manuel Giriş */}
         <View style={styles.manualInputRow}>
           <TextInput
@@ -391,7 +394,7 @@ export function ProductCheckScreen() {
                     <View style={styles.imagePlaceholder}>
                       <ActivityIndicator size="small" color={Colors.primary} />
                     </View>
-                  ) : product.photo || product.imageUrl ? (
+                  ) : resolveImageUri(product.photo || product.imageUrl) ? (
                     <Image
                       source={{
                         uri: resolveImageUri(product.photo || product.imageUrl),
@@ -583,7 +586,7 @@ export function ProductCheckScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </ScrollView>
+      </SafeKeyboardScrollView>
 
       {/* TAM EKRAN ÜRÜN ARAMA VE SEÇİM MODALİ */}
       <Modal

@@ -6,6 +6,7 @@ import { InventoryStack } from './InventoryStack';
 import { useAuthStore } from '../store/authStore';
 import { Colors } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
+import { terminalNotificationService } from '../services/terminalNotificationService';
 
 export function AppNavigator() {
   const { isAuthenticated, isLoading, initialize } = useAuthStore();
@@ -14,6 +15,17 @@ export function AppNavigator() {
   useEffect(() => {
     initialize();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      terminalNotificationService.start();
+    } else {
+      terminalNotificationService.stop();
+    }
+    return () => {
+      terminalNotificationService.stop();
+    };
+  }, [isAuthenticated]);
 
   return (
     <NavigationContainer>

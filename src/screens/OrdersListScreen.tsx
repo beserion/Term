@@ -119,6 +119,17 @@ export function OrdersListScreen() {
             </Text>
           </View>
 
+          {/* Alt Tedarikçi Firmalar (Varsa) */}
+          {item.supplierNames && item.supplierNames.length > 0 ? (
+            <View style={styles.detailRow}>
+              <CustomIcon name="storefront-outline" size={14} color={Colors.primary} />
+              <Text style={styles.subDetail} numberOfLines={1}>
+                <Text style={styles.subDetailLabel}>Tedarikçiler ({item.supplierNames.length}): </Text>
+                <Text style={styles.supplierText}>{item.supplierNames.join(', ')}</Text>
+              </Text>
+            </View>
+          ) : null}
+
           {formattedDate ? (
             <View style={styles.dateRow}>
               <CustomIcon name="calendar-month" size={14} color={Colors.outline} />
@@ -300,6 +311,10 @@ const styles = StyleSheet.create({
   dimText: {
     color: Colors.outline,
     fontStyle: 'italic',
+  },
+  supplierText: {
+    color: Colors.onSurfaceVariant,
+    fontSize: 12,
   },
   dateRow: {
     flexDirection: 'row',

@@ -23,6 +23,7 @@ import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
 import { sendCpclToPrinter, executePrintJob } from '../services/printHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
+import { SafeKeyboardScrollView } from '../components/SafeKeyboardScrollView';
 
 /** Benzersiz sonraki STK kodunu üretir */
 function generateNextStockCode(allStocks: Stock[]): string {
@@ -163,7 +164,9 @@ export function StockAddEditScreen() {
         qty: parseFloat(qty) || 0,
         shelfAddress: shelfAddress.trim() || null,
         impaCode: impaCode.trim() || null,
+        photoUrl: existingProduct?.photoUrl || existingProduct?.photo || existingProduct?.imageUrl || null,
       };
+
 
       let result;
       if (isEditMode) {
@@ -223,6 +226,13 @@ export function StockAddEditScreen() {
     }
   };
 
+  const scrollRef = React.useRef<ScrollView>(null);
+  const scrollTo = (y: number) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y, animated: true });
+    }, 150);
+  };
+
   return (
     <View style={styles.container}>
       <TopAppBar
@@ -233,10 +243,10 @@ export function StockAddEditScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView
+        <SafeKeyboardScrollView
+          ref={scrollRef}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          extraHeight={100}
         >
           {saving && (
             <View style={styles.loadingOverlay}>
@@ -256,6 +266,7 @@ export function StockAddEditScreen() {
                   placeholderTextColor={Colors.outline}
                   value={barcode}
                   onChangeText={setBarcode}
+                  onFocus={() => scrollTo(0)}
                 />
                 <TouchableOpacity
                   style={[styles.barcodeIcon, { backgroundColor: Colors.secondaryContainer, width: 38, height: 38, borderRadius: BorderRadius.xs, alignItems: 'center', justifyContent: 'center' }]}
@@ -278,6 +289,7 @@ export function StockAddEditScreen() {
                 value={stockCode}
                 onChangeText={setStockCode}
                 autoCapitalize="characters"
+                onFocus={() => scrollTo(60)}
               />
             </View>
 
@@ -290,6 +302,7 @@ export function StockAddEditScreen() {
                 placeholderTextColor={Colors.outline}
                 value={stockName}
                 onChangeText={setStockName}
+                onFocus={() => scrollTo(130)}
               />
             </View>
 
@@ -302,6 +315,7 @@ export function StockAddEditScreen() {
                 placeholderTextColor={Colors.outline}
                 value={stockNameTr}
                 onChangeText={setStockNameTr}
+                onFocus={() => scrollTo(200)}
               />
             </View>
 
@@ -315,6 +329,7 @@ export function StockAddEditScreen() {
                   placeholderTextColor={Colors.outline}
                   value={brand}
                   onChangeText={setBrand}
+                  onFocus={() => scrollTo(270)}
                 />
               </View>
               <View style={[styles.inputGroup, styles.flex1]}>
@@ -325,6 +340,7 @@ export function StockAddEditScreen() {
                   placeholderTextColor={Colors.outline}
                   value={model}
                   onChangeText={setModel}
+                  onFocus={() => scrollTo(270)}
                 />
               </View>
             </View>
@@ -340,6 +356,7 @@ export function StockAddEditScreen() {
                   value={unit}
                   onChangeText={setUnit}
                   autoCapitalize="characters"
+                  onFocus={() => scrollTo(340)}
                 />
               </View>
               <View style={[styles.inputGroup, styles.flex1]}>
@@ -351,6 +368,7 @@ export function StockAddEditScreen() {
                   keyboardType="numeric"
                   value={qty}
                   onChangeText={setQty}
+                  onFocus={() => scrollTo(340)}
                 />
               </View>
             </View>
@@ -366,6 +384,7 @@ export function StockAddEditScreen() {
                   value={shelfAddress}
                   onChangeText={setShelfAddress}
                   autoCapitalize="characters"
+                  onFocus={() => scrollTo(420)}
                 />
               </View>
               <View style={[styles.inputGroup, styles.flex1]}>
@@ -377,6 +396,7 @@ export function StockAddEditScreen() {
                   value={impaCode}
                   onChangeText={setImpaCode}
                   keyboardType="numeric"
+                  onFocus={() => scrollTo(420)}
                 />
               </View>
             </View>
@@ -392,7 +412,7 @@ export function StockAddEditScreen() {
               <Text style={styles.saveButtonText}>Kartı Kaydet</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </SafeKeyboardScrollView>
       </KeyboardAvoidingView>
 
       <CameraScannerModal
