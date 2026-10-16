@@ -15,6 +15,7 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { StockAddEditScreen } from '../screens/StockAddEditScreen';
 
 import { PackingListScreen } from '../screens/PackingListScreen';
+import { PackingSuppliersScreen } from '../screens/PackingSuppliersScreen';
 import { PackingBoardScreen } from '../screens/PackingBoardScreen';
 import { BinQueryScreen } from '../screens/BinQueryScreen';
 import { BinTransferScreen } from '../screens/BinTransferScreen';
@@ -29,6 +30,7 @@ export function InventoryStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="PackingList" component={PackingListScreen} />
+      <Stack.Screen name="PackingSuppliers" component={PackingSuppliersScreen} />
       <Stack.Screen name="PackingBoard" component={PackingBoardScreen} />
       <Stack.Screen name="ProductCheck" component={ProductCheckScreen} />
       <Stack.Screen name="StockDecrease" component={StockDecreaseScreen} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { CustomIcon } from './CustomIcon';
+import { useNavigation } from '@react-navigation/native';
 import { useSettingsStore } from '../store/settingsStore';
 import { getWarehouses, Warehouse, getPrinters, PrinterDto } from '../services/inventory';
 import { Colors, Typography, Spacing, BorderRadius, Shadow } from '../theme';
@@ -48,7 +49,7 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
       setPrinters(list);
       
       if (list.length > 0 && !activePrinterId) {
-        setActivePrinter(list[0].id, list[0].name);
+        setActivePrinter(list[0].id, list[0].name, list[0].ipAddress, list[0].port);
       }
     } catch {
       showToast({ message: 'Yazıcılar yüklenirken hata oluştu', type: 'error' });
@@ -91,6 +92,8 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
     }
   };
 
+  const navigation = useNavigation<any>();
+
   const handleSave = () => {
     if (!activeWarehouseId) {
       showToast({ message: 'Lütfen aktif depo seçimi yapın!', type: 'info' });
@@ -100,10 +103,35 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
     onClose();
   };
 
+  const handleGoToSettings = () => {
+    onClose();
+    navigation.navigate('Settings');
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={() => {}}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.card}>
+          {/* Üst Kapat / Ayarlar Çubuğu */}
+          <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xs }}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: Spacing.xs }}
+              onPress={handleGoToSettings}
+              activeOpacity={0.7}
+            >
+              <CustomIcon name="cog-outline" size={20} color={Colors.primary} />
+              <Text style={{ ...Typography.labelMd, color: Colors.primary }}>Sunucu Ayarları</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surfaceContainerHigh }}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <CustomIcon name="close" size={20} color={Colors.onSurfaceVariant} />
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.iconContainer}>
             <CustomIcon name="cog" size={32} color={Colors.primary} />
           </View>
@@ -129,7 +157,7 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
             </TouchableOpacity>
 
             {/* Yazıcı Seçimi */}
-            <Text style={styles.label}>Aktif Yazıcı</Text>
+            <Text style={styles.label}>Aktif Yazıcı (İsteğe Bağlı)</Text>
             <TouchableOpacity 
               style={styles.selectButton} 
               onPress={() => setPickerType('printer')}
@@ -224,12 +252,13 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
                 ) : (
                   printers.map((p) => {
                     const isSelected = activePrinterId === p.id;
+                    const ipText = p.ipAddress ? ` (${p.ipAddress}:${p.port || 6101})` : '';
                     return (
                       <TouchableOpacity
                         key={p.id}
                         style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
                         onPress={() => {
-                          setActivePrinter(p.id, p.name);
+                          setActivePrinter(p.id, p.name, p.ipAddress, p.port);
                           setPickerType('none');
                         }}
                         activeOpacity={0.7}
@@ -239,9 +268,16 @@ export function StartupConfigModal({ visible, onClose }: StartupConfigModalProps
                           size={24}
                           color={isSelected ? Colors.primary : Colors.outline}
                         />
-                        <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
-                          {p.name}
-                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
+                            {p.name}
+                          </Text>
+                          {!!p.ipAddress && (
+                            <Text style={{ ...Typography.labelSm, color: isSelected ? Colors.onPrimaryFixedVariant : Colors.outline }}>
+                              IP: {p.ipAddress}:{p.port || 6101}
+                            </Text>
+                          )}
+                        </View>
                       </TouchableOpacity>
                     );
                   })

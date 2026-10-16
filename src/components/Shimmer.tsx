@@ -42,8 +42,8 @@ export function Shimmer({
       style={[
         styles.shimmer,
         {
-          width,
-          height,
+          width: width as any,
+          height: height as any,
           borderRadius,
           opacity: animatedValue,
         },

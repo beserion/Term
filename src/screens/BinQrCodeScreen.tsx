@@ -24,7 +24,7 @@ import { ScalePressable } from '../components/ScalePressable';
 export function BinQrCodeScreen() {
   const navigation = useNavigation<any>();
   const showToast = useUIStore((s) => s.showToast);
-  const { activeWarehouseName, activePrinterId, activePrinterName, setActivePrinter } = useSettingsStore();
+  const { activeWarehouseName, activePrinterId, activePrinterName, activePrinterIp, activePrinterPort, setActivePrinter } = useSettingsStore();
 
   const [activeTab, setActiveTab] = useState<'single' | 'batch'>('single');
 
@@ -54,7 +54,7 @@ export function BinQrCodeScreen() {
       .then((list) => {
         setPrinters(list || []);
         if (list.length > 0 && activePrinterId === null) {
-          setActivePrinter(list[0].id, list[0].name);
+          setActivePrinter(list[0].id, list[0].name, list[0].ipAddress, list[0].port);
         }
       })
       .catch(() => setPrinters([]));
@@ -114,7 +114,7 @@ export function BinQrCodeScreen() {
       showToast({ message: 'Geçerli bir raf kodu girin.', type: 'error' });
       return;
     }
-    if (!activePrinterId) {
+    if (!activePrinterId && !activePrinterIp) {
       setShowPrinterModal(true);
       return;
     }
@@ -123,19 +123,10 @@ export function BinQrCodeScreen() {
     try {
       const selectedPrinter = printers.find((p) => p.id === activePrinterId);
       const cpcl = generateBinCpclData(code, locationName, activeWarehouseName || '');
+      const printerIp = selectedPrinter?.ipAddress || activePrinterIp || '';
+      const printerPort = selectedPrinter?.port || activePrinterPort || 6101;
 
-      if (selectedPrinter) {
-        // Direct TCP / HTTP printing to printer
-        const printerIp = (selectedPrinter as any).ipAddress || '192.168.1.100';
-        const printerPort = (selectedPrinter as any).port || 6101;
-        await sendCpclToPrinter(printerIp, printerPort, cpcl);
-      } else {
-        await printLabel({
-          printerId: activePrinterId,
-          qrCode: code,
-          quantity: parseInt(printQty, 10) || 1,
-        });
-      }
+      await sendCpclToPrinter(printerIp, printerPort, cpcl);
 
       FeedbackService.playSuccess();
       showToast({ message: `"${code}" raf QR etiketi yazıcıya gönderildi.`, type: 'success' });
@@ -152,7 +143,7 @@ export function BinQrCodeScreen() {
       showToast({ message: 'Önce toplu raf kodlarını oluşturun.', type: 'error' });
       return;
     }
-    if (!activePrinterId) {
+    if (!activePrinterId && !activePrinterIp) {
       setShowPrinterModal(true);
       return;
     }
@@ -160,8 +151,8 @@ export function BinQrCodeScreen() {
     setPrinting(true);
     try {
       const selectedPrinter = printers.find((p) => p.id === activePrinterId);
-      const printerIp = (selectedPrinter as any)?.ipAddress || '192.168.1.100';
-      const printerPort = (selectedPrinter as any)?.port || 6101;
+      const printerIp = selectedPrinter?.ipAddress || activePrinterIp || '';
+      const printerPort = selectedPrinter?.port || activePrinterPort || 6101;
 
       for (const code of generatedBatchCodes) {
         const cpcl = generateBinCpclData(code, `TOPLU RAF BASIMI`, activeWarehouseName || '');

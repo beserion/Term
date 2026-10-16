@@ -7,13 +7,18 @@ const STORAGE_KEYS = {
   API_BASE_URL: '@wms_api_base_url',
 } as const;
 
-const DEFAULT_API_BASE_URL = 'https://arkship.posnetx.com/api';
+const DEFAULT_API_BASE_URL = 'https://api.blackskyqore.com/AppApi/api';
 
 /** API Base URL'i al (Kayıtlı URL yoksa varsayılanı döndürür) */
 async function getApiBaseUrl(): Promise<string> {
   try {
     const savedUrl = await AsyncStorage.getItem(STORAGE_KEYS.API_BASE_URL);
     if (savedUrl && savedUrl.trim().length > 0) {
+      if (savedUrl.includes('api.blackskyqore.com/api') && !savedUrl.includes('/AppApi/api')) {
+        const upgraded = savedUrl.replace('api.blackskyqore.com/api', 'api.blackskyqore.com/AppApi/api').trim();
+        await AsyncStorage.setItem(STORAGE_KEYS.API_BASE_URL, upgraded);
+        return upgraded;
+      }
       return savedUrl.trim();
     }
   } catch (error) {

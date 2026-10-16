@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, FlatList } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { CustomIcon } from '../components/CustomIcon';
@@ -55,6 +55,7 @@ export function StockIncreaseScreen() {
     const normalizedScanned = normalizeText(scannedBarcode);
     const matchedLocal = stocks.find(
       s => (s.barCode && normalizeText(s.barCode) === normalizedScanned) || 
+           (s.qrCode && normalizeText(s.qrCode) === normalizedScanned) ||
            (s.stockCode && normalizeText(s.stockCode) === normalizedScanned)
     );
 
@@ -109,11 +110,14 @@ export function StockIncreaseScreen() {
   const filteredStocks = stocks.filter((item) => {
     if (!searchQuery.trim()) return true;
     const searchString = [
+      item.barCode,
+      item.qrCode,
+      item.stockCode,
       item.stockName,
       item.stockNameTr,
-      item.stockCode,
       item.brand,
       item.model,
+      item.description,
       item.impaCode
     ].filter(Boolean).join(' ');
     return flexMatch(searchString, searchQuery);

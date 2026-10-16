@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import { Numpad } from '../components/Numpad';
 import { useSettingsStore } from '../store/settingsStore';
 import { Modal } from 'react-native';
 import { FeedbackService } from '../services/feedback';
-import { sendCpclToPrinter } from '../services/printHelper';
+import { sendCpclToPrinter, executePrintJob } from '../services/printHelper';
 import { flexMatch, normalizeText } from '../utils/searchHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
 
@@ -30,7 +30,7 @@ import { CameraScannerModal } from '../components/CameraScannerModal';
 export function LabelPrintScreen() {
   const navigation = useNavigation<any>();
   const showToast = useUIStore((s) => s.showToast);
-  const { activePrinterId, activePrinterName, setActivePrinter } = useSettingsStore();
+  const { activePrinterId, activePrinterName, activePrinterIp, activePrinterPort, setActivePrinter } = useSettingsStore();
 
   const [barcode, setBarcode] = useState('');
   const [manualBarcode, setManualBarcode] = useState('');
@@ -62,7 +62,7 @@ export function LabelPrintScreen() {
         if (list.length > 0) {
           const exists = list.some(p => p.id === activePrinterId);
           if (!exists || activePrinterId === null) {
-            setActivePrinter(list[0].id, list[0].name);
+            setActivePrinter(list[0].id, list[0].name, list[0].ipAddress, list[0].port);
           }
         }
       } catch (err) {
@@ -112,6 +112,7 @@ export function LabelPrintScreen() {
     const normalizedScanned = normalizeText(scannedBarcode);
     const matchedLocal = stocks.find(
       s => (s.barCode && normalizeText(s.barCode) === normalizedScanned) || 
+           (s.qrCode && normalizeText(s.qrCode) === normalizedScanned) ||
            (s.stockCode && normalizeText(s.stockCode) === normalizedScanned)
     );
 
@@ -187,11 +188,14 @@ export function LabelPrintScreen() {
   const filteredStocks = stocks.filter((item) => {
     if (!searchQuery.trim()) return true;
     const searchString = [
+      item.barCode,
+      item.qrCode,
+      item.stockCode,
       item.stockName,
       item.stockNameTr,
-      item.stockCode,
       item.brand,
       item.model,
+      item.description,
       item.impaCode
     ].filter(Boolean).join(' ');
     return flexMatch(searchString, searchQuery);
@@ -208,7 +212,7 @@ export function LabelPrintScreen() {
   // Etiket Yazdırma tetikleyicisi
   const triggerPrint = async (barcodeToPrint: string) => {
     if (!barcodeToPrint) return;
-    if (activePrinterId === null) {
+    if (activePrinterId === null && !activePrinterIp) {
       showToast({ message: 'Lütfen önce bir yazıcı seçin.', type: 'info' });
       setShowPrinterModal(true);
       return;
@@ -216,20 +220,14 @@ export function LabelPrintScreen() {
 
     setPrinting(true);
     try {
-      // 1. API'den CPCL verisini ve yazıcı IP/Port bilgilerini al
-      const result = await printLabel({
+      await executePrintJob({
         printerId: activePrinterId,
+        printerIp: activePrinterIp,
+        printerPort: activePrinterPort,
         barcode: barcodeToPrint,
-        qrCode: barcodeToPrint,
-        quantity: quantity
+        title: product?.stockName || 'BLUEHUB ETİKET',
+        quantity: quantity,
       });
-
-      if (!result.cpclData || !result.printerIp) {
-        throw new Error('API\'den CPCL veri veya IP adresi dönmedi.');
-      }
-
-      // 2. TCP Soketi üzerinden yazıcıya CPCL verisini doğrudan gönder
-      await sendCpclToPrinter(result.printerIp, result.printerPort || 6101, result.cpclData);
 
       showToast({
         message: `${quantity} adet etiket yazıcıya başarıyla gönderildi.`,
@@ -517,7 +515,7 @@ export function LabelPrintScreen() {
                       key={p.id}
                       style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
                       onPress={() => {
-                        setActivePrinter(p.id, p.name);
+                        setActivePrinter(p.id, p.name, p.ipAddress, p.port);
                         setShowPrinterModal(false);
                         showToast({ message: 'Aktif yazıcı güncellendi', type: 'success' });
                       }}
@@ -528,9 +526,16 @@ export function LabelPrintScreen() {
                         size={24}
                         color={isSelected ? Colors.primary : Colors.outline}
                       />
-                      <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
-                        {p.name}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextActive]}>
+                          {p.name}
+                        </Text>
+                        {!!p.ipAddress && (
+                          <Text style={{ ...Typography.labelSm, color: isSelected ? Colors.onPrimaryFixedVariant : Colors.outline }}>
+                            IP: {p.ipAddress}:{p.port || 6101}
+                          </Text>
+                        )}
+                      </View>
                     </TouchableOpacity>
                   );
                 })

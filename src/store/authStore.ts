@@ -53,7 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       return true;
     } catch (error: any) {
-      // .NET Core 400 Bad Request Validation hatalarını ayrıştır
+      // .NET Core 400/401 Validation ve Network hatalarını ayrıştır
       let message = 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.';
       if (error?.response?.data) {
         const data = error.response.data;
@@ -69,6 +69,10 @@ export const useAuthStore = create<AuthState>((set) => ({
             message += ` ${errs}`;
           }
         }
+      } else if (error?.code === 'ERR_NETWORK' || error?.message === 'Network Error') {
+        message = 'Sunucuya ulaşılamıyor. Lütfen internet bağlantınızı ve Sunucu Ayarları (API Adresi) alanını kontrol edin.';
+      } else if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        message = 'Sunucu yanıt vermedi (Zaman aşımı). Lütfen ağ bağlantınızı ve sunucu adresini kontrol edin.';
       } else if (error?.message) {
         message = error.message;
       }

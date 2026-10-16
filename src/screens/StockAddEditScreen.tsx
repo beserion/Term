@@ -23,17 +23,54 @@ import { addStock, updateStock, printLabel, getStocks, Stock, uploadImage } from
 import { useUIStore } from '../store/uiStore';
 import { FeedbackService } from '../services/feedback';
 import { useSettingsStore } from '../store/settingsStore';
-import { sendCpclToPrinter } from '../services/printHelper';
+import { sendCpclToPrinter, executePrintJob } from '../services/printHelper';
 import { CameraScannerModal } from '../components/CameraScannerModal';
+<<<<<<< HEAD
 import { resolveImageUri as resolveImageUriUtil } from '../utils/imageHelper';
 import { Config } from '../config';
+=======
+import { SafeKeyboardScrollView } from '../components/SafeKeyboardScrollView';
+
+/** Benzersiz sonraki STK kodunu üretir */
+function generateNextStockCode(allStocks: Stock[]): string {
+  const existingStockCodes = new Set(
+    allStocks.map(s => s.stockCode?.trim().toUpperCase()).filter(Boolean)
+  );
+
+  let maxStkNum = 0;
+  for (const s of allStocks) {
+    const code = (s.stockCode || '').trim();
+    const match = code.match(/^STK-(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num < 1000000 && num > maxStkNum) {
+        maxStkNum = num;
+      }
+    }
+  }
+
+  let nextNum = maxStkNum > 0 ? maxStkNum + 1 : 1;
+  let candidate = `STK-${String(nextNum).padStart(6, '0')}`;
+  let attempts = 0;
+  while (existingStockCodes.has(candidate.toUpperCase()) && attempts < 1000) {
+    nextNum++;
+    candidate = `STK-${String(nextNum).padStart(6, '0')}`;
+    attempts++;
+  }
+
+  if (existingStockCodes.has(candidate.toUpperCase())) {
+    candidate = `STK-${Date.now().toString().slice(-6)}`;
+  }
+  return candidate;
+}
+>>>>>>> develop
 
 export function StockAddEditScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const showToast = useUIStore((s) => s.showToast);
-  const { activePrinterId } = useSettingsStore();
+  const { activePrinterId, activePrinterIp, activePrinterPort } = useSettingsStore();
 
   const existingProduct = route.params?.product as Stock | undefined;
   const initialBarcode = route.params?.barcode || '';
@@ -66,6 +103,21 @@ export function StockAddEditScreen() {
   }, []);
 
   const resolvedPhoto = photoUri ? resolveImageUriUtil(photoUri, baseUrl, fullApiUrl) : undefined;
+
+  // Yeni stok kartı oluştururken stok kodu boşsa arka planda sıradaki kodu hazırla
+  useEffect(() => {
+    if (!isEditMode && !stockCode) {
+      (async () => {
+        try {
+          const allStocks = await getStocks();
+          const nextCode = generateNextStockCode(allStocks);
+          setStockCode(nextCode);
+        } catch (e) {
+          // Sessiz geç, kaydederken tekrar denenecek
+        }
+      })();
+    }
+  }, [isEditMode]);
 
   // Zebra DataWedge okuyucu entegrasyonu
   useBarcode((scannedBarcode) => {
@@ -123,38 +175,10 @@ export function StockAddEditScreen() {
       showToast({ message: 'Lütfen stok adını girin.', type: 'error' });
       return;
     }
-    let finalBarcode = barcode.trim();
-    if (!finalBarcode) {
-      try {
-        // 1. Mevcut tüm stokları çekip barkod listesini çıkaralım
-        const allStocks = await getStocks();
-        const existingBarcodes = new Set(
-          allStocks.map(s => s.barCode?.trim()).filter(Boolean)
-        );
-
-        // 2. Benzersiz olan barkodu bulana kadar döngü çalıştır
-        let generated = '';
-        let attempts = 0;
-        do {
-          const timestamp = (Date.now() + attempts).toString();
-          generated = '20' + timestamp.slice(-11);
-          attempts++;
-        } while (existingBarcodes.has(generated) && attempts < 100);
-
-        finalBarcode = generated;
-      } catch (err) {
-        // Fallback: API veya bağlantı hatasında direkt zaman damgası ata
-        finalBarcode = '20' + Date.now().toString().slice(-11);
-      }
-
-      setBarcode(finalBarcode);
-      showToast({ message: 'Barkodsuz ürün için benzersiz barkod üretildi: ' + finalBarcode, type: 'info' });
-    }
-
-    let finalStockCode = stockCode.trim() || null;
 
     setSaving(true);
     try {
+<<<<<<< HEAD
       let finalPhotoPath = photoUri.trim();
       if (finalPhotoPath && (finalPhotoPath.startsWith('file:') || finalPhotoPath.startsWith('content:') || finalPhotoPath.startsWith('data:'))) {
         try {
@@ -165,6 +189,43 @@ export function StockAddEditScreen() {
         } catch (upErr: any) {
           console.error('Fotoğraf yüklenirken hata:', upErr);
           showToast({ message: 'Fotoğraf yüklenemedi ancak kayıt işlemine devam ediliyor.', type: 'info' });
+=======
+      let finalBarcode = barcode.trim();
+      let finalStockCode = stockCode.trim();
+
+      // Barkod veya Stok Kodu boş ise sistem otomatik olarak benzersiz değerler üretir
+      if (!finalBarcode || !finalStockCode) {
+        let allStocks: Stock[] = [];
+        try {
+          allStocks = await getStocks();
+        } catch (err) {
+          console.warn('Mevcut stoklar getirilemedi:', err);
+        }
+
+        // 1. Barkod boşsa otomatik üret
+        if (!finalBarcode) {
+          const existingBarcodes = new Set(
+            allStocks.map(s => s.barCode?.trim()).filter(Boolean)
+          );
+          let generated = '';
+          let attempts = 0;
+          do {
+            const timestamp = (Date.now() + attempts).toString();
+            generated = '20' + timestamp.slice(-11);
+            attempts++;
+          } while (existingBarcodes.has(generated) && attempts < 100);
+
+          finalBarcode = generated || ('20' + Date.now().toString().slice(-11));
+          setBarcode(finalBarcode);
+          showToast({ message: 'Barkodsuz ürün için benzersiz barkod üretildi: ' + finalBarcode, type: 'info' });
+        }
+
+        // 2. Stok Kodu boşsa otomatik üret
+        if (!finalStockCode) {
+          finalStockCode = generateNextStockCode(allStocks);
+          setStockCode(finalStockCode);
+          showToast({ message: 'Stok kodu otomatik üretildi: ' + finalStockCode, type: 'info' });
+>>>>>>> develop
         }
       }
 
@@ -181,9 +242,14 @@ export function StockAddEditScreen() {
         qty: parseFloat(qty) || 0,
         shelfAddress: shelfAddress.trim() || null,
         impaCode: impaCode.trim() || null,
+<<<<<<< HEAD
         photo: finalPhotoPath || null,
         imageUrl: finalPhotoPath || null,
+=======
+        photoUrl: existingProduct?.photoUrl || existingProduct?.photo || existingProduct?.imageUrl || null,
+>>>>>>> develop
       };
+
 
       let result;
       if (isEditMode) {
@@ -212,20 +278,15 @@ export function StockAddEditScreen() {
               text: 'Yazdır',
               onPress: async () => {
                 try {
-                  const printResult = await printLabel({
+                  await executePrintJob({
                     printerId: activePrinterId,
+                    printerIp: activePrinterIp,
+                    printerPort: activePrinterPort,
                     barcode: codeToPrint,
-                    qrCode: codeToPrint,
+                    title: stockName || 'BLUEHUB STOK ETİKETİ',
                     quantity: 1,
                   });
-                  if (printResult.cpclData && printResult.printerIp) {
-                    await sendCpclToPrinter(
-                      printResult.printerIp,
-                      printResult.printerPort || 6101,
-                      printResult.cpclData
-                    );
-                    showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
-                  }
+                  showToast({ message: 'Etiket yazıcıya gönderildi.', type: 'success' });
                 } catch (printErr: any) {
                   showToast({ message: 'Etiket yazdırma hatası: ' + printErr.message, type: 'error' });
                 } finally {
@@ -248,6 +309,13 @@ export function StockAddEditScreen() {
     }
   };
 
+  const scrollRef = React.useRef<ScrollView>(null);
+  const scrollTo = (y: number) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y, animated: true });
+    }, 150);
+  };
+
   return (
     <View style={styles.container}>
       <TopAppBar
@@ -258,10 +326,10 @@ export function StockAddEditScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView
+        <SafeKeyboardScrollView
+          ref={scrollRef}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          extraHeight={100}
         >
           {saving && (
             <View style={styles.loadingOverlay}>
@@ -325,6 +393,7 @@ export function StockAddEditScreen() {
                   placeholderTextColor={Colors.outline}
                   value={barcode}
                   onChangeText={setBarcode}
+                  onFocus={() => scrollTo(0)}
                 />
                 <TouchableOpacity
                   style={[styles.barcodeIcon, { backgroundColor: Colors.secondaryContainer, width: 38, height: 38, borderRadius: BorderRadius.xs, alignItems: 'center', justifyContent: 'center' }]}
@@ -339,14 +408,15 @@ export function StockAddEditScreen() {
 
             {/* Stok Kodu */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>STOK KODU (OPSİYONEL)</Text>
+              <Text style={styles.label}>STOK KODU (BOŞSA OTOMATİK ÜRETİLİR)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Örn: STK-001"
+                placeholder="Örn: STK-005530"
                 placeholderTextColor={Colors.outline}
                 value={stockCode}
                 onChangeText={setStockCode}
                 autoCapitalize="characters"
+                onFocus={() => scrollTo(60)}
               />
             </View>
 
@@ -359,6 +429,7 @@ export function StockAddEditScreen() {
                 placeholderTextColor={Colors.outline}
                 value={stockName}
                 onChangeText={setStockName}
+                onFocus={() => scrollTo(130)}
               />
             </View>
 
@@ -371,6 +442,7 @@ export function StockAddEditScreen() {
                 placeholderTextColor={Colors.outline}
                 value={stockNameTr}
                 onChangeText={setStockNameTr}
+                onFocus={() => scrollTo(200)}
               />
             </View>
 
@@ -384,6 +456,7 @@ export function StockAddEditScreen() {
                   placeholderTextColor={Colors.outline}
                   value={brand}
                   onChangeText={setBrand}
+                  onFocus={() => scrollTo(270)}
                 />
               </View>
               <View style={[styles.inputGroup, styles.flex1]}>
@@ -394,6 +467,7 @@ export function StockAddEditScreen() {
                   placeholderTextColor={Colors.outline}
                   value={model}
                   onChangeText={setModel}
+                  onFocus={() => scrollTo(270)}
                 />
               </View>
             </View>
@@ -409,6 +483,7 @@ export function StockAddEditScreen() {
                   value={unit}
                   onChangeText={setUnit}
                   autoCapitalize="characters"
+                  onFocus={() => scrollTo(340)}
                 />
               </View>
               <View style={[styles.inputGroup, styles.flex1]}>
@@ -420,6 +495,7 @@ export function StockAddEditScreen() {
                   keyboardType="numeric"
                   value={qty}
                   onChangeText={setQty}
+                  onFocus={() => scrollTo(340)}
                 />
               </View>
             </View>
@@ -435,6 +511,7 @@ export function StockAddEditScreen() {
                   value={shelfAddress}
                   onChangeText={setShelfAddress}
                   autoCapitalize="characters"
+                  onFocus={() => scrollTo(420)}
                 />
               </View>
               <View style={[styles.inputGroup, styles.flex1]}>
@@ -446,6 +523,7 @@ export function StockAddEditScreen() {
                   value={impaCode}
                   onChangeText={setImpaCode}
                   keyboardType="numeric"
+                  onFocus={() => scrollTo(420)}
                 />
               </View>
             </View>
@@ -461,7 +539,7 @@ export function StockAddEditScreen() {
               <Text style={styles.saveButtonText}>Kartı Kaydet</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </SafeKeyboardScrollView>
       </KeyboardAvoidingView>
 
       <CameraScannerModal

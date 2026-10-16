@@ -5,7 +5,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Shadow, BorderRadius } from '../theme';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { StartupConfigModal } from '../components/StartupConfigModal';
+import { NotificationsModal } from '../components/NotificationsModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function DashboardScreen() {
@@ -13,7 +15,13 @@ export function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const { activeWarehouseId, activeWarehouseName, activePrinterId, activePrinterName } = useSettingsStore();
+  const { unreadCount, loadNotifications } = useNotificationStore();
   const [startupModalVisible, setStartupModalVisible] = useState(false);
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   useEffect(() => {
     // Depo seçilmemişse başlangıç modalını zorunlu olarak aç (yazıcı seçimi isteğe bağlıdır)
@@ -45,8 +53,8 @@ export function DashboardScreen() {
     },
     {
       title: 'Mal Kabul',
-      icon: 'plus-circle' as const,
-      onPress: () => navigation.navigate('StockIncrease'),
+      icon: 'truck-delivery-outline' as const,
+      onPress: () => navigation.navigate('ReceivingStack'),
     },
     {
       title: 'Mal Çıkış',
@@ -70,13 +78,13 @@ export function DashboardScreen() {
     },
     {
       title: 'Depo Transferi',
-      icon: 'truck-delivery-outline' as const,
+      icon: 'swap-horizontal' as const,
       onPress: () => navigation.navigate('StockTransfer'),
     },
     {
-      title: 'Siparişler',
-      icon: 'clipboard-list-outline' as const,
-      onPress: () => navigation.navigate('ReceivingStack'),
+      title: 'Manuel Giriş',
+      icon: 'plus-circle' as const,
+      onPress: () => navigation.navigate('StockIncrease'),
     },
     {
       title: 'Barkod Eşleme',
@@ -111,7 +119,22 @@ export function DashboardScreen() {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
-        <View style={{ width: 40 }} />
+        {/* Bildirimler Butonu */}
+        <TouchableOpacity
+          style={styles.notifButton}
+          activeOpacity={0.7}
+          onPress={() => setNotificationsModalVisible(true)}
+        >
+          <CustomIcon name="bell-outline" size={24} color="#ffffff" />
+          {unreadCount > 0 ? (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
+
         <Text style={styles.headerTitle}>BlueHub Depo</Text>
         <TouchableOpacity
           style={styles.settingsButton}
@@ -163,6 +186,11 @@ export function DashboardScreen() {
         visible={startupModalVisible}
         onClose={() => setStartupModalVisible(false)}
       />
+
+      <NotificationsModal
+        visible={notificationsModalVisible}
+        onClose={() => setNotificationsModalVisible(false)}
+      />
     </View>
   );
 }
@@ -171,6 +199,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f4f6fa',
+  },
+  notifButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#EF4444',
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  notifBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: 'bold',
   },
   header: {
     flexDirection: 'row',

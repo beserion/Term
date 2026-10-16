@@ -52,21 +52,29 @@ export async function createApiInstance(): Promise<AxiosInstance> {
     (response) => {
       console.log(`[API YANIT] ✅ ${response.config.method?.toUpperCase()} ${response.config.url} (${response.status})`);
       if (response.data) {
-        const dataStr = typeof response.data === 'object' ? JSON.stringify(response.data).substring(0, 200) : String(response.data).substring(0, 200);
-        console.log(`[API VERİ] 📦 Data: ${dataStr}...`);
+        try {
+          const dataStr = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+          if (dataStr.length > 500) {
+            console.log(`[API VERI] 📦 URL: ${response.config.url} -> (${dataStr.length} chars)`);
+          } else {
+            console.log(`[API VERI] 📦 URL: ${response.config.url} -> ${dataStr}`);
+          }
+        } catch {
+          // ignore
+        }
       }
       return response;
     },
     async (error: AxiosError) => {
-      // API Hatalarını terminale detaylı bas
-      console.error("=== API YANIT HATASI ===");
-      console.error(`İstek Yolu (Path): ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
-      console.error(`Hata Mesajı (Message): ${error.message}`);
+      // API Hatalarını konsola detaylı bas
+      console.log("=== API YANIT HATASI ===");
+      console.log(`İstek Yolu (Path): ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+      console.log(`Hata Mesajı (Message): ${error.message}`);
       if (error.response) {
-        console.error(`Durum (Status): ${error.response.status}`);
-        console.error(`Yanıt Verisi (Data):`, JSON.stringify(error.response.data, null, 2));
+        console.log(`Durum (Status): ${error.response.status}`);
+        console.log(`Yanıt Verisi (Data):`, JSON.stringify(error.response.data, null, 2));
       }
-      console.error("=======================");
+      console.log("=======================");
 
       // 401 Unauthorized ise yerel verileri temizle (kullanıcıyı login ekranına düşür)
       if (error.response?.status === 401) {
